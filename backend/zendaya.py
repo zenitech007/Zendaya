@@ -91,7 +91,16 @@ AUTO_SEARCH_KEYWORDS = [
 ]
 
 # Force ElevenLabs voice ID - override memory settings
-FORCE_ELEVENLABS_VOICE_ID = "mxTlDrtKZzOqgjtBw4hM"
+FORCE_ELEVENLABS_VOICE_ID = "mxTlDrtKZzOqgjtBw4hM"  # Zendaya's signature voice - NEVER CHANGE
+
+# Enhanced error understanding and communication
+COMMUNICATION_ENHANCEMENTS = {
+    "noise_cancellation": True,
+    "context_awareness": True,
+    "error_correction": True,
+    "clarification_intelligence": True,
+    "offline_mode": True
+}
 
 # Google API Scopes
 GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
@@ -116,8 +125,16 @@ def _play_audio_async(file_path):
 
 def speak_async(text: str, voice_id: str):
     """Sends text to ElevenLabs and plays the audio asynchronously."""
-    # Force use of specific ElevenLabs voice ID
+    # ABSOLUTE FORCE: Always use Zendaya's voice ID - no exceptions
     voice_id = FORCE_ELEVENLABS_VOICE_ID
+    
+    # Enhanced voice settings for perfect clarity
+    enhanced_settings = {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0.25,
+        "use_speaker_boost": True
+    }
     
     if not _ELEVENLABS_READY or 'playsound' not in globals():
         speak_system_fallback(text)
@@ -132,7 +149,7 @@ def speak_async(text: str, voice_id: str):
     data = {
         "text": text,
         "model_id": "eleven_multilingual_v2",
-        "voice_settings": { "stability": 0.5, "similarity_boost": 0.75 }
+        "voice_settings": enhanced_settings
     }
     
     try:
@@ -420,11 +437,17 @@ SYSTEM_PROMPT = (
 def gemini_reply(user_text: str, search_context: Optional[str]) -> str:
     if not _GEMINI_READY:
         return "My online brain is offline — add GEMINI_API_KEY to .env."
+    
+    # Enhanced error understanding and context analysis
+    processed_text = enhance_user_input(user_text)
+    
     model = genai.GenerativeModel("gemini-1.5-flash")
     memory_bits = []
     
     if MEM.get("professional_mode", False):
         memory_bits.append("IMPORTANT: Professional mode is active. Your response must be formal.")
+    else:
+        memory_bits.append("PERSONALITY: You are Zendaya - confident, brilliant, witty like JARVIS and Griot. Never admit limitations - always find solutions.")
 
     if MEM.get("user_name"):
         memory_bits.append(f"The user's name is {MEM['user_name']}.")
@@ -444,7 +467,7 @@ def gemini_reply(user_text: str, search_context: Optional[str]) -> str:
     if search_context:
         parts.append(f"Search snippets:\n{search_context}\n")
 
-    parts.append(f"User: {user_text}\n{PERSONA_NAME}:")
+    parts.append(f"User: {processed_text}\n{PERSONA_NAME}:")
 
     try:
         resp = model.generate_content(parts)
@@ -452,6 +475,79 @@ def gemini_reply(user_text: str, search_context: Optional[str]) -> str:
     except Exception as e:
         return f"(AI error: {e})"
 
+def enhance_user_input(user_text: str) -> str:
+    """Enhanced input processing with error correction and context understanding"""
+    
+    # Common speech recognition corrections
+    corrections = {
+        "open up": "open",
+        "turn up": "turn on",
+        "turn down": "turn off", 
+        "close down": "close",
+        "wife i": "wifi",
+        "blue tooth": "bluetooth",
+        "see you": "cpu",
+        "ram memory": "ram",
+        "the vice": "device",
+        "sister": "system",
+        "central": "control",
+        "calender": "calendar",
+        "column": "volume"
+    }
+    
+    processed = user_text.lower()
+    for error, correction in corrections.items():
+        processed = processed.replace(error, correction)
+    
+    # Restore original casing for proper nouns
+    if "zendaya" in processed:
+        processed = processed.replace("zendaya", "Zendaya")
+    
+    return processed
+
+def analyze_user_intent(user_text: str) -> Dict[str, Any]:
+    """Advanced intent analysis with context understanding"""
+    
+    intent_patterns = {
+        "device_control": [
+            r"\b(open|close|start|stop|launch|quit|turn|switch|set|adjust)\b",
+            r"\b(volume|brightness|temperature|lights|music|tv)\b"
+        ],
+        "system_query": [
+            r"\b(status|performance|health|info|check|show|display)\b",
+            r"\b(cpu|memory|ram|disk|battery|system|computer)\b"
+        ],
+        "file_management": [
+            r"\b(file|folder|document|copy|move|delete|find|search)\b",
+            r"\b(desktop|downloads|documents|pictures)\b"
+        ],
+        "communication": [
+            r"\b(email|message|calendar|meeting|appointment|schedule)\b",
+            r"\b(send|receive|reply|remind|notification)\b"
+        ]
+    }
+    
+    detected_intents = []
+    confidence_scores = {}
+    
+    for intent, patterns in intent_patterns.items():
+        score = 0
+        for pattern in patterns:
+            if re.search(pattern, user_text.lower()):
+                score += 1
+        
+        if score > 0:
+            detected_intents.append(intent)
+            confidence_scores[intent] = score / len(patterns)
+    
+    primary_intent = max(confidence_scores.items(), key=lambda x: x[1])[0] if confidence_scores else "general"
+    
+    return {
+        "primary_intent": primary_intent,
+        "all_intents": detected_intents,
+        "confidence_scores": confidence_scores,
+        "needs_clarification": max(confidence_scores.values()) < 0.5 if confidence_scores else True
+    }
 # -----------------------
 # Command Parsers
 # -----------------------
