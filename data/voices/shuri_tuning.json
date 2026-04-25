@@ -1,0 +1,8 @@
+{
+  "name": "shuri_xtts_v2",
+  "coqui_model": "tts_models/multilingual/multi-dataset/xtts_v2",
+  "rate": 1.02,
+  "pitch_shift": -0.3,
+  "intonation": 1.08,
+  "accent_bias": "african_english"
+}
