@@ -14,7 +14,8 @@ export function useZendayaVoice(sessionId: string | null) {
 
   const connectWebSocket = () => {
     if (!sessionId) return;
-    const ws = new WebSocket(`ws://localhost:8000/ws/voice?session_id=${sessionId}`);
+    const wsBase = (import.meta.env.VITE_VOICE_WS_URL || import.meta.env.VITE_WS_BACKEND_URL || "ws://localhost:8000").replace(/\/$/, "");
+    const ws = new WebSocket(`${wsBase}/ws/voice?session_id=${sessionId}`);
     ws.binaryType = "arraybuffer";
     wsRef.current = ws;
 

@@ -7,7 +7,8 @@ const Hologram: React.FC = () => {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    wsRef.current = new WebSocket("ws://127.0.0.1:8000/ws/hologram");
+    const wsBase = (import.meta.env.VITE_WS_BACKEND_URL || "ws://127.0.0.1:8000").replace(/\/$/, "");
+    wsRef.current = new WebSocket(`${wsBase}/ws/hologram`);
     wsRef.current.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.event === "hologram_pulse") {

@@ -93,7 +93,7 @@ const RouteWrapper = () => {
 
   // ✅ voice + wakeword engine initialization
   // useVoiceInterface(); // ⛔️ THIS IS NOW COMMENTED OUT
-  useWakeWord(); // Note: You may want to comment this out too if you don't want wake word running without the orb
+  useWakeWord(true); // Note: You may want to comment this out too if you don't want wake word running without the orb
   useSystemMonitor(); // ✅ GLOBAL SYSTEM WS DAEMON
 
   return (

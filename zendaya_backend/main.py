@@ -36,6 +36,7 @@ from slowapi.errors import RateLimitExceeded
 
 from fastapi import (
     FastAPI,
+    Form,
     Request,
     WebSocket,
     HTTPException,
@@ -75,6 +76,7 @@ try:
     from zendaya_backend.core.security import (
         create_access_token,
         get_current_user,
+        get_current_active_user,
         User,
         OAuth2PasswordBearer
     )
@@ -961,8 +963,8 @@ async def health():
     data = await cached_health_check()
     return HealthResponse(**data)
 
-@app.post("/chat", response_model=ChatResponse)
 @limiter.limit("20/minute")
+@app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: Request, chat_request: ChatRequest, user: User = Depends(get_current_active_user), services: dict = Depends(get_services)):
     chat_service = services.get("chat_service")
     if not chat_service or not hasattr(chat_service, "process_message"):
@@ -1079,8 +1081,7 @@ async def websocket_amplitude_endpoint(
 async def websocket_voice_endpoint(
     websocket: WebSocket,
     session_id: str | None = Query(None),
-    # NOTE: You will likely need to re-add your auth dependency here
-    # user: User = Depends(get_current_active_user) 
+    user: User = Depends(get_current_active_user),
 ):
     """
     Handles the real-time voice data stream for biometrics and transcription.
@@ -1224,7 +1225,7 @@ async def system_ws(websocket: WebSocket):
 
 
 @app.post("/system/register-user")
-async def register_user():
+async def register_user(user: User = Depends(get_current_active_user)):
     logger.info("Registering new user...")
     if not hasattr(app.state, "registered_users"):
         app.state.registered_users = []
@@ -1270,14 +1271,12 @@ async def optimize_system():
     return {"success": True, "message": "Optimization complete"}
 
 @app.get("/api/users")
-async def get_users():
+async def get_users(user: User = Depends(get_current_active_user)):
     users = getattr(app.state, "registered_users", [])
     return {"users": users}
 
 
 # Memory management endpoints
-from pydantic import BaseModel
-
 class IngestMemoryPayload(BaseModel):
     content: str
     user_id: Optional[str] = None
@@ -1288,7 +1287,7 @@ class IngestMemoryPayload(BaseModel):
     metadata: Optional[Dict[str, Any]] = {}
 
 @app.post("/memory/ingest")
-async def ingest_memory_endpoint(payload: IngestMemoryPayload):
+async def ingest_memory_endpoint(payload: IngestMemoryPayload, user: User = Depends(get_current_active_user)):
     # Respect privacy_level: don't store 'sensitive' by default
     if payload.privacy_level == "sensitive":
         return {"status": "skipped", "reason": "sensitive data not stored"}
@@ -1310,7 +1309,7 @@ async def ingest_memory_endpoint(payload: IngestMemoryPayload):
         return {"status": "error", "error": str(e)}
 
 @app.get("/memory/query")
-async def query_memory(q: str, k: int = 6):
+async def query_memory(q: str, k: int = 6, user: User = Depends(get_current_active_user)):
     try:
         results = await asyncio.to_thread(memory_service.retrieve, q, k)
         return {"query": q, "results": results}
@@ -1319,7 +1318,7 @@ async def query_memory(q: str, k: int = 6):
         return {"query": q, "results": []}
 
 @app.post("/memory/clear_user")
-async def clear_user_memories(user_id: str):
+async def clear_user_memories(user_id: str, user: User = Depends(get_current_active_user)):
     try:
         await asyncio.to_thread(memory_service.clear_user_memories, user_id)
         return {"status": "ok"}
@@ -1331,12 +1330,8 @@ async def clear_user_memories(user_id: str):
 # ---------------------------
 #  🗣️ Test Voice Endpoint (ElevenLabs)
 # ---------------------------
-from fastapi import Form
-from fastapi.responses import JSONResponse
-from zendaya_backend.knowledge.voice_service import VoiceService
-
-@app.post("/system/test-voice")
 @limiter.limit("10/minute")
+@app.post("/system/test-voice")
 async def test_voice_endpoint(request: Request, text: str = Form(...)):
     """
     Unified TTS endpoint.

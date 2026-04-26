@@ -1,5 +1,5 @@
 // components/ZendayaOrb.tsx
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import { useChatStore } from "@/hooks/useChatStore";
 import { useAIStream } from "@/hooks/useAIStream";
 import { shallow } from "zustand/shallow";
@@ -50,6 +50,9 @@ const OrbVisual = ({
 export const ZendayaOrb: React.FC = () => {
   const location = useLocation();
   const { startStream } = useAIStream();
+  const [showControls, setShowControls] = useState(false);
+  const [showChatInput, setShowChatInput] = useState(false);
+  const [chatInputValue, setChatInputValue] = useState("");
 
   // ✅ Single Zustand selector + shallow for performance
   // This useCallback + shallow pattern fixes the infinite loop
@@ -65,7 +68,7 @@ const {
   (s) => ({
     isListening: s.isListening,
     isSpeaking: s.isSpeaking,
-    isMuted: s.isMuted,
+    isMuted: s.isMicMuted,
     isSpeakerMuted: s.isSpeakerMuted,
     currentAmplitude: s.currentAmplitude,
     sessionId: s.sessionId,
@@ -76,7 +79,7 @@ const {
 // ✅ actions must be extracted *outside* the selector
 const startListening = useChatStore((s) => s.startListening);
 const stopListening = useChatStore((s) => s.stopListening);
-const toggleMute = useChatStore((s) => s.toggleMute);
+const toggleMute = useChatStore((s) => s.toggleMicMute);
 const toggleSpeakerMute = useChatStore((s) => s.toggleSpeakerMute);
 const synthesizeAndPlay = useChatStore((s) => s.synthesizeAndPlay);
 const addOptimisticMessage = useChatStore((s) => s.addOptimisticMessage);

@@ -88,7 +88,8 @@ export const AudioStreamProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setIsSpeaking(true);
       const ctx = audioCtxRef.current!;
       // replace this URL with your TTS endpoint that returns audio blob
-      const res = await fetch("http://127.0.0.1:8000/tts", {
+      const apiBase = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+      const res = await fetch(`${apiBase}/tts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
