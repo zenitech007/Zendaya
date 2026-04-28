@@ -18,17 +18,23 @@ logging.getLogger("comtypes").setLevel(logging.ERROR)
 import uuid
 import json
 import base64
+import secrets
 import psutil
 import io
 from starlette.status import WS_1011_INTERNAL_ERROR
 
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
-from zendaya_backend.knowledge.biometric_recognition import BiometricRecognitionSystem
-from zendaya_backend.core.error_engine import ErrorUnderstandingEngine
-from zendaya_backend.knowledge.voice_service import VoiceService, preload_voice_service
-from zendaya_backend.services.stt_service import STTService
-from zendaya_backend.services.memory_service import memory_service
+
+try:
+    from zendaya_backend.services.stt_service import STTService
+except Exception:
+    STTService = None
+
+try:
+    from zendaya_backend.services.memory_service import memory_service
+except Exception:
+    memory_service = None
 
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -64,10 +70,10 @@ except Exception:
         app_name = "Zendaya AI Assistant"
         app_version = "0.0.0"
         debug = True
-        allowed_origins = ["*"]
+        allowed_origins = ["http://localhost:3000", "http://localhost:8080"]
         access_token_expire_minutes = 60
         websocket_heartbeat_interval = 5
-        secret_key = "dummy-secret-key-for-testing"
+        secret_key = secrets.token_urlsafe(32)
         algorithm = "HS256"
     settings = _DummySettings()
 
@@ -139,19 +145,10 @@ except Exception:
 
 # ChatService (import real or fallback)
 try:
-    from zendaya_backend.services.chat import ChatService  # use the real one directly
+    from zendaya_backend.services.chat import ChatService
 except Exception:
     class ChatService:
         async def process_message(self, message, user=None, context=None):
-            return {"text": f"Echo: {message}"}
-
-    # Safe fallback minimal version if chat module fails to import
-    from typing import Any, Dict, Optional
-    from datetime import datetime
-
-    class ChatService:
-        async def process_message(self, message: str, user: Any = None, context: Optional[Dict] = None) -> Dict:
-            """Fallback chat processor (for tests or degraded mode)."""
             return {
                 "text": f"Echo: {message}",
                 "timestamp": datetime.utcnow().isoformat(),
@@ -166,7 +163,7 @@ except Exception:
 
 # Smart home controller placeholder
 try:
-    from agent.tools.smart_home_controller import SmartHomeController
+    from zendaya_backend.agent.tools.smart_home_controller import SmartHomeController
 except Exception:
     SmartHomeController = None
 
@@ -199,7 +196,7 @@ app = FastAPI(title=getattr(settings, "app_name", "Zendaya AI Assistant"),
 # Allow CORS according to settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=getattr(settings, "allowed_origins", ["*"]),
+    allow_origins=getattr(settings, "allowed_origins", ["http://localhost:3000", "http://localhost:8080"]),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -246,6 +243,23 @@ _health_cache = {"data": None, "timestamp": datetime.min}
 # ---------------------------
 # Utilities & dependencies
 # ---------------------------
+async def _authenticate_ws(websocket: WebSocket) -> Optional[dict]:
+    """Validate JWT token from WebSocket query params. Returns payload or None."""
+    token = websocket.query_params.get("token")
+    if not token:
+        return None
+    try:
+        secret = getattr(settings, "secret_key", None)
+        if not secret:
+            logger.error("No secret_key configured for WebSocket auth")
+            return None
+        algorithm = getattr(settings, "algorithm", "HS256")
+        payload = jwt.decode(token, secret, algorithms=[algorithm])
+        return payload
+    except JWTError as e:
+        logger.warning("WebSocket auth failed: %s", e)
+        return None
+
 async def get_services(request: Request) -> Dict[str, Any]:
     """Return map of known services from app.state (for backward compatibility)."""
     keys = [
@@ -259,7 +273,7 @@ async def get_services(request: Request) -> Dict[str, Any]:
 # Pydantic models
 # ---------------------------
 class ChatRequest(BaseModel):
-    message: str
+    message: str = Field(..., max_length=10000)
     user_id: Optional[str] = "default"
     context: Optional[Dict[str, Any]] = None
     voice_enabled: bool = True
@@ -270,7 +284,7 @@ class ChatRequest(BaseModel):
     def not_empty_message(cls, v):
         if not v or not v.strip():
             raise ValueError("message cannot be empty")
-        return v
+        return v.strip()
 
 class ChatResponse(BaseModel):
     text: str
@@ -321,23 +335,35 @@ class HealthResponse(BaseModel):
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     logger.warning("Validation error: %s", exc)
-    return JSONResponse(status_code=422, content={"detail": exc.errors(), "timestamp": datetime.utcnow().isoformat()})
+    return JSONResponse(status_code=422, content={
+        "error": {"code": "VALIDATION_ERROR", "message": "Validation error in request data", "errors": exc.errors()},
+        "timestamp": datetime.utcnow().isoformat(),
+    })
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled exception: %s", exc)
-    return JSONResponse(status_code=500, content={"detail": str(exc), "timestamp": datetime.utcnow().isoformat()})
+    return JSONResponse(status_code=500, content={
+        "error": {"code": "INTERNAL_SERVER_ERROR", "message": "An unexpected error occurred. Please try again later."},
+        "timestamp": datetime.utcnow().isoformat(),
+    })
 
 # ---------------------------
 # Connection manager for websockets
 # ---------------------------
 class ConnectionManager:
-    def __init__(self):
+    def __init__(self, max_connections: int = 100):
         self.active_connections: List[WebSocket] = []
+        self.max_connections = max_connections
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket) -> bool:
+        if len(self.active_connections) >= self.max_connections:
+            logger.warning("WebSocket connection rejected: limit %d reached", self.max_connections)
+            await websocket.close(code=1013)
+            return False
         await websocket.accept()
         self.active_connections.append(websocket)
+        return True
 
     def disconnect(self, websocket: WebSocket):
         try:
@@ -447,6 +473,9 @@ async def persona_compaction_task(interval_seconds: int = 60):
     """
     while True:
         try:
+            if memory_service is None:
+                await asyncio.sleep(interval_seconds)
+                continue
             summary = memory_service.compact_summaries(max_chars=3000)
             app.state.persona_memory = summary
             logger.debug("Persona compaction: summary length=%d", len(summary))
@@ -578,23 +607,20 @@ async def startup_event():
         logger.exception("startup: gemini init failed")
         app.state.gemini_service = None
 
-    # Smart Greeting Sequence
-    try:
-        from zendaya_backend.agent.tools.greeting import greet_user
-
-        system_status = { "DB": True, "AI": True } # simplified for brevity
-        recovery_map = { "DB": (lambda: asyncio.sleep(1)), "AI": (lambda: asyncio.sleep(1)) }
-        
-        async def _schedule_greeting():
-            await asyncio.sleep(0.6)
-            voice_service_obj = getattr(app.state, "voice_service", None)
-            voice_id = getattr(voice_service_obj, "default_voice_id", "mxTlDrtKZzOqgjtBw4hM")
-            await greet_user(system_status, recovery_map, voice_service_obj, voice_id)
-
-        asyncio.create_task(_schedule_greeting())
-        logger.info("startup: Smart greeting initialized")
-    except Exception as e:
-        logger.exception(f"startup: Smart greeting setup failed: {e}")
+# Smart Greeting Sequence — DISABLED (uncomment to re-enable hologram on startup)
+    # try:
+    #     from zendaya_backend.agent.tools.greeting import greet_user
+    #     system_status = { "DB": True, "AI": True }
+    #     recovery_map = { "DB": (lambda: asyncio.sleep(1)), "AI": (lambda: asyncio.sleep(1)) }
+    #     async def _schedule_greeting():
+    #         await asyncio.sleep(0.6)
+    #         voice_service_obj = getattr(app.state, "voice_service", None)
+    #         voice_id = getattr(voice_service_obj, "default_voice_id", "mxTlDrtKZzOqgjtBw4hM")
+    #         await greet_user(system_status, recovery_map, voice_service_obj, voice_id)
+    #     asyncio.create_task(_schedule_greeting())
+    #     logger.info("startup: Smart greeting initialized")
+    # except Exception as e:
+    #     logger.exception(f"startup: Smart greeting setup failed: {e}")
 
     # Start the WebSocket broadcasting task
     asyncio.create_task(broadcast_system_status())
@@ -1001,7 +1027,7 @@ async def chat_endpoint(request: Request, chat_request: ChatRequest, user: User 
         raise HTTPException(status_code=500, detail="Invalid response from chat service")
     except Exception as exc:
         logger.exception("chat processing failed: %s", exc)
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail="An error occurred processing your request")
 
 # ... [Other routes like /synthesize, /transcribe, etc., remain here]
 
@@ -1014,8 +1040,12 @@ async def get_status():
 # ---------------------------
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    # Token validation logic removed from here
-    await manager.connect(websocket)
+    payload = await _authenticate_ws(websocket)
+    if payload is None:
+        await websocket.close(code=1008)
+        return
+    if not await manager.connect(websocket):
+        return
     try:
         while True:
             try:
@@ -1049,6 +1079,10 @@ async def websocket_amplitude_endpoint(
     Handles real-time amplitude/volume data from the client.
     This is mostly for UI feedback.
     """
+    payload = await _authenticate_ws(websocket)
+    if payload is None:
+        await websocket.close(code=1008)
+        return
     await websocket.accept()
     
     if not session_id:
@@ -1123,51 +1157,24 @@ async def websocket_voice_endpoint(
 
 @app.websocket("/ws/system")
 async def system_ws(websocket: WebSocket):
-    # --- Token validation logic ADDED here ---
-    token = websocket.query_params.get("token")
-    if not token:
-        logger.warning("[SYSTEM WS] Connection attempt without token.")
+    payload = await _authenticate_ws(websocket)
+    if payload is None:
         await websocket.close(code=1008)
         return
-    
-    try:
-        # Use os.getenv for safer access
-        jwt_secret = os.getenv("SUPABASE_JWT_SECRET")
-        if not jwt_secret:
-            logger.error("[SYSTEM WS] SUPABASE_JWT_SECRET environment variable not set.")
-            raise JWTError("Server configuration error: JWT secret missing.")
-            
-        payload = jwt.decode(
-            token,
-            jwt_secret,
-            algorithms=["HS256"],
-        )
-        logger.info(f"[SYSTEM WS] Client authenticated: {payload.get('sub')}")
-    except JWTError as e:
-        logger.warning(f"[SYSTEM WS] WebSocket auth failed: {e}")
-        await websocket.close(code=1008)
-        return
-    # --- End of token validation ---
 
     await websocket.accept()
-    print("[SYSTEM WS] Client connected")
+    logger.info("[SYSTEM WS] Client connected")
 
     try:
         while True:
-            # CPU %
             cpu = psutil.cpu_percent(interval=None)
-
-            # RAM %
             memory = psutil.virtual_memory().percent
-
-            # Disk %
             disk = psutil.disk_usage("/").percent
 
-            # Network connectivity test
             try:
                 net_ok = psutil.net_if_stats()
                 network = any(i.isup for i in net_ok.values())
-            except:
+            except Exception:
                 network = False
 
             # OPTIONAL: check services running
@@ -1212,10 +1219,10 @@ async def system_ws(websocket: WebSocket):
                 await websocket.close()
             except Exception:
                 pass # Ignore errors on close
-        print("[SYSTEM WS] Client disconnected")
+        logger.info("[SYSTEM WS] Client disconnected")
 
     except Exception as e:
-        print(f"[SYSTEM WS ERROR] {e}")
+        logger.error("[SYSTEM WS ERROR] %s", e)
         try:
             if websocket.client_state != WebSocketState.DISCONNECTED:
                 await websocket.close()
@@ -1400,6 +1407,3 @@ async def chat_version():
     if not svc:
         return {"active": False, "type": None}
     return {"active": True, "type": svc.__class__.__name__}
-
-
-

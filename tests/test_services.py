@@ -16,28 +16,27 @@ class TestGeminiService:
     def test_initialization(self):
         """Test service initialization"""
         service = GeminiService()
-        assert service.model_name == "gemini-1.5-flash"
+        assert service.model_name == "gemini-2.5-flash"
     
-    @patch('google.generativeai.configure')
-    @patch('google.generativeai.GenerativeModel')
-    def test_is_ready(self, mock_model, mock_configure):
+    @patch('google.genai.Client')
+    def test_is_ready(self, mock_client):
         """Test service ready check"""
         service = GeminiService()
-        service.model = Mock()
+        service.client = Mock()
         assert service.is_ready() == True
     
     @pytest.mark.asyncio
-    @patch('google.generativeai.GenerativeModel')
-    async def test_generate_response(self, mock_model_class):
+    @patch('google.genai.Client')
+    async def test_generate_response(self, mock_client_class):
         """Test response generation"""
-        mock_model = Mock()
+        mock_client = Mock()
         mock_response = Mock()
         mock_response.text = "Test response"
-        mock_model.generate_content.return_value = mock_response
-        mock_model_class.return_value = mock_model
+        mock_client.models.generate_content.return_value = mock_response
+        mock_client_class.return_value = mock_client
         
         service = GeminiService()
-        service.model = mock_model
+        service.client = mock_client
         
         response = await service.generate_response("Test message")
         assert response == "Test response"

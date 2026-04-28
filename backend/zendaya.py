@@ -1,6 +1,10 @@
 """
 voice output is handled by ElevenLabs TTS through the speak_async function, which sends text plus the current voice_id to ElevenLabs, retrieves MP3 audio, and plays it asynchronously so text streaming isn’t blocked. User responses are taken from typed console input (input()), and while no speech recognition is included, the script routes typed commands through parsers that detect mode switches, voice switches, system commands, searches, or normal chat. Switching voices happens when a user types something like “Zendaya, switch to narrator voice,” which the script catches with parse_voice_switch, resolves the requested preset or name with find_voice_by_free_text, updates MEM["current_voice_id"], and applies it to all future TTS. Switching modes between voice, text, or both is handled by parse_mode_switch and set_mode, which update memory and change whether replies are printed (stream_print), spoken (speak_async), or both. Finally, memory persistence via zendaya_memory.json stores the current mode, active voice, conversation history, and pending actions so the assistant remembers user preferences and context across sessions.
 """
+# Suppress all deprecation warnings BEFORE any imports
+import warnings
+warnings.filterwarnings("ignore")
+
 import os
 import re
 import json
@@ -32,17 +36,13 @@ if platform.system() == "Windows":
     try:
         from win10toast import ToastNotifier
     except ImportError:
-        print("Warning: win10toast not installed. Run 'pip install win10toast' for notification features.")
+        pass  # Notifications silently disabled
 
 # --- Python Library Imports ---
 import requests
+from pathlib import Path
 from dotenv import load_dotenv
-import google.generativeai as genai
-try:
-    from playsound import playsound
-except ImportError:
-    print("Warning: playsound not installed. Run 'pip install playsound' for audio features.")
-
+from google import genai
 
 # For Windows specific window handling
 if platform.system() == "Windows":
@@ -51,18 +51,32 @@ if platform.system() == "Windows":
     except ImportError:
         print("Warning: pywin32 not installed. Some advanced Windows window controls may not work.")
 
+# Audio playback
+try:
+    import sounddevice as sd
+    import soundfile as sf
+    def playsound(file_path):
+        data, samplerate = sf.read(file_path)
+        sd.play(data, samplerate)
+        sd.wait()
+except ImportError:
+    print("Warning: sounddevice not installed. Audio features disabled.")
+
 # -----------------------
-# Load keys & config
+# Load keys & config  (MUST happen before any API client is created)
 # -----------------------
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 
+# Initialize Gemini client AFTER loading the .env
+_gemini_client = None
 if GEMINI_API_KEY:
     try:
-        genai.configure(api_key=GEMINI_API_KEY)
+        _gemini_client = genai.Client(api_key=GEMINI_API_KEY)
         _GEMINI_READY = True
+        print("✅ Gemini AI ready.")
     except Exception as e:
         print(f"Gemini API configuration failed: {e}")
         _GEMINI_READY = False
@@ -70,9 +84,7 @@ else:
     _GEMINI_READY = False
     print("Warning: GEMINI_API_KEY is not set. Conversational features will be limited.")
 
-_ELEVENLABS_READY = bool(ELEVENLABS_API_KEY)
-if not _ELEVENLABS_READY:
-    print("Warning: ELEVENLABS_API_KEY is not set. Voice features will fall back to system TTS.")
+_ELEVENLABS_READY = False  # ElevenLabs disabled — using system TTS
 
 # -----------------------
 # Files, Constants & Scopes
@@ -188,11 +200,7 @@ def initialize_system_tts():
         return False
 
 def speak_system_fallback(text: str):
-    """Speak text using the system's TTS engine if ElevenLabs fails."""
-    # In voice mode, we don't need to print the name again
-    if MEM["mode"] not in ("voice"):
-        print(f"🗣️ [{ASSISTANT_NAME}] {text}")
-
+    """Speak text using the system TTS engine silently (no duplicate print)."""
     if not initialize_system_tts():
         print("⚠️ TTS engine not ready.")
         return
@@ -367,9 +375,12 @@ def read_file_content(filepath: str) -> str:
             content = f.read()
         if len(content) > 2000:
             send_response("File is large, summarizing...")
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            resp = model.generate_content(f"Summarize this:\n\n{content[:2000]}")
-            return f"Summary:\n{resp.text.strip()}"
+            response = _gemini_client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=f"Summarize this:\n\n{content[:2000]}"
+            )
+            ai_text = response.text
+            return f"Summary:\n{ai_text.strip()}"
         return f"Content:\n{content}"
     except Exception as e:
         return f"Error reading file: {e}"
@@ -444,7 +455,6 @@ def gemini_reply(user_text: str, search_context: Optional[str]) -> str:
     # Enhanced error understanding and context analysis
     processed_text = enhance_user_input(user_text)
     
-    model = genai.GenerativeModel("gemini-1.5-flash")
     memory_bits = []
     
     if MEM.get("professional_mode", False):
@@ -473,8 +483,12 @@ def gemini_reply(user_text: str, search_context: Optional[str]) -> str:
     parts.append(f"User: {processed_text}\n{PERSONA_NAME}:")
 
     try:
-        resp = model.generate_content(parts)
-        return resp.text.strip()
+        response = _gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=parts
+        )
+        ai_text = response.text
+        return ai_text.strip()
     except Exception as e:
         return f"(AI error: {e})"
 
@@ -858,17 +872,22 @@ def summarize_memory():
 
     to_summarize = history[:10]
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
         prompt = "Summarize this conversation in short bullets, keeping key preferences and context. Omit small talk."
         convo_text = "\n".join([f"{m['role']}: {m['text']}" for m in to_summarize])
-        resp = model.generate_content([prompt, convo_text])
-        summary = resp.text.strip()
+        
+        response = _gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[prompt, convo_text]
+        )
+        ai_text = response.text
+
+        summary = ai_text.strip()
         MEM.setdefault("summaries", []).append(summary)
         MEM["convo"] = history[10:]
         save_memory(MEM)
         print("(Memory summarized)")
     except Exception as e:
-        print(f"(Memory summarization error: {e})")
+        print(f"Error summarizing memory: {e}")
 
 # -----------------------
 # Routine execution
@@ -1170,13 +1189,7 @@ def main():
     user_name = MEM.get("user_name")
     welcome_message = f"Welcome back, {user_name}." if user_name else "Welcome back."
     
-    if _ELEVENLABS_READY:
-        send_response(f"{welcome_message} My systems are online and ready.")
-    else:
-        print(f"{welcome_message} My systems are online. (ElevenLabs key missing, using system TTS)")
-        # Attempt to use system TTS for the welcome message
-        if MEM["mode"] in ("both", "voice"):
-             speak_system_fallback(f"{welcome_message} My systems are online and ready.")
+    send_response(f"{welcome_message} My systems are online and ready.")
 
     EXIT_COMMANDS = ["exit", "quit", "bye", "goodbye", "farewell"]
 
@@ -1206,6 +1219,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-

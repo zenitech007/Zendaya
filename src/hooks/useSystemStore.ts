@@ -66,7 +66,7 @@ interface SystemStore {
 
 export const useSystemStore = create<SystemStore>((set, get) => {
   // --- Internal Connection Logic ---
-  const internalConnect = (token: string) => {
+  const internalConnect = (token?: string) => {
     // Prevent duplicate connections
     if (socket && socket.readyState === WebSocket.OPEN) {
       get().pushLog({
@@ -83,7 +83,7 @@ export const useSystemStore = create<SystemStore>((set, get) => {
       socket.close();
     }
 
-    const WS_URL = `${WS_BASE_URL}/ws?token=${token}`;
+    const WS_URL = token ? `${WS_BASE_URL}/ws?token=${token}` : `${WS_BASE_URL}/ws`;
     socket = new WebSocket(WS_URL);
 
     socket.onopen = () => {
@@ -265,26 +265,12 @@ export const useSystemStore = create<SystemStore>((set, get) => {
         }
       }, 5000);
 
-      // --- Auth ---
       try {
         const { data } = await supabase.auth.getSession();
         const token = data.session?.access_token;
-        if (!token) {
-          pushLog({
-            level: "warn",
-            text: "No auth token. System socket not opened.",
-          });
-          set({ isInitialized: false }); // Allow retry
-          return;
-        }
-        // --- Connect ---
         internalConnect(token);
       } catch (err) {
-        pushLog({
-          level: "error",
-          text: `Failed to get auth token for socket: ${String(err)}`,
-        });
-        set({ isInitialized: false }); // Allow retry
+        internalConnect();
       }
     },
 

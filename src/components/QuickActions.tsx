@@ -58,7 +58,7 @@ export const QuickActions: React.FC = () => {
    * @param {string} action The command action string.
    * @param {any} payload Optional payload for the command.
    */
-  const executeAction = async (action: string, payload: any = {}) => {
+  const executeAction = async (action: string, payload: Record<string, string> = {}) => {
     if (!sessionId) {
       addSystemMessage("Session not initialized. Cannot execute action.", true);
       return;
@@ -113,8 +113,8 @@ export const QuickActions: React.FC = () => {
        // Remove optimistic message, realtime will add the persisted one
        removeMessage(tempMsg.id);
 
-    } catch (err: any) {
-      addSystemMessage(`Action failed for '${action}': ${err.message}`, true);
+    } catch (err: unknown) {
+      addSystemMessage(`Action failed for '${action}': ${err instanceof Error ? err.message : String(err)}`, true);
       // Remove the optimistic placeholder on error
       removeMessage(tempMsg.id);
     }
@@ -125,36 +125,38 @@ export const QuickActions: React.FC = () => {
    * @param {string} action The action to perform.
    */
   const handleActionClick = (action: string) => {
-    let payload: any = {};
-    
-    // NOTE: Uses browser `prompt`. For a real production app, 
-    // this should be replaced with a custom modal component.
+    let payload: Record<string, string> = {};
+
     try {
       switch (action) {
-        case "smart-home":
+        case "smart-home": {
           const homeCommand = prompt("Enter smart home command (e.g., 'turn on living room lights'):");
-          if (homeCommand === null) return; // User cancelled
+          if (homeCommand === null) return;
           payload = { command: homeCommand };
           break;
-        case "rag-search":
+        }
+        case "rag-search": {
           const query = prompt("Enter search query for knowledge base:");
-          if (query === null) return; // User cancelled
+          if (query === null) return;
           payload = { query: query };
           break;
-        case "open-app":
+        }
+        case "open-app": {
           const appName = prompt("Which application to open?");
-          if (appName === null) return; // User cancelled
+          if (appName === null) return;
           payload = { details: appName };
           break;
-        case "make-call":
+        }
+        case "make-call": {
           const callNumber = prompt("Who do you want to call (name or number)?");
-          if (callNumber === null) return; // User cancelled
+          if (callNumber === null) return;
           payload = { details: callNumber };
           break;
+        }
       }
     } catch (e) {
       console.error("Error using prompt (e.g., in headless environment):", e);
-      return; // Abort action
+      return;
     }
     
     // Execute with or without payload

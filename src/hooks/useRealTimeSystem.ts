@@ -43,15 +43,14 @@ export const useRealTimeSystem = () => {
   const WS_URL = `${WS_BASE_URL}/ws`;
 
   const connectWebSocket = useCallback(async () => {
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
+    let token: string | undefined;
+    try {
+      const { data } = await supabase.auth.getSession();
+      token = data.session?.access_token;
+    } catch {}
 
-    if (!token) {
-      console.warn("⚠️ No auth token. System Monitor socket not opened.");
-      return;
-    }
-
-    const socket = new WebSocket(`${WS_URL}?token=${token}`);
+    const wsUrl = token ? `${WS_URL}?token=${token}` : WS_URL;
+    const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
 
     socket.onopen = () => {

@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "zendaya_backend"}]
 
 [tool.poetry.dependencies]
-python = ">=3.11,<3.12"
+python = ">=3.11,<4.0"
 # Web Framework
 fastapi = "^0.104.1"
 uvicorn = {extras = ["standard"], version = "^0.24.0"}
@@ -22,11 +22,7 @@ TTS = { git = "https://github.com/coqui-ai/TTS.git" }
 librosa = ">=0.11.0,<0.12.0"
 noisereduce = "^3.0.0"
 webrtcvad = "^2.0.10"
-<<<<<<< HEAD
-sentence-transformers = "^3.2.0"
-=======
 sentence-transformers = "^4.0.0"
-
 faiss-cpu = "^1.8.0"
 # Utilities
 requests = "^2.31.0"

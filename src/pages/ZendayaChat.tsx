@@ -7,7 +7,6 @@ import React, {
 } from "react";
 import { Loader2, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { User } from "@supabase/supabase-js"; // Import User type
 
 // --- Core Hooks ---
 import { useSupabaseChat } from "../hooks/useSupabaseChat";
@@ -15,7 +14,6 @@ import { useAIStream } from "../hooks/useAIStream";
 import { useChatStore } from "../hooks/useChatStore";
 
 // --- Core Libs ---
-import { supabase } from "../lib/supabaseClient";
 import { ZENDAYA_SYSTEM_PROMPT } from "../ai/systemPrompts/zendaya";
 import { ResponseMode, Message } from "../types"; // Import Message type
 
@@ -60,7 +58,6 @@ const ZendayaChatContent: React.FC = () => {
   // --- 3. Get ALL Actions from the Global Store ---
   const {
     addOptimisticMessage,
-    updateMessage, // Keep this for potential future use (e.g., editing)
     addSystemMessage,
     setResponseMode,
     setError,

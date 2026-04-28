@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Optional
 import asyncio
 
 from pinecone import Pinecone, ServerlessSpec
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 
 load_dotenv()

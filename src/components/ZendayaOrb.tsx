@@ -91,7 +91,11 @@ const addOptimisticMessage = useChatStore((s) => s.addOptimisticMessage);
   if (location.pathname.startsWith("/chat")) return null;
 
   const handleOrbClick = () => {
-    isListening ? stopListening() : startListening();
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
   };
 
   const sendMiniMessage = async (e: React.FormEvent) => {

@@ -50,23 +50,10 @@ const fallbackChatStore = {
  * Now theme-aware and store-safe.
  */
 export const Header: React.FC = () => {
-  // 🧠 Prevent crash if store isn't ready
-  let store;
-  try {
-    // ✅ BULLETPROOF FIX: Select each value individually
-    // This prevents the infinite "Maximum update depth" loop.
-    const responseMode = useChatStore((s) => s.responseMode);
-    const setResponseMode = useChatStore((s) => s.setResponseMode);
-    const addSystemMessage = useChatStore((s) => s.addSystemMessage);
-    const messages = useChatStore((s) => s.messages);
-
-    store = { responseMode, setResponseMode, addSystemMessage, messages };
-  } catch (err) {
-    console.warn("⚠️ useChatStore unavailable – using fallback store.");
-    store = fallbackChatStore;
-  }
-
-  const { responseMode, setResponseMode, addSystemMessage, messages } = store;
+  const responseMode = useChatStore((s) => s.responseMode) ?? fallbackChatStore.responseMode;
+  const setResponseMode = useChatStore((s) => s.setResponseMode) ?? fallbackChatStore.setResponseMode;
+  const addSystemMessage = useChatStore((s) => s.addSystemMessage) ?? fallbackChatStore.addSystemMessage;
+  const messages = useChatStore((s) => s.messages) ?? fallbackChatStore.messages;
 
   // This check is needed in case the store isn't fully initialized
   const currentMode = RESPONSE_MODES[responseMode] || RESPONSE_MODES.dual;
@@ -111,9 +98,9 @@ export const Header: React.FC = () => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       addSystemMessage("Chat history exported.");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Export chat error:", err);
-      addSystemMessage(`Failed to export chat: ${err.message}`, true);
+      addSystemMessage(`Failed to export chat: ${err instanceof Error ? err.message : String(err)}`, true);
     }
   }, [messages, addSystemMessage]);
 

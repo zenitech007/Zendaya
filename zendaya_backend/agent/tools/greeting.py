@@ -38,10 +38,16 @@ except Exception:
 
 # Playback library - playsound is simple and blocks until finished (works on Windows)
 try:
-    from playsound import playsound
+    import sounddevice as sd
+    import soundfile as sf
+    def playsound(file_path):
+        data, samplerate = sf.read(file_path)
+        sd.play(data, samplerate)
+        sd.wait()
     _HAS_PLAYSOUND = True
-except Exception:
+except ImportError:
     _HAS_PLAYSOUND = False
+    print("Warning: sounddevice not installed. Audio features disabled.")
 
 # Local helpers from your project
 from zendaya_backend.agent.tools.network_check import is_connected

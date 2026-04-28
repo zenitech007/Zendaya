@@ -1,7 +1,7 @@
 import os
 import logging
 from typing import Optional
-import google.generativeai as genai
+from google import genai
 from zendaya_backend.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -27,8 +27,8 @@ class GeminiService:
             return None
         try:
             genai.configure(api_key=self.api_key)
-            model = genai.GenerativeModel('gemini-pro')
-            logger.info("Gemini model 'gemini-pro' initialized successfully.")
+            model = genai.GenerativeModel('gemini-2.5-flash')
+            logger.info("Gemini model 'gemini-2.5-flash' initialized successfully.")
             return model
         except Exception as e:
             logger.error(f"Failed to initialize Gemini model: {str(e)}", exc_info=True)

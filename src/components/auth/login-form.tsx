@@ -10,7 +10,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator';
 import { AlertTriangle, TestTube, ChevronsRight } from 'lucide-react';
 import BiometricSimDialog from './biometric-sim-dialog';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 
 function GoogleIcon() {
   return (
@@ -118,7 +118,7 @@ export function LoginForm() {
                     <TestTube className="mr-2 h-4 w-4" />
                     Test Login
                 </Button>
-                <Link href="/dashboard" className="w-full">
+                <Link to="/dashboard" className="w-full">
                     <Button variant="secondary" className="w-full">
                         Bypass Login
                         <ChevronsRight className="ml-2 h-4 w-4" />

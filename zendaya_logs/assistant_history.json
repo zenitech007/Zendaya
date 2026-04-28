@@ -1,0 +1,10 @@
+[
+  {
+    "timestamp": "2026-04-27 00:55:17",
+    "type": "greeting",
+    "message": "Greeted Ika mode=hybrid emotion=neutral",
+    "data": {
+      "offline": []
+    }
+  }
+]

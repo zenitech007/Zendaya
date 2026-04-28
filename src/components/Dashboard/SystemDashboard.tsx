@@ -53,20 +53,18 @@ const SystemDashboard: React.FC = () => {
   const backoff = useRef(2000);
 
   const connect = useCallback(async () => {
-    // Get Supabase JWT for auth
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (!token) {
-      console.warn("[Dashboard WS] No auth token — skipping connect");
-      setIsLoading(false);
-      return;
-    }
+    let token: string | undefined;
+    try {
+      const { data } = await supabase.auth.getSession();
+      token = data.session?.access_token;
+    } catch {}
 
     if (socketRef.current) {
       try { socketRef.current.close(); } catch {}
     }
 
-    const ws = new WebSocket(`${WS_BASE}/ws/system?token=${token}`);
+    const wsUrl = token ? `${WS_BASE}/ws/system?token=${token}` : `${WS_BASE}/ws/system`;
+    const ws = new WebSocket(wsUrl);
     socketRef.current = ws;
 
     ws.onopen = () => {

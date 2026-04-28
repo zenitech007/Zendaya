@@ -33,21 +33,21 @@ class Conversation(Base):
     __tablename__ = "conversations"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     message = Column(Text, nullable=False)
     response = Column(Text, nullable=False)
     context = Column(Text, nullable=True)  # JSON string
     timestamp = Column(DateTime, default=datetime.utcnow)
     response_time = Column(Float, nullable=True)  # Response time in seconds
-    
+
     # Relationships
     user = relationship("User", back_populates="conversations")
 
 class BiometricProfile(Base):
     __tablename__ = "biometric_profiles"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     name = Column(String(100), nullable=False)
     relationship_type = Column(String(50), nullable=True)  # family, friend, colleague
     voice_profile_path = Column(String(255), nullable=True)

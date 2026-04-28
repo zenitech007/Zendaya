@@ -6,7 +6,7 @@ import json
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,8 +14,8 @@ load_dotenv()
 class GeminiService:
     def __init__(self):
         self.api_key = os.getenv("GEMINI_API_KEY")
-        self.model_name = "gemini-1.5-flash"
-        self.model = None
+        self.model_name = "gemini-2.5-flash"
+        self.client = None
         self._initialize()
     
     def _initialize(self):
@@ -25,15 +25,14 @@ class GeminiService:
             return
         
         try:
-            genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel(self.model_name)
+            self.client = genai.Client(api_key=self.api_key)
             print("✅ Gemini AI service initialized")
         except Exception as e:
             print(f"❌ Failed to initialize Gemini: {e}")
     
     def is_ready(self) -> bool:
         """Check if the service is ready"""
-        return self.model is not None
+        return self.client is not None
     
     async def generate_response(
         self,
@@ -44,7 +43,7 @@ class GeminiService:
         user_context: Optional[Dict[str, Any]] = None
     ) -> str:
         """Generate AI response using Gemini"""
-        if not self.is_ready():
+        if self.client is None:
             return "My cognitive core is offline. Please check the Gemini API configuration."
         
         # Build system prompt
@@ -71,8 +70,11 @@ class GeminiService:
         full_prompt.append(f"User: {message}\nZendaya:")
         
         try:
-            response = self.model.generate_content("\n\n".join(full_prompt))
-            return response.text.strip()
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents="\n\n".join(full_prompt)
+            )
+            return response.text.strip() if response and response.text else "I received an empty response from my cognitive core."
         except Exception as e:
             return f"I encountered an error processing your request: {str(e)}"
     

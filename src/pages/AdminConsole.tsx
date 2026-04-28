@@ -10,8 +10,6 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export default function AdminConsole() {
   const status = useSystemStore((s) => s.status);
-  const isConnected = useSystemStore((s) => s.isConnected);
-  const [logsFilter, setLogsFilter] = useState("");
   const [isWorking, setIsWorking] = useState(false);
   // assume your store keeps history points in status.history
   const chartData = useMemo(() => status?.history ?? [], [status]);
@@ -33,7 +31,7 @@ export default function AdminConsole() {
       const json = await res.json();
       toast({ title: "Action queued", description: `${action} started` });
       return json;
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({ title: "Action failed", description: String(err), variant: "destructive" });
     } finally {
       setIsWorking(false);

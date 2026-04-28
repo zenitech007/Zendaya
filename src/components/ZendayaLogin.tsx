@@ -1,10 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabaseClient";
-import { Loader2, LogIn, ChromeIcon } from "lucide-react";
+import { Loader2, LogIn } from "lucide-react";
 import { AI_IDENTITY } from "../constants/identity"; // your AI identity file
 
-// Backend base URL (your Python FastAPI / Flask app)
+function GoogleIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" className={className}><path fill="currentColor" d="M21.35 12.08c0-.75-.07-1.48-.2-2.18h-8.85v4.1h5.1c-.22 1.34-.88 2.5-1.9 3.24v2.7h3.48c2.04-1.88 3.22-4.76 3.22-8.1Z"/><path fill="currentColor" d="M12.3 22c2.75 0 5.06-1 6.7-2.69l-3.48-2.7c-.83.6-1.93.9-3.22.9-2.58 0-4.78-1.7-5.5-4.04H3.34v2.78c1.6 3.2 4.9 5.45 8.96 5.45Z"/><path fill="currentColor" d="M6.8 14.3c-.15-.46-.23-.96-.23-1.48s.08-1.02.23-1.48V8.55H3.34A9.9 9.9 0 0 0 2.3 12.8c0 1.48.33 2.88.94 4.15Z"/><path fill="currentColor" d="M12.3 6.33c1.56 0 2.85.55 3.82 1.48l3.04-3.04C17.35 2.8 15.05 1.8 12.3 1.8c-4.05 0-7.36 2.25-8.96 5.45l3.48 2.78C7.52 8.02 9.72 6.33 12.3 6.33Z"/></svg>
+  );
+}
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 export default function ZendayaLogin() {
@@ -21,7 +26,7 @@ export default function ZendayaLogin() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
 
   useEffect(() => {
     const timer = setTimeout(() => setPhase("form"), 2400);
@@ -39,8 +44,8 @@ export default function ZendayaLogin() {
       if (error) throw error;
       setMessage("✅ Login successful — redirecting...");
       setTimeout(() => (window.location.href = "/dashboard"), 900);
-    } catch (err: any) {
-      setMessage(err?.message || "Login failed");
+    } catch (err: unknown) {
+      setMessage(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
     }
@@ -53,8 +58,8 @@ export default function ZendayaLogin() {
       await supabase.auth.signInWithOAuth({ provider: "google" });
       // Supabase will redirect automatically or open popup depending on config
       // After callback, user will land back and auth state will be set.
-    } catch (err: any) {
-      setMessage(err?.message || "Google sign-in failed");
+    } catch (err: unknown) {
+      setMessage(err instanceof Error ? err.message : "Google sign-in failed");
     } finally {
       setLoading(false);
     }
@@ -83,8 +88,8 @@ export default function ZendayaLogin() {
         videoRef.current.pause();
         videoRef.current.srcObject = null;
       }
-    } catch (e) {
-      console.warn("stopCamera error", e);
+    } catch (err) {
+      console.warn("stopCamera error", err);
     }
   }
 
@@ -135,9 +140,9 @@ export default function ZendayaLogin() {
       // OPTIONAL: If backend provides a token or supabase user id, handle it here.
       // For now, redirect to dashboard
       setTimeout(() => (window.location.href = "/dashboard"), 900);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Face biometric error", err);
-      setMessage(err?.message || "Face recognition failed");
+      setMessage(err instanceof Error ? err.message : "Face recognition failed");
     } finally {
       setCapturingFace(false);
       // stop camera for privacy
@@ -181,9 +186,9 @@ export default function ZendayaLogin() {
 
           setMessage("✅ Voice recognized. Signing you in...");
           setTimeout(() => (window.location.href = "/dashboard"), 900);
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error("Voice biometric error", err);
-          setMessage(err?.message || "Voice recognition failed");
+          setMessage(err instanceof Error ? err.message : "Voice recognition failed");
         } finally {
           setCapturingVoice(false);
           // stop tracks
@@ -292,7 +297,7 @@ export default function ZendayaLogin() {
                       onClick={handleGoogle}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10"
                     >
-                      <Google className="w-4 h-4" />
+                      <GoogleIcon className="w-4 h-4" />
                       <span>Sign in with Google</span>
                     </button>
                   </div>

@@ -40,7 +40,7 @@ const Loader: React.FC<{ message?: string }> = memo(({ message }) => (
 ));
 
 const SystemDashboard: React.FC = () => {
-  const { status, isConnected: connected, performAction, restartService } = useSystemStore();
+  const { status, isConnected: connected, performAction } = useSystemStore();
   useSystemMonitor(true);
   const [showUsers, setShowUsers] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
@@ -77,7 +77,7 @@ const SystemDashboard: React.FC = () => {
   }, [theme]);
 
   const handleSystemAction = useCallback(
-    (detail: any) => {
+    (detail: string) => {
       try {
         if (typeof performAction === "function") performAction(detail);
       } catch (err) {
