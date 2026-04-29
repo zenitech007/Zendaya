@@ -43,6 +43,7 @@ import requests
 from pathlib import Path
 from dotenv import load_dotenv
 from google import genai
+from zendaya_system_access import *
 
 # For Windows specific window handling
 if platform.system() == "Windows":
@@ -226,7 +227,9 @@ def load_memory() -> Dict[str, Any]:
         "inside_jokes": [], "pending_confirm": None, "user_name": None,
         "command_history": [], "routines": {}, "summaries": [],
         "professional_mode": False,
-        "current_voice_id": ELEVENLABS_DEFAULT_VOICE_ID
+        "current_voice_id": ELEVENLABS_DEFAULT_VOICE_ID,
+        "last_action": None, "pending_action": None,
+        "last_system_command": None
     }
 
 def save_memory(mem: Dict[str, Any]) -> None:
@@ -237,6 +240,44 @@ def save_memory(mem: Dict[str, Any]) -> None:
         print(f"(Memory save error: {e})")
 
 MEM = load_memory()
+
+# -----------------------
+# Context tracking helpers
+# -----------------------
+def set_last_action(entity_type: str, name: str, path: str):
+    MEM["last_action"] = {"type": entity_type, "name": name, "path": path}
+    save_memory(MEM)
+
+def set_last_system_command(sys_result: str):
+    result_lower = sys_result.lower()
+    if any(kw in result_lower for kw in ["volume", "audio", "mute", "unmute"]):
+        MEM["last_system_command"] = "volume"
+    elif "brightness" in result_lower:
+        MEM["last_system_command"] = "brightness"
+    else:
+        return
+    save_memory(MEM)
+
+def resolve_context(text: str) -> str:
+    last = MEM.get("last_action")
+    if not last:
+        return text
+    folder_refs = ["the folder", "that folder", "the directory", "in there", "same folder", "that directory"]
+    file_refs = ["the file", "that file", "the document", "that document"]
+    for ref in folder_refs:
+        if ref in text.lower():
+            if last["type"] == "folder":
+                text = re.sub(re.escape(ref), f'"{last["path"]}"', text, count=1, flags=re.IGNORECASE)
+            elif last["type"] == "file":
+                parent = os.path.dirname(last["path"])
+                text = re.sub(re.escape(ref), f'"{parent}"', text, count=1, flags=re.IGNORECASE)
+            break
+    for ref in file_refs:
+        if ref in text.lower():
+            if last["type"] == "file":
+                text = re.sub(re.escape(ref), f'"{last["path"]}"', text, count=1, flags=re.IGNORECASE)
+            break
+    return text
 
 # -----------------------
 # Core Assistant Functions
@@ -678,16 +719,32 @@ def find_app_path(app_name: str) -> Optional[str]:
     
     app_map = {
         "chrome": {"win": "chrome.exe", "mac": "Google Chrome.app", "linux": "google-chrome"},
+        "google chrome": {"win": "chrome.exe", "mac": "Google Chrome.app", "linux": "google-chrome"},
         "firefox": {"win": "firefox.exe", "mac": "Firefox.app", "linux": "firefox"},
         "vscode": {"win": "Code.exe", "mac": "Visual Studio Code.app", "linux": "code"},
+        "visual studio code": {"win": "Code.exe", "mac": "Visual Studio Code.app", "linux": "code"},
+        "vs code": {"win": "Code.exe", "mac": "Visual Studio Code.app", "linux": "code"},
         "notepad": {"win": "notepad.exe", "mac": None, "linux": "gedit"},
         "notepad++": {"win": "notepad++.exe", "mac": None, "linux": "notepadqq"},
         "calculator": {"win": "calc.exe", "mac": "Calculator.app", "linux": "gnome-calculator"},
         "spotify": {"win": "Spotify.exe", "mac": "Spotify.app", "linux": "spotify"},
         "brave": {"win": "brave.exe", "mac": "Brave Browser.app", "linux": "brave-browser"},
+        "brave browser": {"win": "brave.exe", "mac": "Brave Browser.app", "linux": "brave-browser"},
         "edge": {"win": "msedge.exe", "mac": "Microsoft Edge.app", "linux": "microsoft-edge-stable"},
+        "microsoft edge": {"win": "msedge.exe", "mac": "Microsoft Edge.app", "linux": "microsoft-edge-stable"},
         "paint": {"win": "mspaint.exe", "mac": None, "linux": "kolourpaint"},
-        "file explorer": {"win": "explorer.exe", "mac": None, "linux": "nautilus"}
+        "file explorer": {"win": "explorer.exe", "mac": None, "linux": "nautilus"},
+        "explorer": {"win": "explorer.exe", "mac": None, "linux": "nautilus"},
+        "terminal": {"win": "wt.exe", "mac": "Terminal.app", "linux": "gnome-terminal"},
+        "cmd": {"win": "cmd.exe", "mac": None, "linux": None},
+        "powershell": {"win": "powershell.exe", "mac": None, "linux": None},
+        "word": {"win": "WINWORD.EXE", "mac": "Microsoft Word.app", "linux": None},
+        "excel": {"win": "EXCEL.EXE", "mac": "Microsoft Excel.app", "linux": None},
+        "discord": {"win": "Discord.exe", "mac": "Discord.app", "linux": "discord"},
+        "slack": {"win": "slack.exe", "mac": "Slack.app", "linux": "slack"},
+        "vlc": {"win": "vlc.exe", "mac": "VLC.app", "linux": "vlc"},
+        "obs": {"win": "obs64.exe", "mac": "OBS.app", "linux": "obs"},
+        "steam": {"win": "steam.exe", "mac": "Steam.app", "linux": "steam"},
     }
     
     app_name_lower = app_name.lower().strip()
@@ -711,37 +768,172 @@ def find_app_path(app_name: str) -> Optional[str]:
             result = subprocess.run(cmd, capture_output=True, text=True, check=True, creationflags=creationflags)
             return result.stdout.splitlines()[0].strip()
         except (subprocess.CalledProcessError, FileNotFoundError):
-             # Fallback for Windows if 'where' fails
             if system == "windows":
-                app_dir_name = app_name_lower.split(' ')[0] # e.g., 'visual studio code' -> 'visual studio code'
-                common_paths = [os.path.join(os.environ.get("ProgramFiles", ""), app_dir_name, exec_name),
-                                os.path.join(os.environ.get("ProgramFiles(x86)", ""), app_dir_name, exec_name),
-                                os.path.join(os.environ.get("LocalAppData", ""), "Programs", app_dir_name, exec_name)]
-                for path in common_paths:
+                pf = os.environ.get("ProgramFiles", "C:\\Program Files")
+                pf86 = os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)")
+                local = os.environ.get("LocalAppData", "")
+                appdata = os.environ.get("APPDATA", "")
+                known_locations = {
+                    "brave.exe": [
+                        os.path.join(pf, "BraveSoftware", "Brave-Browser", "Application", "brave.exe"),
+                        os.path.join(pf86, "BraveSoftware", "Brave-Browser", "Application", "brave.exe"),
+                        os.path.join(local, "BraveSoftware", "Brave-Browser", "Application", "brave.exe"),
+                    ],
+                    "Code.exe": [
+                        os.path.join(local, "Programs", "Microsoft VS Code", "Code.exe"),
+                        os.path.join(pf, "Microsoft VS Code", "Code.exe"),
+                    ],
+                    "chrome.exe": [
+                        os.path.join(pf, "Google", "Chrome", "Application", "chrome.exe"),
+                        os.path.join(pf86, "Google", "Chrome", "Application", "chrome.exe"),
+                        os.path.join(local, "Google", "Chrome", "Application", "chrome.exe"),
+                    ],
+                    "Discord.exe": [
+                        os.path.join(local, "Discord", "Update.exe"),
+                        os.path.join(local, "Discord", "app-*", "Discord.exe"),
+                    ],
+                    "Spotify.exe": [
+                        os.path.join(appdata, "Spotify", "Spotify.exe"),
+                    ],
+                    "slack.exe": [
+                        os.path.join(local, "slack", "slack.exe"),
+                    ],
+                    "steam.exe": [
+                        os.path.join(pf86, "Steam", "steam.exe"),
+                        os.path.join(pf, "Steam", "steam.exe"),
+                    ],
+                    "obs64.exe": [
+                        os.path.join(pf, "obs-studio", "bin", "64bit", "obs64.exe"),
+                    ],
+                }
+                for candidate in known_locations.get(exec_name, []):
+                    if "*" in candidate:
+                        import glob
+                        found = glob.glob(candidate)
+                        if found:
+                            return found[0]
+                    elif os.path.exists(candidate):
+                        return candidate
+                # Generic fallback: search common directories
+                app_dir_name = app_name_lower.replace(" ", " ")
+                generic_paths = [
+                    os.path.join(pf, app_dir_name, exec_name),
+                    os.path.join(pf86, app_dir_name, exec_name),
+                    os.path.join(local, "Programs", app_dir_name, exec_name),
+                ]
+                for path in generic_paths:
                     if os.path.exists(path):
                         return path
-    
-    return None # If all methods fail
+
+    return None
 
 def open_target(target: str) -> str:
     t = target.lower().strip()
+
+    # --- Windows Settings (ms-settings: URIs) ---
+    settings_map = {
+        "settings": "ms-settings:",
+        "bluetooth": "ms-settings:bluetooth",
+        "bluetooth settings": "ms-settings:bluetooth",
+        "wifi": "ms-settings:network-wifi",
+        "wifi settings": "ms-settings:network-wifi",
+        "wi-fi settings": "ms-settings:network-wifi",
+        "network": "ms-settings:network-status",
+        "network settings": "ms-settings:network-status",
+        "display": "ms-settings:display",
+        "display settings": "ms-settings:display",
+        "sound": "ms-settings:sound",
+        "sound settings": "ms-settings:sound",
+        "audio settings": "ms-settings:sound",
+        "volume settings": "ms-settings:sound",
+        "notifications": "ms-settings:notifications",
+        "notification settings": "ms-settings:notifications",
+        "battery settings": "ms-settings:batterysaver",
+        "power settings": "ms-settings:powersleep",
+        "power & sleep": "ms-settings:powersleep",
+        "storage": "ms-settings:storagesense",
+        "storage settings": "ms-settings:storagesense",
+        "apps": "ms-settings:appsfeatures",
+        "apps settings": "ms-settings:appsfeatures",
+        "default apps": "ms-settings:defaultapps",
+        "startup apps": "ms-settings:startupapps",
+        "accounts": "ms-settings:accounts",
+        "account settings": "ms-settings:accounts",
+        "personalization": "ms-settings:personalization",
+        "background settings": "ms-settings:personalization-background",
+        "colors settings": "ms-settings:personalization-colors",
+        "themes": "ms-settings:themes",
+        "lock screen settings": "ms-settings:lockscreen",
+        "taskbar settings": "ms-settings:taskbar",
+        "mouse settings": "ms-settings:mousetouchpad",
+        "keyboard settings": "ms-settings:keyboard",
+        "touchpad settings": "ms-settings:devices-touchpad",
+        "printers": "ms-settings:printers",
+        "printer settings": "ms-settings:printers",
+        "camera settings": "ms-settings:camera",
+        "privacy settings": "ms-settings:privacy",
+        "windows update": "ms-settings:windowsupdate",
+        "update settings": "ms-settings:windowsupdate",
+        "date and time": "ms-settings:dateandtime",
+        "time settings": "ms-settings:dateandtime",
+        "language settings": "ms-settings:regionlanguage",
+        "region settings": "ms-settings:regionlanguage",
+        "about": "ms-settings:about",
+        "system info": "ms-settings:about",
+        "vpn": "ms-settings:network-vpn",
+        "vpn settings": "ms-settings:network-vpn",
+        "proxy settings": "ms-settings:network-proxy",
+        "device manager": "devmgmt.msc",
+    }
+    if t in settings_map:
+        try:
+            os.startfile(settings_map[t])
+            return f"Opening {t}."
+        except Exception as e:
+            return f"Couldn't open {t}: {e}"
+    # Catch "<something> settings" not in the map
+    if t.endswith(" settings") and platform.system() == "Windows":
+        query = t.replace(" settings", "").strip()
+        uri = f"ms-settings:{query}"
+        try:
+            os.startfile(uri)
+            return f"Opening {t}."
+        except Exception:
+            pass  # Fall through to app search
+
+    # --- Web shortcuts ---
     shortcuts = {"youtube": "https://www.youtube.com", "google": "https://www.google.com", "gmail": "https://mail.google.com", "mails": "https://mail.google.com"}
     if t in shortcuts:
         webbrowser.open(shortcuts[t])
         return f"Opening {t}."
 
+    # --- Hardcoded app map + known install paths ---
     app_path = find_app_path(t)
     if app_path:
         try:
             if platform.system() == "Windows":
                 os.startfile(app_path)
-            elif platform.system() == "Darwin": # macOS
+            elif platform.system() == "Darwin":
                 subprocess.Popen(["open", "-a", app_path])
-            else: # Linux
+            else:
                 subprocess.Popen([app_path], start_new_session=True)
             return f"Launching {os.path.basename(app_path)}."
         except Exception as e:
             return f"I tried to launch {t} but encountered an error: {e}"
+
+    # --- Universal fallback: let Windows search Start Menu / PATH / App Paths ---
+    if platform.system() == "Windows":
+        try:
+            result = subprocess.run(
+                ["powershell", "-WindowStyle", "Hidden", "-Command",
+                 f'Start-Process "{target}"'],
+                capture_output=True, text=True, timeout=5,
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
+            if result.returncode == 0:
+                return f"Launching {target}."
+        except Exception:
+            pass
 
     if t.startswith("http://") or t.startswith("https://"):
         webbrowser.open(t)
@@ -942,6 +1134,117 @@ def handle_user_command(user_text: str):
         send_response(conf)
         return
 
+    # --- Handle pending multi-turn actions (folder creation, file creation) ---
+    _location_shortcuts = {
+        "desktop": os.path.join(os.path.expanduser("~"), "Desktop"),
+        "documents": os.path.join(os.path.expanduser("~"), "Documents"),
+        "downloads": os.path.join(os.path.expanduser("~"), "Downloads"),
+        "home": os.path.expanduser("~"),
+        "here": os.getcwd(),
+    }
+    pending = MEM.get("pending_action")
+    if pending:
+        p_type = pending.get("type")
+        step = pending.get("step")
+
+        # -- Folder creation flow --
+        if p_type == "create_folder":
+            if step == "need_name":
+                folder_name = user_text.strip()
+                MEM["pending_action"] = {"type": "create_folder", "step": "need_location", "name": folder_name}
+                save_memory(MEM)
+                send_response(f"Got it — '{folder_name}'. Where should I create it? (e.g., desktop, documents, or a full path)")
+                return
+            elif step == "need_location":
+                raw_location = user_text.strip().lower()
+                location = _location_shortcuts.get(raw_location, os.path.expanduser(user_text.strip()))
+                folder_name = pending.get("name", "NewFolder")
+                full_path = os.path.join(location, folder_name)
+                result = create_folder(full_path)
+                MEM.pop("pending_action", None)
+                if "created" in result.lower():
+                    set_last_action("folder", folder_name, full_path)
+                save_memory(MEM)
+                send_response(result)
+                return
+
+        # -- File creation flow --
+        elif p_type == "create_file":
+            if step == "need_name":
+                file_name = user_text.strip()
+                if "." not in file_name:
+                    file_name += ".txt"
+                last = MEM.get("last_action")
+                if last and last["type"] == "folder" and os.path.isdir(last["path"]):
+                    full_path = os.path.join(last["path"], file_name)
+                    result = create_file(full_path)
+                    MEM.pop("pending_action", None)
+                    if "created" in result.lower():
+                        set_last_action("file", file_name, full_path)
+                    save_memory(MEM)
+                    send_response(result)
+                    return
+                MEM["pending_action"] = {"type": "create_file", "step": "need_location", "name": file_name}
+                save_memory(MEM)
+                send_response(f"Got it — '{file_name}'. Where should I create it? (e.g., desktop, documents, or a full path)")
+                return
+            elif step == "need_location":
+                raw_location = user_text.strip().lower()
+                location = _location_shortcuts.get(raw_location, os.path.expanduser(user_text.strip()))
+                file_name = pending.get("name", "newfile.txt")
+                full_path = os.path.join(location, file_name)
+                result = create_file(full_path)
+                MEM.pop("pending_action", None)
+                if "created" in result.lower():
+                    set_last_action("file", file_name, full_path)
+                save_memory(MEM)
+                send_response(result)
+                return
+
+    # --- Pronoun / context resolution ("name it X", "rename it to X", "delete it", "open it") ---
+    lt = user_text.lower().strip()
+    last = MEM.get("last_action")
+    if last:
+        m_name = re.match(r"(?:zendaya,?\s*)?(?:name|rename)\s+it\s+(?:to\s+)?['\"]?(.+?)['\"]?$", lt)
+        if m_name:
+            new_name = m_name.group(1).strip()
+            old_path = last["path"]
+            if os.path.exists(old_path):
+                parent = os.path.dirname(old_path)
+                if last["type"] == "file" and "." not in new_name:
+                    _, ext = os.path.splitext(last["name"])
+                    new_name += ext or ".txt"
+                new_path = os.path.join(parent, new_name)
+                try:
+                    os.rename(old_path, new_path)
+                    set_last_action(last["type"], new_name, new_path)
+                    send_response(f"Renamed to '{new_name}'.")
+                except Exception as e:
+                    send_response(f"Rename failed: {e}")
+            else:
+                send_response(f"I can't find '{last['name']}' anymore — it may have been moved or deleted.")
+            return
+
+        if re.match(r"(?:zendaya,?\s*)?(?:delete|remove)\s+it\s*$", lt):
+            MEM["pending_confirm"] = {"action": "delete_file", "path": last["path"]}
+            save_memory(MEM)
+            send_response(f"Are you sure you want to delete '{last['name']}'? Say 'confirm delete' to proceed.")
+            return
+
+        if re.match(r"(?:zendaya,?\s*)?open\s+it\s*$", lt):
+            if os.path.exists(last["path"]):
+                try:
+                    os.startfile(last["path"])
+                    send_response(f"Opening {last['name']}.")
+                except Exception as e:
+                    send_response(f"Couldn't open it: {e}")
+            else:
+                send_response(f"I can't find '{last['name']}' anymore.")
+            return
+
+    # --- Resolve context references ("the folder", "the file") before passing to parsers ---
+    user_text = resolve_context(user_text)
+
     mode_switch_msg = handle_mode_switch(user_text)
     if mode_switch_msg:
         send_response(mode_switch_msg)
@@ -998,6 +1301,94 @@ def handle_user_command(user_text: str):
         send_response(msg)
         return
     
+    # --- Resolve ambiguous follow-ups and corrections for volume/brightness ---
+    lt_check = user_text.lower().strip()
+    last_sys = MEM.get("last_system_command")
+
+    correction_m = re.match(
+        r"(?:zendaya,?\s*)?(?:i\s+(?:meant|said|want)|no,?\s*(?:i\s+(?:meant|said|want))?)\s*"
+        r"(brightness|volume|sound|audio)",
+        lt_check
+    )
+    if not correction_m:
+        correction_m = re.match(
+            r"(?:zendaya,?\s*)?(brightness|volume)\s+not\s+(volume|brightness)",
+            lt_check
+        )
+    if correction_m:
+        intended = correction_m.group(1).strip()
+        if intended in ("brightness",):
+            sys_result = adjust_brightness("down", 15)
+        else:
+            sys_result = adjust_volume("down", 5)
+        set_last_system_command(sys_result)
+        send_response(f"My mistake. {sys_result}")
+        return
+
+    if last_sys in ("volume", "brightness"):
+        followup_m = re.match(
+            r"(?:zendaya,?\s*)?(?:set|reduce|lower|increase|raise|turn|change|put|make)\s+"
+            r"(?:it\s+)?(?:to\s+)?(\d+)%?\s*$",
+            lt_check
+        )
+        if followup_m:
+            level = int(followup_m.group(1))
+            if last_sys == "brightness":
+                sys_result = set_brightness(level)
+            else:
+                sys_result = set_volume(level)
+            set_last_system_command(sys_result)
+            send_response(sys_result)
+            return
+
+        followup_down = re.search(
+            r"\b(reduce|lower|turn\s*(?:it\s+)?down|decrease|dim|darker|quieter)\b", lt_check
+        )
+        followup_up = re.search(
+            r"\b(increase|raise|turn\s*(?:it\s+)?up|louder|higher|brighter|brighten)\b", lt_check
+        )
+        has_subject = re.search(
+            r"\b(volume|sound|audio|brightness|screen|display|light)\b", lt_check
+        )
+        if not has_subject and (followup_down or followup_up):
+            direction = "down" if followup_down else "up"
+            if last_sys == "brightness":
+                sys_result = adjust_brightness(direction, 15)
+            else:
+                sys_result = adjust_volume(direction, 5)
+            set_last_system_command(sys_result)
+            send_response(sys_result)
+            return
+
+    # --- System access commands (files, email, volume, screenshots, etc.) ---
+    sys_result = handle_system_access(user_text)
+    if sys_result == "__ask_folder_name__":
+        MEM["pending_action"] = {"type": "create_folder", "step": "need_name"}
+        save_memory(MEM)
+        send_response("Sure! What would you like to name the folder?")
+        return
+    if sys_result == "__ask_file_name__":
+        MEM["pending_action"] = {"type": "create_file", "step": "need_name"}
+        save_memory(MEM)
+        last = MEM.get("last_action")
+        if last and last["type"] == "folder":
+            send_response(f"What should I name the file? (I'll put it in '{last['name']}')")
+        else:
+            send_response("What should I name the file?")
+        return
+    if sys_result is not None:
+        if sys_result.startswith("Folder created:"):
+            folder_path = sys_result.replace("Folder created: ", "").strip()
+            set_last_action("folder", os.path.basename(folder_path), folder_path)
+        elif sys_result.startswith("File created:"):
+            file_path = sys_result.replace("File created: ", "").strip()
+            set_last_action("file", os.path.basename(file_path), file_path)
+        elif sys_result.startswith("Renamed to"):
+            pass  # rename_item doesn't give us the full path, keep existing last_action
+        set_last_system_command(sys_result)
+        send_response(sys_result)
+        return
+
     # --- If no command, handle as conversational query ---
     search_context = None
     if should_auto_search(user_text):
