@@ -419,3 +419,6 @@ zendaya_memory.json
 zendaya_backend/greeting_memory.json
 zendaya_backend/last_greet.json
 zendaya_backend/zendaya_logs/
+
+# Graphify knowledge graph (regenerable)
+graphify-out/
