@@ -289,3 +289,123 @@ def _handle_alarm(action: str, payload: dict) -> str:
         _save_state(state)
         return f"Cancelled alarm {idx}: {rec['label']}."
     return f"Unknown alarm action: {action}."
+
+
+# ─── List parser ───────────────────────────────────────────────────────────
+
+_LIST_ADD_RE = _re.compile(
+    r"^(?:add|put)\s+(.+?)(?:\s+(?:to|on|in)\s+(?:my\s+|the\s+)?(.+?))?$",
+    _re.IGNORECASE,
+)
+_LIST_READ_RE = _re.compile(
+    r"^(?:what(?:'s|\s+is)?\s+on\s+my\s+|read\s+(?:me\s+)?(?:my\s+)?|show\s+(?:me\s+)?(?:my\s+)?)(.+?)(?:\s+list)?$",
+    _re.IGNORECASE,
+)
+_LIST_REMOVE_RE = _re.compile(
+    r"^(?:remove|take|delete)\s+(.+?)\s+(?:from|off)\s+(?:my\s+|the\s+)?(.+?)(?:\s+list)?$",
+    _re.IGNORECASE,
+)
+_LIST_MARK_RE = _re.compile(
+    r"^(?:mark|check)\s+(?:off\s+)?(.+?)\s+(?:done|complete|off)(?:\s+(?:on|from)\s+(?:my\s+|the\s+)?(.+?)(?:\s+list)?)?$",
+    _re.IGNORECASE,
+)
+
+_GROCERY_KEYWORDS = {
+    "milk", "eggs", "bread", "butter", "cheese", "flour", "sugar", "rice",
+    "pasta", "tomato", "tomatoes", "onion", "onions", "garlic", "potato",
+    "potatoes", "apple", "apples", "banana", "bananas", "coffee", "tea",
+    "yogurt", "chicken", "beef", "fish", "salad", "lettuce",
+}
+
+
+def _normalise_list_name(name: Optional[str]) -> str:
+    if not name:
+        return ""
+    n = name.strip().lower()
+    if n.endswith(" list"):
+        n = n[: -len(" list")].strip()
+    return n
+
+
+def _default_list_for_item(item: str) -> str:
+    first_word = item.strip().split()[0].lower() if item.strip() else ""
+    return "shopping" if first_word in _GROCERY_KEYWORDS else "todo"
+
+
+def parse_list_command(text: str) -> Optional[tuple[str, dict]]:
+    if not text:
+        return None
+    t = text.strip()
+
+    # Mark-done has the most-specific shape — try it first.
+    m = _LIST_MARK_RE.match(t)
+    if m:
+        item = m.group(1).strip()
+        list_name = _normalise_list_name(m.group(2)) or _default_list_for_item(item)
+        return ("mark_done", {"list_name": list_name, "item": item})
+
+    m = _LIST_REMOVE_RE.match(t)
+    if m:
+        return ("remove", {"list_name": _normalise_list_name(m.group(2)), "item": m.group(1).strip()})
+
+    m = _LIST_READ_RE.match(t)
+    if m:
+        return ("read", {"list_name": _normalise_list_name(m.group(1))})
+
+    m = _LIST_ADD_RE.match(t)
+    if m:
+        item = m.group(1).strip()
+        list_name = _normalise_list_name(m.group(2)) if m.group(2) else _default_list_for_item(item)
+        # Guard against the parser swallowing "add milk to shopping" with item="milk to shopping" if regex backtracks.
+        if not item:
+            return None
+        return ("add", {"list_name": list_name, "item": item})
+
+    return None
+
+
+# ─── List handler ──────────────────────────────────────────────────────────
+
+def _handle_list(action: str, payload: dict) -> str:
+    state = _load_state()
+    list_name = payload.get("list_name", "todo")
+    lists = state["lists"]
+
+    if action == "add":
+        item_text = payload["item"]
+        items = lists.setdefault(list_name, [])
+        items.append({"text": item_text, "done": False, "added_at": time.time()})
+        _save_state(state)
+        return f"Added '{item_text}' to {list_name}."
+
+    if action == "read":
+        items = lists.get(list_name, [])
+        if not items:
+            return f"Your {list_name} list is empty."
+        lines = []
+        for it in items:
+            mark = "✓" if it.get("done") else "•"
+            lines.append(f"  {mark} {it['text']}")
+        return f"Your {list_name} list:\n" + "\n".join(lines)
+
+    if action == "remove":
+        items = lists.get(list_name, [])
+        target = payload["item"].lower()
+        for i, it in enumerate(items):
+            if it["text"].lower() == target:
+                items.pop(i)
+                _save_state(state)
+                return f"Removed '{it['text']}' from {list_name}."
+        return f"I couldn't find '{payload['item']}' on the {list_name} list."
+
+    if action == "mark_done":
+        items = lists.get(list_name, [])
+        target = payload["item"].lower()
+        for it in items:
+            if it["text"].lower() == target:
+                it["done"] = True
+                _save_state(state)
+                return f"Marked '{it['text']}' done on {list_name}."
+        return f"I couldn't find '{payload['item']}' on the {list_name} list."
+
+    return f"Unknown list action: {action}."

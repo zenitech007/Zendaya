@@ -216,3 +216,103 @@ def test_cancel_alarm_by_index(tmp_data_dir):
     state = aaf._load_state()
     active = [a for a in state["alarms"] if a["active"]]
     assert len(active) == 1 and active[0]["kind"] == "cron"
+
+
+# ─── List family ───────────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("utterance, expected_list, expected_item", [
+    ("add milk to shopping list",            "shopping", "milk"),
+    ("add eggs to the shopping list",        "shopping", "eggs"),
+    ("put bread on my groceries list",       "groceries", "bread"),
+    ("add finish the report to my todo list", "todo", "finish the report"),
+])
+def test_parse_list_add_explicit(utterance, expected_list, expected_item, tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    result = aaf.parse_list_command(utterance)
+    assert result is not None
+    action, payload = result
+    assert action == "add"
+    assert payload["list_name"] == expected_list
+    assert payload["item"].strip() == expected_item
+
+
+@pytest.mark.parametrize("utterance, expected_list", [
+    ("add milk",                "shopping"),    # grocery keyword
+    ("add eggs",                "shopping"),
+    ("add finish the report",   "todo"),
+    ("add call mom",            "todo"),
+])
+def test_parse_list_add_default(utterance, expected_list, tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    action, payload = aaf.parse_list_command(utterance)
+    assert action == "add"
+    assert payload["list_name"] == expected_list
+
+
+@pytest.mark.parametrize("utterance, expected_list", [
+    ("what's on my shopping list", "shopping"),
+    ("read my todo list",          "todo"),
+    ("show me my packing list",    "packing"),
+])
+def test_parse_list_read(utterance, expected_list, tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    action, payload = aaf.parse_list_command(utterance)
+    assert action == "read"
+    assert payload["list_name"] == expected_list
+
+
+def test_parse_list_remove(tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    action, payload = aaf.parse_list_command("remove milk from shopping list")
+    assert action == "remove"
+    assert payload["list_name"] == "shopping"
+    assert payload["item"] == "milk"
+
+
+def test_parse_list_mark_done(tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    action, payload = aaf.parse_list_command("mark milk done on shopping list")
+    assert action == "mark_done"
+    assert payload["list_name"] == "shopping"
+    assert payload["item"] == "milk"
+
+
+def test_parse_list_negative(tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    assert aaf.parse_list_command("set alarm 7am") is None
+    assert aaf.parse_list_command("what time is it") is None
+    assert aaf.parse_list_command("") is None
+
+
+def test_list_handler_round_trip(tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    aaf._handle_list("add", {"list_name": "shopping", "item": "milk"})
+    aaf._handle_list("add", {"list_name": "shopping", "item": "eggs"})
+
+    reply = aaf._handle_list("read", {"list_name": "shopping"})
+    assert "milk" in reply and "eggs" in reply
+
+    aaf._handle_list("mark_done", {"list_name": "shopping", "item": "milk"})
+    state = aaf._load_state()
+    items = state["lists"]["shopping"]
+    milk = next(i for i in items if i["text"] == "milk")
+    assert milk["done"] is True
+
+    aaf._handle_list("remove", {"list_name": "shopping", "item": "eggs"})
+    state = aaf._load_state()
+    texts = [i["text"] for i in state["lists"]["shopping"]]
+    assert "eggs" not in texts
+
+
+def test_list_remove_nonexistent_item_is_friendly(tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    aaf._handle_list("add", {"list_name": "shopping", "item": "milk"})
+    reply = aaf._handle_list("remove", {"list_name": "shopping", "item": "spaghetti"})
+    assert "couldn't find" in reply.lower() or "not on" in reply.lower()
+
+
+def test_list_read_empty_list_is_friendly(tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    reply = aaf._handle_list("read", {"list_name": "nonexistent"})
+    assert "empty" in reply.lower() or "no items" in reply.lower()
