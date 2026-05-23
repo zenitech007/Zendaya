@@ -94,3 +94,72 @@ def stop() -> None:
 def try_handle(text: str) -> Optional[str]:
     """Skeleton — populated by Task 7. Returns None so the LLM path takes over."""
     return None
+
+
+# ─── Timer parser ──────────────────────────────────────────────────────────
+
+import re as _re
+
+_TIMER_RE = _re.compile(
+    r"^(?:set\s+(?:a\s+)?timer|timer)\s+(?:for|of)?\s*(\d+)\s*"
+    r"(seconds?|secs?|minutes?|mins?|hours?|hrs?)\b",
+    _re.IGNORECASE,
+)
+
+_UNIT_TO_SECONDS = {
+    "s": 1, "sec": 1, "secs": 1, "second": 1, "seconds": 1,
+    "m": 60, "min": 60, "mins": 60, "minute": 60, "minutes": 60,
+    "h": 3600, "hr": 3600, "hrs": 3600, "hour": 3600, "hours": 3600,
+}
+
+
+def parse_timer_command(text: str) -> Optional[tuple[str, dict]]:
+    if not text:
+        return None
+    m = _TIMER_RE.match(text.strip())
+    if not m:
+        return None
+    n = int(m.group(1))
+    unit = m.group(2).lower()
+    seconds = n * _UNIT_TO_SECONDS[unit]
+    if seconds <= 0:
+        return None
+    label = f"{n}-{unit.rstrip('s')} timer"
+    return ("create", {"duration_seconds": seconds, "label": label})
+
+
+# ─── Timer handler ─────────────────────────────────────────────────────────
+
+def _handle_timer(action: str, payload: dict) -> str:
+    state = _load_state()
+    if action == "create":
+        rec = {
+            "id": state["next_timer_id"],
+            "fire_at": datetime.now().isoformat(),  # placeholder; populated when scheduler wires it
+            "duration_seconds": payload["duration_seconds"],
+            "label": payload.get("label", "timer"),
+            "created_at": time.time(),
+            "active": True,
+        }
+        state["timers"].append(rec)
+        state["next_timer_id"] += 1
+        _save_state(state)
+        # Scheduler arming happens in Task 7. For now, the record exists.
+        secs = payload["duration_seconds"]
+        return f"Timer set for {secs // 60} min {secs % 60} sec." if secs >= 60 else f"Timer set for {secs} sec."
+    if action == "list":
+        active = [t for t in state["timers"] if t["active"]]
+        if not active:
+            return "You have no active timers."
+        lines = [f"{i + 1}. {t['label']}" for i, t in enumerate(active)]
+        return "Active timers:\n" + "\n".join(lines)
+    if action == "cancel":
+        active = [t for t in state["timers"] if t["active"]]
+        idx = payload.get("index", 0)
+        if idx < 1 or idx > len(active):
+            return f"You only have {len(active)} active timer(s). Try 'list my timers' to see them."
+        rec = active[idx - 1]
+        rec["active"] = False
+        _save_state(state)
+        return f"Cancelled timer {idx}: {rec['label']}."
+    return f"Unknown timer action: {action}."
