@@ -163,3 +163,129 @@ def _handle_timer(action: str, payload: dict) -> str:
         _save_state(state)
         return f"Cancelled timer {idx}: {rec['label']}."
     return f"Unknown timer action: {action}."
+
+
+# ─── Alarm parser ──────────────────────────────────────────────────────────
+
+_ALARM_PREFIX_RE = _re.compile(
+    r"^(?:set\s+(?:an?\s+)?alarm|alarm|wake me up|remind me)\b",
+    _re.IGNORECASE,
+)
+
+# Hand-curated phrase → cron table. Order matters: longer patterns first.
+_DAY_TO_CRON = {
+    "sunday": "0", "monday": "1", "tuesday": "2", "wednesday": "3",
+    "thursday": "4", "friday": "5", "saturday": "6",
+}
+
+
+def _try_cron(text: str) -> Optional[str]:
+    """Return a cron string if text matches a known recurring phrasing, else None."""
+    t = text.lower().strip()
+
+    # "every <N> minutes" → "*/N * * * *"
+    m = _re.search(r"every\s+(\d+)\s+minutes?", t)
+    if m:
+        n = int(m.group(1))
+        if 1 <= n <= 59:
+            return f"*/{n} * * * *"
+
+    # "every weekday at <H[:M]><am|pm>" → "M H * * 1-5"
+    m = _re.search(r"every\s+weekday(?:s)?\s+at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?", t)
+    if m:
+        h, mm, ampm = int(m.group(1)), int(m.group(2) or 0), m.group(3)
+        h = _normalise_hour(h, ampm)
+        return f"{mm} {h} * * 1-5"
+
+    # "every weekend at <H[:M]><am|pm>" → "M H * * 0,6"
+    m = _re.search(r"every\s+weekend(?:s)?\s+at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?", t)
+    if m:
+        h, mm, ampm = int(m.group(1)), int(m.group(2) or 0), m.group(3)
+        h = _normalise_hour(h, ampm)
+        return f"{mm} {h} * * 0,6"
+
+    # "every <day> at <H[:M]><am|pm>" → "M H * * D"
+    m = _re.search(
+        r"every\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\s+at\s+"
+        r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)?",
+        t,
+    )
+    if m:
+        day, h, mm, ampm = m.group(1), int(m.group(2)), int(m.group(3) or 0), m.group(4)
+        h = _normalise_hour(h, ampm)
+        return f"{mm} {h} * * {_DAY_TO_CRON[day]}"
+
+    return None
+
+
+def _normalise_hour(h: int, ampm: Optional[str]) -> int:
+    if ampm == "pm" and h < 12:
+        return h + 12
+    if ampm == "am" and h == 12:
+        return 0
+    return h
+
+
+def parse_alarm_command(text: str) -> Optional[tuple[str, dict]]:
+    if not text or not _ALARM_PREFIX_RE.search(text):
+        return None
+    # Strip prefix, parse the remainder.
+    remainder = _ALARM_PREFIX_RE.sub("", text, count=1).strip(" ,.;")
+
+    # 1. Try cron-table for recurring phrasings.
+    cron = _try_cron(remainder if remainder else text)
+    if cron:
+        return ("create", {"kind": "cron", "trigger": cron, "label": text.strip()})
+
+    # 2. Try dateparser for one-shots.
+    import dateparser
+    # Strip leading "for " / "at " — dateparser chokes on them.
+    cleaned = _re.sub(r"^(?:for|at)\s+", "", remainder, flags=_re.IGNORECASE)
+    dt = dateparser.parse(
+        cleaned,
+        settings={"PREFER_DATES_FROM": "future", "RETURN_AS_TIMEZONE_AWARE": False},
+    )
+    if dt and dt > datetime.now():
+        return ("create", {"kind": "one_shot", "trigger": dt.isoformat(), "label": text.strip()})
+
+    return ("error", {"message": "I couldn't parse that schedule. Try 'alarm at 7am tomorrow' or 'every weekday at 7am'."})
+
+
+# ─── Alarm handler ─────────────────────────────────────────────────────────
+
+def _handle_alarm(action: str, payload: dict) -> str:
+    if action == "error":
+        return payload["message"]
+    state = _load_state()
+    if action == "create":
+        rec = {
+            "id": state["next_alarm_id"],
+            "kind": payload["kind"],
+            "trigger": payload["trigger"],
+            "label": payload.get("label", "alarm"),
+            "created_at": time.time(),
+            "active": True,
+        }
+        state["alarms"].append(rec)
+        state["next_alarm_id"] += 1
+        _save_state(state)
+        # Scheduler arming happens in Task 7.
+        if rec["kind"] == "one_shot":
+            return f"Alarm set for {rec['trigger']}."
+        return f"Recurring alarm set: {rec['trigger']}."
+    if action == "list":
+        active = [a for a in state["alarms"] if a["active"]]
+        if not active:
+            return "You have no active alarms."
+        lines = [f"{i + 1}. [{a['kind']}] {a['trigger']} — {a['label']}" for i, a in enumerate(active)]
+        return "Active alarms:\n" + "\n".join(lines)
+    if action == "cancel":
+        active = [a for a in state["alarms"] if a["active"]]
+        idx = payload.get("index", 0)
+        if idx < 1 or idx > len(active):
+            return f"You only have {len(active)} active alarm(s). Try 'list my alarms' to see them."
+        rec = active[idx - 1]
+        rec["active"] = False
+        _save_state(state)
+        return f"Cancelled alarm {idx}: {rec['label']}."
+    return f"Unknown alarm action: {action}."

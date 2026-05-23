@@ -125,3 +125,94 @@ def test_cancel_timer_out_of_range(tmp_data_dir):
     import zendaya_assistant_features as aaf
     reply = aaf._handle_timer("cancel", {"index": 5})
     assert "only" in reply.lower() or "no" in reply.lower()
+
+
+# ─── Alarm family ──────────────────────────────────────────────────────────
+
+
+def test_parse_alarm_one_shot_simple(tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    result = aaf.parse_alarm_command("set an alarm for 7am tomorrow")
+    assert result is not None
+    action, payload = result
+    assert action == "create"
+    assert payload["kind"] == "one_shot"
+    # trigger is an ISO datetime string in the future
+    dt = datetime.fromisoformat(payload["trigger"])
+    assert dt > datetime.now()
+    assert dt.hour == 7 and dt.minute == 0
+
+
+@pytest.mark.parametrize("utterance, expected_cron", [
+    ("alarm every weekday at 7am",        "0 7 * * 1-5"),
+    ("set an alarm every sunday at 9pm",  "0 21 * * 0"),
+    ("alarm every 15 minutes",            "*/15 * * * *"),
+    ("alarm every monday at 8:30am",      "30 8 * * 1"),
+])
+def test_parse_alarm_cron_table(utterance, expected_cron, tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    result = aaf.parse_alarm_command(utterance)
+    assert result is not None, f"expected match for {utterance!r}"
+    action, payload = result
+    assert action == "create"
+    assert payload["kind"] == "cron"
+    assert payload["trigger"] == expected_cron
+
+
+def test_parse_alarm_unrecognised_returns_help(tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    result = aaf.parse_alarm_command("set an alarm on the next blue moon")
+    assert result is not None
+    action, payload = result
+    assert action == "error"
+    assert "try" in payload["message"].lower()
+
+
+@pytest.mark.parametrize("utterance", [
+    "set timer for 5 minutes",
+    "add eggs to shopping",
+    "what's the weather",
+    "",
+])
+def test_parse_alarm_negative(utterance, tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    assert aaf.parse_alarm_command(utterance) is None
+
+
+def test_create_one_shot_alarm_persists(tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    future = (datetime.now() + timedelta(hours=1)).isoformat()
+    reply = aaf._handle_alarm("create", {"kind": "one_shot", "trigger": future, "label": "alarm in 1h"})
+    assert "alarm" in reply.lower()
+    state = aaf._load_state()
+    assert len(state["alarms"]) == 1
+    assert state["alarms"][0]["kind"] == "one_shot"
+
+
+def test_create_cron_alarm_persists(tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    reply = aaf._handle_alarm("create", {"kind": "cron", "trigger": "0 7 * * 1-5", "label": "weekday 7am"})
+    assert "alarm" in reply.lower()
+    state = aaf._load_state()
+    assert state["alarms"][0]["kind"] == "cron"
+    assert state["alarms"][0]["trigger"] == "0 7 * * 1-5"
+
+
+def test_list_alarms_includes_both_kinds(tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    future = (datetime.now() + timedelta(hours=1)).isoformat()
+    aaf._handle_alarm("create", {"kind": "one_shot", "trigger": future, "label": "one-shot"})
+    aaf._handle_alarm("create", {"kind": "cron", "trigger": "0 7 * * 1-5", "label": "weekday 7am"})
+    reply = aaf._handle_alarm("list", {})
+    assert "1." in reply and "2." in reply
+
+
+def test_cancel_alarm_by_index(tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    future = (datetime.now() + timedelta(hours=1)).isoformat()
+    aaf._handle_alarm("create", {"kind": "one_shot", "trigger": future, "label": "one-shot"})
+    aaf._handle_alarm("create", {"kind": "cron", "trigger": "0 7 * * 1-5", "label": "weekday"})
+    aaf._handle_alarm("cancel", {"index": 1})
+    state = aaf._load_state()
+    active = [a for a in state["alarms"] if a["active"]]
+    assert len(active) == 1 and active[0]["kind"] == "cron"
