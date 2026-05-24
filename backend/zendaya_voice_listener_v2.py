@@ -73,7 +73,11 @@ except Exception:
 from voice.agc import AGC
 from voice.denoise import Denoiser
 from voice.vad_silero import SileroVAD
-from voice.wake import WakeEngine, verifier_passes
+from voice.wake import (
+    VERIFIER_SKIP_THRESHOLD,
+    WakeEngine,
+    verifier_passes_for_model,
+)
 
 # -----------------------
 # Config
@@ -85,7 +89,7 @@ FRAME_SAMPLES = int(SAMPLE_RATE * FRAME_MS / 1000)
 ROLLING_BUFFER_S = 1.5              # pre-roll for record + Whisper verifier
 MAX_UTTERANCE_S = 15.0
 SHORT_SILENCE_END_S = 0.45          # end-of-turn when last partial looks complete
-LONG_SILENCE_END_S = 0.90           # end-of-turn when partial seems mid-sentence
+LONG_SILENCE_END_S = 0.70           # end-of-turn when partial seems mid-sentence
 FOLLOW_UP_S = 20.0                  # within this after a dispatch, skip the wake gate
 MIN_UTTERANCE_S = 0.5
 VAD_TRIGGER_FRAMES = 4              # ~120 ms of speech to confirm
@@ -133,6 +137,11 @@ _AGC = AGC()
 _DENOISER: Optional[Denoiser] = None  # lazy
 _VAD: Optional[SileroVAD] = None      # lazy
 _WAKE: Optional[WakeEngine] = None    # lazy
+
+# Module-scope persistent audio stream — opened once by start_voice_listener
+# and reused across listener sessions to avoid per-cycle open/close overhead.
+_AUDIO_STREAM = None
+_AUDIO_STREAM_LOCK = threading.Lock()
 
 
 def set_tts_speaking(speaking: bool) -> None:
@@ -234,7 +243,7 @@ def _whisper_decode(audio_int16: np.ndarray) -> tuple[str, float, float]:
         if _WHISPER_BACKEND == "faster":
             segments, _info = model.transcribe(
                 audio_f32,
-                beam_size=5,
+                beam_size=1,
                 language=lang,
                 vad_filter=True,
                 vad_parameters={"min_silence_duration_ms": 250},
@@ -326,6 +335,27 @@ def _audio_callback(indata, frames, time_info, status):
             _AUDIO_Q.put_nowait(flat.copy())
         except Exception:
             pass
+
+
+def _get_audio_stream():
+    """Return the persistent input stream, creating + starting it on first call.
+
+    Reused across listener sessions so we don't pay the open/close cost every
+    time `_run_listener_session` restarts after dispatching a command.
+    """
+    global _AUDIO_STREAM
+    with _AUDIO_STREAM_LOCK:
+        if _AUDIO_STREAM is None:
+            stream = sd.InputStream(
+                samplerate=SAMPLE_RATE,
+                channels=CHANNELS,
+                dtype="int16",
+                blocksize=FRAME_SAMPLES,
+                callback=_audio_callback,
+            )
+            stream.start()
+            _AUDIO_STREAM = stream
+    return _AUDIO_STREAM
 
 
 def _frames():
@@ -443,16 +473,15 @@ def _run_listener_session() -> None:
 
     rolling_frames = int(ROLLING_BUFFER_S * 1000 / FRAME_MS)
 
-    stream = sd.InputStream(
-        samplerate=SAMPLE_RATE,
-        channels=CHANNELS,
-        dtype="int16",
-        blocksize=FRAME_SAMPLES,
-        callback=_audio_callback,
-    )
+    # Persistent stream — created once and reused across sessions.
+    try:
+        _get_audio_stream()
+    except Exception as e:
+        print(f"(voice listener v2: audio stream failed to open: {e})")
+        time.sleep(3)
+        return
 
     try:
-        stream.start()
         rolling: deque = deque(maxlen=rolling_frames)
         consecutive_speech = 0
         speech_triggered = False
@@ -526,16 +555,21 @@ def _run_listener_session() -> None:
         # Verifier (cold wake only — followup and barge-in skip it)
         pre_roll_list = list(rolling)
         if wake_fired and not barge_fired:
-            try:
-                pre_roll_audio = np.concatenate(pre_roll_list) if pre_roll_list else np.zeros(0, dtype=np.int16)
-                if pre_roll_audio.size >= int(SAMPLE_RATE * 0.4):
-                    pre_text, _lp, _nsp = _whisper_decode(pre_roll_audio)
-                    if pre_text and not verifier_passes(pre_text):
-                        print(f"[voice v2] wake VERIFIER rejected: {pre_text!r}")
-                        _set_state("idle")
-                        return
-            except Exception as e:
-                print(f"[voice v2] verifier failed: {e}")
+            # Skip the verifier when wake confidence is very high — saves 200-600ms.
+            if _WAKE is not None and _WAKE.last_score >= VERIFIER_SKIP_THRESHOLD:
+                pass  # high-confidence wake; skip Stage-2 verifier
+            else:
+                try:
+                    pre_roll_audio = np.concatenate(pre_roll_list) if pre_roll_list else np.zeros(0, dtype=np.int16)
+                    if pre_roll_audio.size >= int(SAMPLE_RATE * 0.4):
+                        pre_text, _lp, _nsp = _whisper_decode(pre_roll_audio)
+                        model_name = _WAKE.model_name if _WAKE is not None else "hey_jarvis"
+                        if pre_text and not verifier_passes_for_model(model_name, pre_text):
+                            print(f"[voice v2] wake VERIFIER rejected: {pre_text!r}")
+                            _set_state("idle")
+                            return
+                except Exception as e:
+                    print(f"[voice v2] verifier failed: {e}")
 
         _set_state("listening")
 
@@ -583,11 +617,8 @@ def _run_listener_session() -> None:
                 print(f"(command handler error: {e})")
 
     finally:
-        try:
-            stream.stop()
-            stream.close()
-        except Exception:
-            pass
+        # Persistent stream is intentionally left open across sessions.
+        pass
 
 
 def _listener_loop() -> None:
@@ -600,6 +631,20 @@ def _listener_loop() -> None:
 
 
 def start_voice_listener() -> threading.Thread:
+    # Preload Whisper so the first wake doesn't pay the cold-load cost.
+    try:
+        _init_whisper()
+        print("[voice v2] Whisper preloaded.")
+    except Exception as e:
+        print(f"[voice v2] Whisper preload failed (will lazy-load on first wake): {e}")
+    # Open the persistent audio stream now so the first session doesn't pay
+    # the open cost. Best-effort — the listener thread also retries on entry.
+    if _SD_READY:
+        try:
+            _get_audio_stream()
+            print("[voice v2] audio stream opened (persistent).")
+        except Exception as e:
+            print(f"[voice v2] persistent audio stream open failed (will retry on first session): {e}")
     import zendaya as z
     global _handle_command, _send_response
     _handle_command = z.handle_user_command

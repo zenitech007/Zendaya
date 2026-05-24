@@ -422,3 +422,6 @@ zendaya_backend/zendaya_logs/
 
 # Graphify knowledge graph (regenerable)
 graphify-out/
+
+# Voice wake model (binary, regenerable from upstream)
+backend/voice/zendaya_wake.onnx
