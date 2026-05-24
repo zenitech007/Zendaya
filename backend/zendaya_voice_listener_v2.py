@@ -123,6 +123,63 @@ _WAKE_ECHO_RE = re.compile(
 
 _BARE_WAKE_ACKS = ["Yes?", "I'm listening.", "Go ahead.", "What's up?"]
 
+
+# ─── Ambient-RMS floor gate ────────────────────────────────────────────────
+
+class _AmbientGate:
+    """Rolling RMS gate. When room ambient is below floor, suppress wake
+    detection (saves CPU + kills barely-audible false fires from TV / HDD)."""
+
+    def __init__(
+        self,
+        floor: float | None = None,
+        window_s: float = 0.5,
+        sample_rate: int = 16000,
+    ) -> None:
+        env_floor = os.environ.get("ZENDAYA_AMBIENT_FLOOR")
+        try:
+            self.floor = float(env_floor) if env_floor is not None else (floor if floor is not None else 0.005)
+        except (TypeError, ValueError):
+            print(f"[voice v2] invalid ZENDAYA_AMBIENT_FLOOR={env_floor!r}; using default 0.005")
+            self.floor = 0.005
+        self.window_s = window_s
+        self.sample_rate = sample_rate
+        self._buffer = np.zeros(int(window_s * sample_rate), dtype=np.float32)
+        self._buf_pos = 0
+        self._buf_filled = False
+
+    def observe(self, frame_int16: np.ndarray) -> None:
+        """Add a new frame to the rolling buffer."""
+        f32 = frame_int16.astype(np.float32) / 32768.0
+        n = len(f32)
+        if n >= len(self._buffer):
+            self._buffer[:] = f32[-len(self._buffer):]
+            self._buf_filled = True
+            self._buf_pos = 0
+            return
+        end = self._buf_pos + n
+        if end <= len(self._buffer):
+            self._buffer[self._buf_pos:end] = f32
+        else:
+            split = len(self._buffer) - self._buf_pos
+            self._buffer[self._buf_pos:] = f32[:split]
+            self._buffer[:n - split] = f32[split:]
+            self._buf_filled = True
+        self._buf_pos = end % len(self._buffer)
+        if not self._buf_filled and end >= len(self._buffer):
+            self._buf_filled = True
+
+    def below_floor(self) -> bool:
+        """Return True if recent ambient RMS is below the configured floor."""
+        if not self._buf_filled:
+            return False  # not enough data — let wake detection run
+        rms = float(np.sqrt(np.mean(self._buffer ** 2)))
+        return rms < self.floor
+
+    def diagnostics(self) -> str:
+        return f"ambient_gate: floor={self.floor}"
+
+
 # -----------------------
 # State
 # -----------------------
@@ -466,10 +523,12 @@ def _run_listener_session() -> None:
     _DENOISER = Denoiser(enabled=True)
     _VAD = SileroVAD(threshold=0.5)
     _WAKE = WakeEngine(model_name="hey_jarvis", threshold=0.5, barge_threshold=0.72)
+    ambient_gate = _AmbientGate(sample_rate=SAMPLE_RATE)
 
     print("[voice v2] " + _DENOISER.diagnostics())
     print("[voice v2] " + _VAD.diagnostics())
     print("[voice v2] " + _WAKE.diagnostics())
+    print("[voice v2] " + ambient_gate.diagnostics())
 
     rolling_frames = int(ROLLING_BUFFER_S * 1000 / FRAME_MS)
 
@@ -532,7 +591,13 @@ def _run_listener_session() -> None:
                 else:
                     consecutive_speech = 0
             else:
-                # Cold path — wake-word gated
+                # Cold path — wake-word gated, with ambient-RMS floor gate
+                ambient_gate.observe(frame)
+                if ambient_gate.below_floor():
+                    # Room is silent — skip wake detection entirely (CPU win,
+                    # kills barely-audible false fires from TV / HDD).
+                    consecutive_speech = 0
+                    continue
                 if _WAKE and _WAKE.ready and _WAKE.push(frame, barge_in=False):
                     wake_fired = True
                     print(f"[voice v2] wake — score={_WAKE.last_score:.2f}")

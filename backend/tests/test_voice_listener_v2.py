@@ -94,3 +94,47 @@ def test_default_cold_threshold_is_tightened():
     if "ZENDAYA_WAKE_THRESHOLD" in os.environ:
         pytest.skip("Skipping default-threshold test because env override is set.")
     assert eng.threshold == 0.6
+
+
+# ─── Ambient floor gate ────────────────────────────────────────────────────
+
+
+def test_ambient_gate_suppresses_wake_below_floor():
+    """When room RMS is below floor and TTS isn't speaking, wake is skipped."""
+    from zendaya_voice_listener_v2 import _AmbientGate
+
+    gate = _AmbientGate(floor=0.005, window_s=0.5, sample_rate=16000)
+    # Feed 1 second of silence (very low RMS).
+    silence_frame = (np.zeros(480) + 0.0005 * np.random.randn(480)).astype(np.float32)
+    silence_int16 = (silence_frame * 32767).astype(np.int16)
+    for _ in range(int(16000 / 480)):  # ~33 frames = ~1s
+        gate.observe(silence_int16)
+    assert gate.below_floor() is True
+
+
+def test_ambient_gate_opens_when_speech_present():
+    from zendaya_voice_listener_v2 import _AmbientGate
+
+    gate = _AmbientGate(floor=0.005, window_s=0.5, sample_rate=16000)
+    # 1 second of speech-level frames.
+    speech_frame = (0.05 * np.random.randn(480)).astype(np.float32)
+    speech_int16 = (np.clip(speech_frame, -1, 1) * 32767).astype(np.int16)
+    for _ in range(int(16000 / 480)):
+        gate.observe(speech_int16)
+    assert gate.below_floor() is False
+
+
+def test_ambient_gate_floor_from_env(monkeypatch):
+    monkeypatch.setenv("ZENDAYA_AMBIENT_FLOOR", "0.02")
+    from zendaya_voice_listener_v2 import _AmbientGate
+
+    gate = _AmbientGate()  # picks up env default
+    assert gate.floor == 0.02
+
+
+def test_ambient_gate_invalid_env_uses_default(monkeypatch):
+    monkeypatch.setenv("ZENDAYA_AMBIENT_FLOOR", "not-a-number")
+    from zendaya_voice_listener_v2 import _AmbientGate
+
+    gate = _AmbientGate()
+    assert gate.floor == 0.005  # default
