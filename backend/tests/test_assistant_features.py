@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import time
 from datetime import datetime, timedelta
 
 import pytest
@@ -316,3 +317,137 @@ def test_list_read_empty_list_is_friendly(tmp_data_dir):
     import zendaya_assistant_features as aaf
     reply = aaf._handle_list("read", {"list_name": "nonexistent"})
     assert "empty" in reply.lower() or "no items" in reply.lower()
+
+
+# ─── Scheduler + dispatcher ────────────────────────────────────────────────
+
+
+def test_start_prunes_expired_one_shots(tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    state = aaf._load_state()
+    past = (datetime.now() - timedelta(hours=1)).isoformat()
+    state["alarms"].append({
+        "id": 1, "kind": "one_shot", "trigger": past,
+        "label": "stale", "created_at": 0.0, "active": True,
+    })
+    state["next_alarm_id"] = 2
+    aaf._save_state(state)
+
+    aaf.start()
+    reloaded = aaf._load_state()
+    assert reloaded["alarms"][0]["active"] is False
+    aaf.stop()
+
+
+def test_start_keeps_active_cron_alarms(tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    state = aaf._load_state()
+    state["alarms"].append({
+        "id": 1, "kind": "cron", "trigger": "0 7 * * 1-5",
+        "label": "weekday 7am", "created_at": time.time(), "active": True,
+    })
+    state["next_alarm_id"] = 2
+    aaf._save_state(state)
+
+    aaf.start()
+    reloaded = aaf._load_state()
+    assert reloaded["alarms"][0]["active"] is True
+    aaf.stop()
+
+
+def test_fire_alarm_calls_notifier_and_deactivates_one_shot(tmp_data_dir, fake_notifier):
+    import zendaya_assistant_features as aaf
+    speak, toast, calls = fake_notifier
+    aaf.set_notifier(speak, toast)
+
+    state = aaf._load_state()
+    rec = {
+        "id": 1, "kind": "one_shot", "trigger": datetime.now().isoformat(),
+        "label": "test alarm", "created_at": time.time(), "active": True,
+    }
+    state["alarms"].append(rec)
+    aaf._save_state(state)
+
+    aaf._fire_alarm(rec["id"])
+
+    assert len(calls["speak"]) == 1 and "test alarm" in calls["speak"][0]
+    assert len(calls["toast"]) == 1
+    reloaded = aaf._load_state()
+    assert reloaded["alarms"][0]["active"] is False
+
+
+def test_fire_cron_alarm_keeps_active(tmp_data_dir, fake_notifier):
+    import zendaya_assistant_features as aaf
+    speak, toast, calls = fake_notifier
+    aaf.set_notifier(speak, toast)
+
+    state = aaf._load_state()
+    state["alarms"].append({
+        "id": 1, "kind": "cron", "trigger": "0 7 * * 1-5",
+        "label": "cron", "created_at": time.time(), "active": True,
+    })
+    aaf._save_state(state)
+
+    aaf._fire_alarm(1)
+
+    reloaded = aaf._load_state()
+    assert reloaded["alarms"][0]["active"] is True
+
+
+def test_fire_timer_deactivates(tmp_data_dir, fake_notifier):
+    import zendaya_assistant_features as aaf
+    speak, toast, calls = fake_notifier
+    aaf.set_notifier(speak, toast)
+
+    state = aaf._load_state()
+    state["timers"].append({
+        "id": 1, "fire_at": datetime.now().isoformat(),
+        "duration_seconds": 60, "label": "1-min timer",
+        "created_at": time.time(), "active": True,
+    })
+    aaf._save_state(state)
+
+    aaf._fire_timer(1)
+
+    reloaded = aaf._load_state()
+    assert reloaded["timers"][0]["active"] is False
+    assert "1-min timer" in calls["speak"][0]
+
+
+def test_fire_handles_missing_record_silently(tmp_data_dir, fake_notifier):
+    """If a record was cancelled mid-flight, the fire callback must not crash."""
+    import zendaya_assistant_features as aaf
+    speak, toast, _ = fake_notifier
+    aaf.set_notifier(speak, toast)
+    # No record with id=999 — should be a no-op, not an exception.
+    aaf._fire_alarm(999)
+    aaf._fire_timer(999)
+
+
+def test_pruning_drops_old_completed_list_items(tmp_data_dir):
+    import zendaya_assistant_features as aaf
+    old_ts = time.time() - (31 * 24 * 3600)
+    state = aaf._load_state()
+    state["lists"]["shopping"] = [
+        {"text": "old done milk", "done": True, "added_at": old_ts},
+        {"text": "fresh active eggs", "done": False, "added_at": time.time()},
+    ]
+    aaf._save_state(state)
+
+    aaf.start()
+    reloaded = aaf._load_state()
+    texts = [i["text"] for i in reloaded["lists"]["shopping"]]
+    assert "old done milk" not in texts
+    assert "fresh active eggs" in texts
+    aaf.stop()
+
+
+def test_try_handle_routes_to_correct_family(tmp_data_dir, fake_notifier):
+    import zendaya_assistant_features as aaf
+    speak, toast, _ = fake_notifier
+    aaf.set_notifier(speak, toast)
+
+    assert aaf.try_handle("set timer for 5 minutes") is not None
+    assert aaf.try_handle("set an alarm for 7am tomorrow") is not None
+    assert aaf.try_handle("add milk to shopping") is not None
+    assert aaf.try_handle("what time is it") is None

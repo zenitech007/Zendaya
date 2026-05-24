@@ -17,8 +17,8 @@ import json
 import os
 import threading
 import time
-from datetime import datetime
-from typing import Callable, Optional
+from datetime import datetime, timedelta
+from typing import Any, Callable, Optional
 
 import zendaya_data_store
 
@@ -81,18 +81,66 @@ def set_notifier(speak_fn: Callable[[str], None],
 
 
 def start() -> None:
-    """Skeleton — populated by Task 7. Touches state so corruption is caught early."""
     state = _load_state()
+    # Prune BEFORE expiring so a record that's about to be marked inactive this cycle
+    # isn't dropped in the same pass when its created_at is also stale (which is the
+    # natural state for any one-shot we're about to expire — its trigger time is past
+    # and created_at is therefore older still).
+    _prune(state)
+    _expire_one_shots(state)
+
+    # Adjust placeholder fire_at on timer records that were created before the scheduler
+    # ran (the timer parser stores datetime.now().isoformat() at create-time; here we
+    # recompute fire_at = created_at + duration_seconds when fire_at <= created_at).
+    for t in state["timers"]:
+        try:
+            fa = datetime.fromisoformat(t["fire_at"])
+            ca = datetime.fromtimestamp(t.get("created_at", time.time()))
+            if fa <= ca:
+                t["fire_at"] = (ca + timedelta(seconds=int(t["duration_seconds"]))).isoformat()
+        except Exception:
+            pass
+
     _save_state(state)
+
+    try:
+        sch = _get_scheduler()
+        if not sch.running:
+            sch.start()
+    except Exception as e:
+        print(f"(aaf: scheduler start failed; alarms/timers will not fire: {e})")
+        return
+
+    for a in state["alarms"]:
+        if a.get("active"):
+            _arm_record("alarm", a)
+    for t in state["timers"]:
+        if t.get("active"):
+            _arm_record("timer", t)
 
 
 def stop() -> None:
-    """Skeleton — populated by Task 7."""
-    pass
+    global _scheduler
+    if _scheduler is not None:
+        try:
+            _scheduler.shutdown(wait=False)
+        except Exception:
+            pass
+        _scheduler = None
 
 
 def try_handle(text: str) -> Optional[str]:
-    """Skeleton — populated by Task 7. Returns None so the LLM path takes over."""
+    if not text:
+        return None
+    parsed = parse_timer_command(text)
+    if parsed is not None:
+        return _handle_timer(*parsed)
+    parsed = parse_alarm_command(text)
+    if parsed is not None:
+        return _handle_alarm(*parsed)
+    parsed = parse_list_command(text)
+    if parsed is not None:
+        return _handle_list(*parsed)
     return None
 
 
@@ -409,3 +457,128 @@ def _handle_list(action: str, payload: dict) -> str:
         return f"I couldn't find '{payload['item']}' on the {list_name} list."
 
     return f"Unknown list action: {action}."
+
+
+# ─── Scheduler + fire callbacks ────────────────────────────────────────────
+
+_scheduler = None  # type: Optional[Any]
+_LIST_ITEM_TTL_SECONDS = 30 * 24 * 3600
+_RECORD_TTL_SECONDS = 30 * 24 * 3600
+
+
+def _get_scheduler():
+    """Lazy import + init so test environments without apscheduler still load."""
+    global _scheduler
+    if _scheduler is None:
+        from apscheduler.schedulers.background import BackgroundScheduler
+        _scheduler = BackgroundScheduler()
+    return _scheduler
+
+
+def _prune(state: dict) -> None:
+    """Drop stale records and completed list items in-place."""
+    now = time.time()
+    # Stale completed list items.
+    for name, items in list(state["lists"].items()):
+        state["lists"][name] = [
+            it for it in items
+            if not (it.get("done") and (now - it.get("added_at", now) > _LIST_ITEM_TTL_SECONDS))
+        ]
+    # Inactive alarms / timers older than the TTL.
+    state["alarms"] = [
+        a for a in state["alarms"]
+        if a.get("active") or (now - a.get("created_at", now) <= _RECORD_TTL_SECONDS)
+    ]
+    state["timers"] = [
+        t for t in state["timers"]
+        if t.get("active") or (now - t.get("created_at", now) <= _RECORD_TTL_SECONDS)
+    ]
+
+
+def _expire_one_shots(state: dict) -> None:
+    """Mark active one-shot alarms/timers with past trigger times as inactive."""
+    now = datetime.now()
+    for a in state["alarms"]:
+        if not a.get("active") or a.get("kind") != "one_shot":
+            continue
+        try:
+            if datetime.fromisoformat(a["trigger"]) < now:
+                a["active"] = False
+                print(f"(aaf: missed one-shot alarm '{a.get('label')}' at {a['trigger']})")
+        except Exception:
+            pass
+    for t in state["timers"]:
+        if not t.get("active"):
+            continue
+        try:
+            if datetime.fromisoformat(t["fire_at"]) < now:
+                t["active"] = False
+                print(f"(aaf: missed timer '{t.get('label')}' at {t['fire_at']})")
+        except Exception:
+            pass
+
+
+def _arm_record(rec_kind: str, rec: dict) -> None:
+    """Add the appropriate APScheduler job for an active record."""
+    try:
+        if rec_kind == "alarm":
+            if rec["kind"] == "one_shot":
+                from apscheduler.triggers.date import DateTrigger
+                trigger = DateTrigger(run_date=datetime.fromisoformat(rec["trigger"]))
+            else:
+                from apscheduler.triggers.cron import CronTrigger
+                trigger = CronTrigger.from_crontab(rec["trigger"])
+            _get_scheduler().add_job(
+                _fire_alarm, trigger=trigger, args=[rec["id"]], id=f"alarm_{rec['id']}", replace_existing=True,
+            )
+        else:  # timer
+            from apscheduler.triggers.date import DateTrigger
+            trigger = DateTrigger(run_date=datetime.fromisoformat(rec["fire_at"]))
+            _get_scheduler().add_job(
+                _fire_timer, trigger=trigger, args=[rec["id"]], id=f"timer_{rec['id']}", replace_existing=True,
+            )
+    except Exception as e:
+        print(f"(aaf: failed to arm {rec_kind} {rec.get('id')}: {e})")
+
+
+def _fire_alarm(alarm_id: int) -> None:
+    """APScheduler fires this on the scheduler thread. Speak + toast + persist state."""
+    try:
+        state = _load_state()
+        rec = next((a for a in state["alarms"] if a["id"] == alarm_id), None)
+        if rec is None:
+            return
+        label = rec.get("label", "alarm")
+        _notify(f"Alarm — {label}", "Zendaya alarm", label)
+        if rec.get("kind") == "one_shot":
+            rec["active"] = False
+            _save_state(state)
+    except Exception as e:
+        print(f"(aaf: _fire_alarm({alarm_id}) crashed: {e})")
+
+
+def _fire_timer(timer_id: int) -> None:
+    try:
+        state = _load_state()
+        rec = next((t for t in state["timers"] if t["id"] == timer_id), None)
+        if rec is None:
+            return
+        label = rec.get("label", "timer")
+        _notify(f"Timer — {label}", "Zendaya timer", label)
+        rec["active"] = False
+        _save_state(state)
+    except Exception as e:
+        print(f"(aaf: _fire_timer({timer_id}) crashed: {e})")
+
+
+def _notify(spoken: str, toast_title: str, toast_body: str) -> None:
+    try:
+        if _speak_fn is not None:
+            _speak_fn(spoken)
+    except Exception as e:
+        print(f"(aaf: speak failed: {e})")
+    try:
+        if _toast_fn is not None:
+            _toast_fn(toast_title, toast_body, 10)
+    except Exception as e:
+        print(f"(aaf: toast failed: {e})")
