@@ -60,3 +60,37 @@ def test_denoiser_interface_consistent():
     out = d.process_utterance(silence)
     assert isinstance(out, np.ndarray)
     assert out.dtype == np.int16
+
+
+# ─── Wake verifier regex ───────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("model, transcript, should_match", [
+    ("hey_jarvis", "okay jarvis what time is it",     True),
+    ("hey_jarvis", "hey zendaya open spotify",        True),   # zendaya allowed
+    ("hey_jarvis", "what's the frozen lake forecast", False),  # old loose 'zen' would match 'frozen'
+    ("hey_jarvis", "the zenith is bright tonight",    False),  # 'zen' substring
+    ("hey_jarvis", "I love lavender candles",         False),
+    ("zendaya",    "hey zendaya open spotify",        True),
+    ("zendaya",    "okay jarvis what time is it",     False),  # jarvis NOT allowed when model is zendaya
+    ("zendaya",    "the zenith is bright tonight",    False),
+])
+def test_verifier_passes_model_aware(model, transcript, should_match):
+    from voice import wake as wake_mod
+    assert wake_mod.verifier_passes_for_model(model, transcript) is should_match
+
+
+def test_verifier_skip_threshold_constant():
+    from voice import wake as wake_mod
+    assert wake_mod.VERIFIER_SKIP_THRESHOLD == 0.85
+
+
+def test_default_cold_threshold_is_tightened():
+    """Default cold threshold should be 0.6 (was 0.5)."""
+    from voice import wake as wake_mod
+    eng = wake_mod.WakeEngine(model_name="hey_jarvis")
+    # If env override is present, the test wouldn't apply — guard for that.
+    import os
+    if "ZENDAYA_WAKE_THRESHOLD" in os.environ:
+        pytest.skip("Skipping default-threshold test because env override is set.")
+    assert eng.threshold == 0.6

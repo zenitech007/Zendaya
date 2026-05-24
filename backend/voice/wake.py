@@ -29,30 +29,49 @@ WAKE_CHUNK_SAMPLES = 1280              # 80 ms at 16 kHz — openWakeWord native
 SMOOTH_WINDOW = 5                      # ~400 ms of scores
 COOLDOWN_S = 1.5                       # don't fire twice within this window
 
-# Verifier regex — what we expect to see in the pre-roll transcript.
-# Lenient (covers the same mishears the old _WAKE_NAMES set covered) so we
-# don't reject legitimate wakes that Whisper transcribed imperfectly.
-_VERIFY_TOKENS = (
-    r"zendaya|zendia|zenday|zen\s*day|zen\s*deya|sandeya|sundae|sandia|"
-    r"send\s*aya|send\s*i\s*uh|send\s*a|send\s*her|sin\s*day|sin\s*deya|"
-    r"jarvis|hey\s+zen|yo\s+zen|ok\s+zen|zen\b|zander"
+# Verifier — model-aware word-boundary regex. Replaces the prior loose
+# substring matcher that fired on "frozen" / "zenith" / etc.
+# Tolerant of common Whisper mishears of "zendaya".
+_ZENDAYA_TOKENS = (
+    r"\bzendaya\b|\bzendia\b|\bzendaia\b|\bzen\s*daya\b|"
+    r"\bsendaya\b|\bsandaya\b"
 )
-VERIFY_RE = re.compile(_VERIFY_TOKENS, re.IGNORECASE)
+_JARVIS_TOKENS = r"\bjarvis\b"
+
+VERIFY_RE_HEY_JARVIS = re.compile(
+    f"{_JARVIS_TOKENS}|{_ZENDAYA_TOKENS}", re.IGNORECASE
+)
+VERIFY_RE_ZENDAYA = re.compile(_ZENDAYA_TOKENS, re.IGNORECASE)
+VERIFY_RE = VERIFY_RE_HEY_JARVIS  # kept for back-compat with any external import
+
+VERIFIER_SKIP_THRESHOLD = 0.85  # Wakes scoring >= this skip Stage-2 verifier.
 
 
 def verifier_passes(transcript: str) -> bool:
-    """Return True if the pre-roll transcript looks like the user said the name."""
+    """Back-compat: assume hey_jarvis model (which also accepts zendaya)."""
+    return verifier_passes_for_model("hey_jarvis", transcript)
+
+
+def verifier_passes_for_model(model_name: str, transcript: str) -> bool:
+    """Model-aware verifier. Returns True if the pre-roll transcript
+    contains the wake word the active model is listening for.
+
+    - hey_jarvis: accepts jarvis OR zendaya (Whisper often mishears either)
+    - zendaya:    accepts zendaya only (jarvis not relevant)
+    """
     if not transcript:
         return False
-    return VERIFY_RE.search(transcript) is not None
+    if "zendaya" in (model_name or "").lower():
+        return VERIFY_RE_ZENDAYA.search(transcript) is not None
+    return VERIFY_RE_HEY_JARVIS.search(transcript) is not None
 
 
 class WakeEngine:
     def __init__(
         self,
         model_name: str = "hey_jarvis",
-        threshold: float = 0.5,
-        barge_threshold: float = 0.7,
+        threshold: float = 0.6,
+        barge_threshold: float = 0.72,
     ) -> None:
         self.model_name = os.environ.get("ZENDAYA_WAKE_MODEL", model_name)
         self.threshold = float(os.environ.get("ZENDAYA_WAKE_THRESHOLD", str(threshold)))
