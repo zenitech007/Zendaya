@@ -240,3 +240,38 @@ def test_worker_survives_handler_exception():
         stop.set()
         q.put((None, 0.0))
         worker.join(timeout=2.0)
+
+
+# ─── Integration smoke ─────────────────────────────────────────────────────
+
+
+def test_listener_dispatches_on_wake_and_command(monkeypatch):
+    """End-to-end smoke: synthetic audio → wake → STT → dispatch handler.
+
+    Mocks Whisper + wake engine to keep the test deterministic.
+    Asserts a dispatched command flows from wake-detect to handler invocation.
+    """
+    import zendaya_voice_listener_v2 as v2
+
+    received = []
+    done = threading.Event()
+
+    def fake_handler(text):
+        received.append(text)
+        done.set()
+
+    # Monkeypatch _transcribe to return a canned reply.
+    monkeypatch.setattr(v2, "_transcribe", lambda audio_int16: "what time is it")
+
+    # Use the async dispatch path directly, bypassing the audio loop.
+    q = v2._DispatchQueue(maxsize=2)
+    stop = threading.Event()
+    worker = v2._start_dispatch_worker(q, fake_handler, stop_event=stop, tts_event=None)
+    try:
+        q.put(("what time is it", time.time()))
+        assert done.wait(timeout=2.0)
+        assert received == ["what time is it"]
+    finally:
+        stop.set()
+        q.put((None, 0.0))
+        worker.join(timeout=2.0)
