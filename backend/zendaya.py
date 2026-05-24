@@ -45,6 +45,14 @@ from dotenv import load_dotenv
 from google import genai
 from zendaya_system_access import *
 
+try:
+    import zendaya_assistant_features as aaf
+    _AAF_READY = True
+except Exception as _e:
+    print(f"[zendaya] assistant_features unavailable: {_e}")
+    aaf = None
+    _AAF_READY = False
+
 # For Windows specific window handling
 if platform.system() == "Windows":
     try:
@@ -1389,6 +1397,13 @@ def handle_user_command(user_text: str):
         send_response(sys_result)
         return
 
+    # AAF — alarms / timers / lists. Returns None if no parser matched.
+    if _AAF_READY:
+        _aaf_reply = aaf.try_handle(user_text)
+        if _aaf_reply is not None:
+            send_response(_aaf_reply)
+            return
+
     # --- If no command, handle as conversational query ---
     search_context = None
     if should_auto_search(user_text):
@@ -1579,8 +1594,26 @@ def execute_search_task(query: str) -> str:
 def main():
     user_name = MEM.get("user_name")
     welcome_message = f"Welcome back, {user_name}." if user_name else "Welcome back."
-    
+
     send_response(f"{welcome_message} My systems are online and ready.")
+
+    if _AAF_READY:
+        try:
+            _voice_id = MEM.get("current_voice_id")
+            def _aaf_speak(text: str) -> None:
+                speak_async(text, _voice_id)
+            _aaf_toast = None
+            try:
+                _toaster_local = ToastNotifier()
+                def _aaf_toast(title: str, body: str, duration: int = 10) -> None:
+                    _toaster_local.show_toast(title, body, duration=duration, threaded=True)
+            except Exception:
+                _aaf_toast = None
+            aaf.set_notifier(_aaf_speak, _aaf_toast)
+            aaf.start()
+            print("Assistant features (alarms / timers / lists) active.")
+        except Exception as _aaf_err:
+            print(f"(Assistant features unavailable: {_aaf_err})")
 
     EXIT_COMMANDS = ["exit", "quit", "bye", "goodbye", "farewell"]
 
@@ -1606,6 +1639,11 @@ def main():
         send_response(bye)
         time.sleep(2)
     finally:
+        if _AAF_READY:
+            try:
+                aaf.stop()
+            except Exception:
+                pass
         print("System shutdown complete.")
 
 if __name__ == "__main__":
