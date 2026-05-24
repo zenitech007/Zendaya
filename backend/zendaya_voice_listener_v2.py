@@ -180,15 +180,96 @@ class _AmbientGate:
         return f"ambient_gate: floor={self.floor}"
 
 
+# ─── Async command dispatch ────────────────────────────────────────────────
+
+import queue as _queue_mod
+
+_TTS_WAIT_TIMEOUT_S = 30.0
+
+
+class _DispatchQueue:
+    """Bounded queue that drops oldest items when full."""
+
+    def __init__(self, maxsize: int = 2) -> None:
+        self._q = _queue_mod.Queue()
+        self.maxsize = maxsize
+        self._lock = threading.Lock()
+
+    def put(self, item) -> None:
+        with self._lock:
+            while self._q.qsize() >= self.maxsize:
+                try:
+                    dropped = self._q.get_nowait()
+                    print(f"[voice v2] dropped stale command — too many pending: {dropped[0]!r}")
+                except _queue_mod.Empty:
+                    break
+            self._q.put(item)
+
+    def get_nowait(self):
+        return self._q.get_nowait()
+
+    def get(self, timeout=None):
+        return self._q.get(timeout=timeout)
+
+    def empty(self) -> bool:
+        return self._q.empty()
+
+    def qsize(self) -> int:
+        return self._q.qsize()
+
+
+def _start_dispatch_worker(
+    dispatch_queue: "_DispatchQueue",
+    handler,
+    stop_event: threading.Event,
+    tts_event: "threading.Event | None",
+) -> threading.Thread:
+    """Launch a daemon worker thread that pulls from dispatch_queue and
+    invokes `handler(text)` for each command. Waits up to 30s for tts_event
+    to clear before dispatching. Handler exceptions are caught and logged."""
+
+    def _run() -> None:
+        while not stop_event.is_set():
+            try:
+                item = dispatch_queue.get(timeout=0.5)
+            except _queue_mod.Empty:
+                continue
+            if item is None or item[0] is None:
+                break  # sentinel
+            text, _ts = item
+            if tts_event is not None:
+                waited = 0.0
+                step = 0.1
+                while tts_event.is_set() and waited < _TTS_WAIT_TIMEOUT_S and not stop_event.is_set():
+                    time.sleep(step)
+                    waited += step
+                if tts_event.is_set():
+                    print(f"[voice v2] dispatch waited {waited:.1f}s for TTS, proceeding anyway")
+            try:
+                handler(text)
+            except Exception as e:
+                import traceback
+                print(f"[voice v2] dispatch handler crashed: {e}")
+                traceback.print_exc()
+
+    t = threading.Thread(target=_run, name="zendaya-voice-dispatch", daemon=True)
+    t.start()
+    return t
+
+
 # -----------------------
 # State
 # -----------------------
 _LISTENING_ENABLED = True
 _TTS_SPEAKING = threading.Event()
-_handle_command: Optional[Callable[[str], None]] = None
 _send_response: Optional[Callable[[str], None]] = None
 _AUDIO_Q: "queue.Queue[np.ndarray]" = queue.Queue(maxsize=400)
 _last_dispatch_ts: float = 0.0
+
+# Async dispatch worker state (populated by start_voice_listener).
+_DISPATCH_QUEUE = None
+_DISPATCH_STOP = None
+_DISPATCH_WORKER = None
 
 _AGC = AGC()
 _DENOISER: Optional[Denoiser] = None  # lazy
@@ -675,11 +756,10 @@ def _run_listener_session() -> None:
 
         print(f"[voice v2] you: {cleaned}")
         _last_dispatch_ts = time.time()
-        if _handle_command:
-            try:
-                _handle_command(cleaned)
-            except Exception as e:
-                print(f"(command handler error: {e})")
+        try:
+            _handle_command(cleaned)
+        except Exception as e:
+            print(f"(command handler error: {e})")
 
     finally:
         # Persistent stream is intentionally left open across sessions.
@@ -693,6 +773,30 @@ def _listener_loop() -> None:
         except Exception as e:
             print(f"(voice listener v2 crashed: {e}); restarting in 3s")
             time.sleep(3)
+
+
+def _handle_command(text: str) -> None:
+    """Enqueue command for the async dispatch worker."""
+    if _DISPATCH_QUEUE is not None:
+        _DISPATCH_QUEUE.put((text, time.time()))
+    else:
+        # Fallback to synchronous if worker wasn't initialised.
+        import zendaya as z
+        z.handle_user_command(text)
+
+
+def stop_voice_listener() -> None:
+    """Signal the listener and dispatch worker to stop."""
+    global _DISPATCH_STOP, _DISPATCH_QUEUE, _DISPATCH_WORKER
+    if _DISPATCH_STOP is not None:
+        _DISPATCH_STOP.set()
+    if _DISPATCH_QUEUE is not None:
+        try:
+            _DISPATCH_QUEUE.put((None, 0.0))  # sentinel
+        except Exception:
+            pass
+    if _DISPATCH_WORKER is not None:
+        _DISPATCH_WORKER.join(timeout=2.0)
 
 
 def start_voice_listener() -> threading.Thread:
@@ -710,10 +814,19 @@ def start_voice_listener() -> threading.Thread:
             print("[voice v2] audio stream opened (persistent).")
         except Exception as e:
             print(f"[voice v2] persistent audio stream open failed (will retry on first session): {e}")
-    import zendaya as z
-    global _handle_command, _send_response
-    _handle_command = z.handle_user_command
-    _send_response = z.send_response
+    # Async dispatch worker.
+    global _DISPATCH_QUEUE, _DISPATCH_STOP, _DISPATCH_WORKER
+    _DISPATCH_QUEUE = _DispatchQueue(maxsize=2)
+    _DISPATCH_STOP = threading.Event()
+    import zendaya as _z
+    _DISPATCH_WORKER = _start_dispatch_worker(
+        _DISPATCH_QUEUE,
+        _z.handle_user_command,
+        stop_event=_DISPATCH_STOP,
+        tts_event=_TTS_SPEAKING,
+    )
+    global _send_response
+    _send_response = _z.send_response
     t = threading.Thread(target=_listener_loop, daemon=True, name="zendaya-voice-v2")
     t.start()
     return t

@@ -138,3 +138,105 @@ def test_ambient_gate_invalid_env_uses_default(monkeypatch):
 
     gate = _AmbientGate()
     assert gate.floor == 0.005  # default
+
+
+# ─── Async dispatch worker ─────────────────────────────────────────────────
+
+
+def test_dispatch_queue_bounded_drops_oldest():
+    """When more than cap items are enqueued, oldest are dropped."""
+    from zendaya_voice_listener_v2 import _DispatchQueue
+
+    q = _DispatchQueue(maxsize=2)
+    q.put(("cmd one", 1.0))
+    q.put(("cmd two", 2.0))
+    q.put(("cmd three", 3.0))  # should evict "cmd one"
+
+    items = []
+    while not q.empty():
+        items.append(q.get_nowait())
+    assert [t for (t, _) in items] == ["cmd two", "cmd three"]
+
+
+def test_worker_calls_handler_per_command():
+    """Worker thread pulls from queue and invokes the provided handler."""
+    from zendaya_voice_listener_v2 import _start_dispatch_worker, _DispatchQueue
+
+    q = _DispatchQueue(maxsize=4)
+    seen = []
+    done = threading.Event()
+
+    def handler(text):
+        seen.append(text)
+        if len(seen) == 2:
+            done.set()
+
+    stop = threading.Event()
+    worker = _start_dispatch_worker(q, handler, stop_event=stop, tts_event=None)
+    try:
+        q.put(("hello", 0.0))
+        q.put(("world", 0.0))
+        assert done.wait(timeout=2.0), f"worker didn't process both: {seen}"
+        assert seen == ["hello", "world"]
+    finally:
+        stop.set()
+        q.put((None, 0.0))  # sentinel
+        worker.join(timeout=2.0)
+
+
+def test_worker_waits_for_tts_event_to_clear():
+    """When TTS is speaking, worker holds the command until event clears."""
+    from zendaya_voice_listener_v2 import _start_dispatch_worker, _DispatchQueue
+
+    q = _DispatchQueue(maxsize=4)
+    seen = []
+    handled = threading.Event()
+
+    def handler(text):
+        seen.append(text)
+        handled.set()
+
+    tts = threading.Event()
+    tts.set()  # TTS speaking
+    stop = threading.Event()
+    worker = _start_dispatch_worker(q, handler, stop_event=stop, tts_event=tts)
+    try:
+        q.put(("speak first", 0.0))
+        # Worker should NOT process while tts is set.
+        assert not handled.wait(timeout=0.5)
+        assert seen == []
+        # Clear TTS — worker proceeds.
+        tts.clear()
+        assert handled.wait(timeout=2.0)
+        assert seen == ["speak first"]
+    finally:
+        stop.set()
+        q.put((None, 0.0))
+        worker.join(timeout=2.0)
+
+
+def test_worker_survives_handler_exception():
+    from zendaya_voice_listener_v2 import _start_dispatch_worker, _DispatchQueue
+
+    q = _DispatchQueue(maxsize=4)
+    seen = []
+    done = threading.Event()
+
+    def handler(text):
+        if text == "boom":
+            raise RuntimeError("intentional")
+        seen.append(text)
+        if text == "after":
+            done.set()
+
+    stop = threading.Event()
+    worker = _start_dispatch_worker(q, handler, stop_event=stop, tts_event=None)
+    try:
+        q.put(("boom", 0.0))
+        q.put(("after", 0.0))
+        assert done.wait(timeout=2.0)
+        assert seen == ["after"]
+    finally:
+        stop.set()
+        q.put((None, 0.0))
+        worker.join(timeout=2.0)
