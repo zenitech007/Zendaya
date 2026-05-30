@@ -2,6 +2,7 @@ import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useZendaya, type AiState } from "../../store/zendayaStore";
+import { useBodyAction } from "../../hooks/useBodyAction";
 
 const ORB_COLOR = new THREE.Color("#ff8a3c");
 
@@ -28,6 +29,7 @@ export default function Orb({ radius = 1.0 }: OrbProps) {
   const glow = useRef<THREE.Mesh>(null!);
 
   const smoothed = useRef({ pulse: 0, voiceScale: 1, ripple: 0 });
+  useBodyAction(bodyGroup);
 
   const coreMat = useMemo(() => {
     return new THREE.ShaderMaterial({
