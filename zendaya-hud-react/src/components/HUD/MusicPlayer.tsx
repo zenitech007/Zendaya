@@ -14,7 +14,7 @@ async function postCmd(text: string) {
     await fetch("http://127.0.0.1:7475/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ message: text }),
     });
   } catch {
     /* ignore */
