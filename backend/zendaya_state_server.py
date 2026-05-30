@@ -146,8 +146,10 @@ def get_mouth() -> dict:
 
 
 # ── Visemes (lipsync mouth shapes) ─────────────────────
-_VISEMES = {"aa": 0.0, "ih": 0.0, "ee": 0.0, "oh": 0.0, "ou": 0.0}
-_VISEMES_TS = time.time()
+# Stored as {"weights": {aa/ih/ee/oh/ou}, "ts": ...} so the broadcast loop
+# can read a self-describing snapshot.
+_VISEME_KEYS = ("aa", "ih", "ee", "oh", "ou")
+_VISEMES = {"weights": {k: 0.0 for k in _VISEME_KEYS}, "ts": time.time()}
 _VISEME_DECAY_SECS = 0.2
 
 
@@ -155,9 +157,9 @@ def set_visemes(weights: dict) -> None:
     """Thread-safe viseme writer. Expected keys: aa/ih/ee/oh/ou."""
     if not isinstance(weights, dict):
         return
-    global _VISEMES_TS
     with _LOCK:
-        for k in _VISEMES:
+        w = _VISEMES.setdefault("weights", {})
+        for k in _VISEME_KEYS:
             try:
                 v = float(weights.get(k, 0.0))
             except (TypeError, ValueError):
@@ -166,14 +168,14 @@ def set_visemes(weights: dict) -> None:
                 v = 0.0
             elif v > 1.0:
                 v = 1.0
-            _VISEMES[k] = v
-        _VISEMES_TS = time.time()
+            w[k] = v
+        _VISEMES["ts"] = time.time()
 
 
 def get_visemes() -> dict:
     with _LOCK:
-        snap = dict(_VISEMES)
-        ts = _VISEMES_TS
+        snap = dict(_VISEMES.get("weights", {}))
+        ts = _VISEMES.get("ts", 0.0)
     if (time.time() - ts) > _VISEME_DECAY_SECS:
         for k in snap:
             snap[k] = 0.0
@@ -184,13 +186,25 @@ def get_visemes() -> dict:
 _BODY = {"action": "", "ts": 0.0}
 _VALID_BODY = {"nod", "shake", "wave", "shrug", ""}
 
+# Decimation state for the broadcast loop.
+_BROADCAST_LAST_SENT: dict = {
+    "amplitude": None,          # float or None
+    "visemes": None,            # dict or None
+    "telemetry_failed": False,  # one-time null payload after provider exception
+}
+_AMPLITUDE_DELTA = 0.005
+_VISEME_DELTA = 0.01
+_PERCEPTION_HEARTBEAT_S = 5.0
+_BODY_ACTION_ALLOWED = {"", "nod", "shake", "wave", "shrug"}
+
 
 def set_body_action(action: str) -> None:
-    a = (action or "").strip().lower()
-    if a not in _VALID_BODY:
-        return
+    val = (action or "").strip().lower()
+    if val not in _BODY_ACTION_ALLOWED:
+        print(f"(state_server: ignoring unknown body_action {val!r})")
+        val = ""
     with _LOCK:
-        _BODY["action"] = a
+        _BODY["action"] = val
         _BODY["ts"] = time.time()
 
 
@@ -289,8 +303,16 @@ class WindowControlIn(BaseModel):
 
 @app.on_event("startup")
 async def _capture_loop():
-    global _WS_LOOP
+    global _WS_LOOP, _broadcast_thread
     _WS_LOOP = asyncio.get_running_loop()
+    # Start the 30 Hz broadcast loop that fans amplitude/visemes/telemetry/
+    # perception/body_action out to connected WS clients.
+    if _broadcast_thread is None or not _broadcast_thread.is_alive():
+        _broadcast_stop.clear()
+        _broadcast_thread = threading.Thread(
+            target=_broadcast_loop, name="state-server-broadcast", daemon=True
+        )
+        _broadcast_thread.start()
 
 
 @app.websocket("/ws")
@@ -300,10 +322,24 @@ async def ws_endpoint(ws: WebSocket):
     # Send current snapshot so a fresh client renders the right state.
     try:
         snap = get_state()
-        await ws.send_text(json.dumps({
+        _snapshot = {
             "state": _HUD_ALIASES.get(snap["state"], snap["state"]),
             "text": snap.get("text", ""),
-        }))
+        }
+        try:
+            tp = globals().get("_TELEMETRY_PROVIDER")
+            if tp is not None:
+                _snapshot["telemetry"] = tp()
+        except Exception:
+            pass
+        try:
+            fp = globals().get("_PERCEPTION_FACE")
+            gp = globals().get("_PERCEPTION_LAST_GESTURE")
+            if fp is not None and gp is not None:
+                _snapshot["perception"] = {"face": fp(), "last_gesture": gp()}
+        except Exception:
+            pass
+        await ws.send_text(json.dumps(_snapshot))
     except Exception:
         pass
     try:
@@ -413,6 +449,112 @@ def window_control(payload: WindowControlIn):
         return {"ok": True, "message": msg}
     except Exception as e:
         return {"ok": False, "message": str(e)}
+
+
+# ── Broadcast loop (30 Hz with decimation) ─────────────
+def _collect_tick() -> list[dict]:
+    """Build the broadcast messages for one tick.
+
+    Returns a list of small JSON-dict messages (one per channel with new data),
+    matching the existing frontend's `if (data.X)` dispatch pattern.
+    Decimation suppresses near-identical amplitude/viseme values.
+    """
+    out: list[dict] = []
+
+    # amplitude (decimated)
+    amp = float(_MOUTH.get("level", 0.0))
+    last_amp = _BROADCAST_LAST_SENT.get("amplitude")
+    if last_amp is None or abs(amp - last_amp) >= _AMPLITUDE_DELTA:
+        out.append({"amplitude": amp})
+        _BROADCAST_LAST_SENT["amplitude"] = amp
+
+    # visemes (decimated)
+    weights = dict(_VISEMES.get("weights", {}))
+    last_v = _BROADCAST_LAST_SENT.get("visemes")
+    if last_v is None or any(
+        abs(float(weights.get(k, 0.0)) - float(last_v.get(k, 0.0))) >= _VISEME_DELTA
+        for k in _VISEME_KEYS
+    ):
+        out.append({"visemes": {k: float(weights.get(k, 0.0)) for k in _VISEME_KEYS}})
+        _BROADCAST_LAST_SENT["visemes"] = {k: float(weights.get(k, 0.0)) for k in _VISEME_KEYS}
+
+    # telemetry (always sent if provider; null one time on exception)
+    provider = globals().get("_TELEMETRY_PROVIDER")
+    if provider is not None:
+        try:
+            tel = provider()
+            out.append({"telemetry": tel})
+            _BROADCAST_LAST_SENT["telemetry_failed"] = False
+        except Exception as e:
+            if not _BROADCAST_LAST_SENT.get("telemetry_failed", False):
+                print(f"(state_server: telemetry provider raised {e!r}; sending null)")
+                out.append({"telemetry": None})
+                _BROADCAST_LAST_SENT["telemetry_failed"] = True
+
+    # perception (send on every tick when providers exist)
+    face_p = globals().get("_PERCEPTION_FACE")
+    gesture_p = globals().get("_PERCEPTION_LAST_GESTURE")
+    if face_p is not None and gesture_p is not None:
+        try:
+            payload = {"face": face_p(), "last_gesture": gesture_p()}
+            out.append({"perception": payload})
+        except Exception as e:
+            print(f"(state_server: perception provider raised {e!r})")
+
+    # body_action — on-change only, reset after broadcast
+    body_action = _BODY.get("action", "")
+    if body_action and body_action in _BODY_ACTION_ALLOWED:
+        out.append({"body_action": body_action})
+        _BODY["action"] = ""  # consumed; a fresh set_body_action re-emits
+
+    return out
+
+
+_broadcast_stop = threading.Event()
+_broadcast_thread: Optional[threading.Thread] = None
+_BROADCAST_TICK_HZ = 30.0
+
+
+def _broadcast_loop() -> None:
+    period = 1.0 / _BROADCAST_TICK_HZ
+    last_perception_hb = 0.0
+    last_telemetry_send = 0.0
+    while not _broadcast_stop.is_set():
+        t0 = time.time()
+        try:
+            messages = _collect_tick()
+            # Throttle telemetry to 2 Hz inside the 30 Hz loop.
+            if any("telemetry" in m for m in messages):
+                if t0 - last_telemetry_send < 0.5:
+                    messages = [m for m in messages if "telemetry" not in m]
+                else:
+                    last_telemetry_send = t0
+            # Track perception heartbeat; _collect_tick already emits perception
+            # every tick when providers exist, so only force one when absent.
+            if any("perception" in m for m in messages):
+                last_perception_hb = t0
+            elif t0 - last_perception_hb >= _PERCEPTION_HEARTBEAT_S:
+                face_p = globals().get("_PERCEPTION_FACE")
+                gesture_p = globals().get("_PERCEPTION_LAST_GESTURE")
+                if face_p is not None and gesture_p is not None:
+                    try:
+                        messages.append({"perception": {"face": face_p(), "last_gesture": gesture_p()}})
+                        last_perception_hb = t0
+                    except Exception:
+                        pass
+            for m in messages:
+                _broadcast_state_async(m)  # fans out to WS clients via the captured loop
+        except Exception as e:
+            print(f"(state_server: broadcast tick failed: {e})")
+        elapsed = time.time() - t0
+        _broadcast_stop.wait(max(0.0, period - elapsed))
+
+
+@app.on_event("shutdown")
+async def _stop_broadcast_loop():
+    _broadcast_stop.set()
+    if _broadcast_thread is not None:
+        _broadcast_thread.join(timeout=2.0)
 
 
 # ── Server lifecycle ────────────────────────────────────
