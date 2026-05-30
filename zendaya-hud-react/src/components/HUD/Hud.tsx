@@ -1,13 +1,31 @@
+import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useZendaya } from "../../store/zendayaStore";
 import MusicPlayer from "./MusicPlayer";
+import TelemetryWidget from "./TelemetryWidget";
+import PerceptionIndicator from "./PerceptionIndicator";
 
 export default function Hud() {
+  const mood = useZendaya((s) => s.telemetry?.mood);
+  const setBgDim = useZendaya((s) => s.setBgDim);
+  useEffect(() => {
+    if (!mood || typeof setBgDim !== "function") return;
+    const moodToBgDim: Record<string, number> = {
+      neutral: 0.7,
+      focused: 0.6,
+      tired: 0.85,
+      alert: 0.5,
+    };
+    setBgDim(moodToBgDim[mood] ?? 0.7);
+  }, [mood, setBgDim]);
+
   return (
     <div className="pointer-events-none fixed inset-0 z-20">
       <Wordmark />
       <Caption />
       <MusicPlayer />
+      <TelemetryWidget />
+      <PerceptionIndicator />
     </div>
   );
 }
