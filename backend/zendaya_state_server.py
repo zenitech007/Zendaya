@@ -184,7 +184,6 @@ def get_visemes() -> dict:
 
 # ── Body language (one-shot animation cue) ─────────────
 _BODY = {"action": "", "ts": 0.0}
-_VALID_BODY = {"nod", "shake", "wave", "shrug", ""}
 
 # Decimation state for the broadcast loop.
 _BROADCAST_LAST_SENT: dict = {
@@ -501,11 +500,16 @@ def _collect_tick() -> list[dict]:
         except Exception as e:
             print(f"(state_server: perception provider raised {e!r})")
 
-    # body_action — on-change only, reset after broadcast
-    body_action = _BODY.get("action", "")
-    if body_action and body_action in _BODY_ACTION_ALLOWED:
+    # body_action — on-change only; read-and-clear under the lock so a
+    # concurrent set_body_action() can't be lost between read and reset.
+    with _LOCK:
+        body_action = _BODY.get("action", "")
+        if body_action and body_action in _BODY_ACTION_ALLOWED:
+            _BODY["action"] = ""  # consumed; a fresh set_body_action re-emits
+        else:
+            body_action = ""
+    if body_action:
         out.append({"body_action": body_action})
-        _BODY["action"] = ""  # consumed; a fresh set_body_action re-emits
 
     return out
 
