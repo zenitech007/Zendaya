@@ -23,20 +23,40 @@ interface OrbProps {
 
 export default function Orb({ radius = 1.0 }: OrbProps) {
   const group = useRef<THREE.Group>(null!);
+  const bodyGroup = useRef<THREE.Group>(null!);
   const core = useRef<THREE.Mesh>(null!);
   const glow = useRef<THREE.Mesh>(null!);
 
-  const smoothed = useRef({ pulse: 0, voiceScale: 1 });
+  const smoothed = useRef({ pulse: 0, voiceScale: 1, ripple: 0 });
 
-  const coreMat = useMemo(
-    () =>
-      new THREE.MeshBasicMaterial({
-        color: ORB_COLOR,
-        transparent: true,
-        opacity: 0.95,
-      }),
-    []
-  );
+  const coreMat = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        uColor: { value: ORB_COLOR.clone() },
+        uRippleStrength: { value: 0.0 },
+        uRippleFreq: { value: 8.0 },
+        uTime: { value: 0.0 },
+      },
+      vertexShader: `
+        uniform float uTime;
+        uniform float uRippleStrength;
+        uniform float uRippleFreq;
+        void main() {
+          float ripple = sin(uTime * uRippleFreq + position.x * 6.0)
+                       * sin(uTime * uRippleFreq * 1.3 + position.y * 6.0);
+          vec3 displaced = position + normal * ripple * uRippleStrength * 0.06;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 uColor;
+        void main() {
+          gl_FragColor = vec4(uColor, 0.95);
+        }
+      `,
+      transparent: true,
+    });
+  }, []);
 
   const glowMat = useMemo(() => {
     return new THREE.ShaderMaterial({
@@ -82,6 +102,15 @@ export default function Orb({ radius = 1.0 }: OrbProps) {
     const targetVoice = 1 + z.audioLevel * 0.15;
     s.voiceScale += (targetVoice - s.voiceScale) * Math.min(1, dt * 10);
 
+    const visemeSum = z.visemes.aa + z.visemes.ih + z.visemes.ee + z.visemes.oh + z.visemes.ou;
+    const targetRipple = Math.min(1, visemeSum);
+    s.ripple += (targetRipple - s.ripple) * Math.min(1, dt * 8);
+    if ("uniforms" in coreMat && (coreMat as THREE.ShaderMaterial).uniforms) {
+      const u = (coreMat as THREE.ShaderMaterial).uniforms;
+      u.uRippleStrength.value = s.ripple;
+      u.uTime.value = performance.now() * 0.001;
+    }
+
     const t = performance.now() * 0.001;
     const breath = 1 + Math.sin(t * 1.2) * s.pulse;
 
@@ -97,16 +126,18 @@ export default function Orb({ radius = 1.0 }: OrbProps) {
 
   return (
     <group ref={group}>
-      {/* Soft outer fresnel glow */}
-      <mesh ref={glow} scale={1.8}>
-        <sphereGeometry args={[radius, 48, 48]} />
-        <primitive object={glowMat} attach="material" />
-      </mesh>
-      {/* Solid orange core */}
-      <mesh ref={core}>
-        <sphereGeometry args={[radius * 0.55, 48, 48]} />
-        <primitive object={coreMat} attach="material" />
-      </mesh>
+      <group ref={bodyGroup}>
+        {/* Soft outer fresnel glow */}
+        <mesh ref={glow} scale={1.8}>
+          <sphereGeometry args={[radius, 48, 48]} />
+          <primitive object={glowMat} attach="material" />
+        </mesh>
+        {/* Solid orange core */}
+        <mesh ref={core}>
+          <sphereGeometry args={[radius * 0.55, 48, 48]} />
+          <primitive object={coreMat} attach="material" />
+        </mesh>
+      </group>
     </group>
   );
 }
