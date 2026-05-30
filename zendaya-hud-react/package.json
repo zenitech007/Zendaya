@@ -8,7 +8,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "dev:app": "node scripts/dev-with-webview.mjs",
-    "build": "tsc -b && vite build",
+    "build": "tsc --noEmit && vite build",
     "build:app": "tauri build",
     "preview": "vite preview",
     "tauri": "tauri"
