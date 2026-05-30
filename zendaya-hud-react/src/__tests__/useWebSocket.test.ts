@@ -119,4 +119,16 @@ describe("useWebSocket — malformed payloads", () => {
     ws.fireMessage({ visemes: "bad" });
     expect(useZendaya.getState().visemes.aa).toBe(0);
   });
+
+  it("invalid body_action string is dropped", async () => {
+    const { ws } = await freshHook();
+    ws.fireMessage({ body_action: "backflip" });
+    expect(useZendaya.getState().bodyActionPulse.action).toBe("");
+  });
+
+  it("array visemes payload is dropped", async () => {
+    const { ws } = await freshHook();
+    ws.fireMessage({ visemes: [0.5, 0.2] });
+    expect(useZendaya.getState().visemes.aa).toBe(0);
+  });
 });

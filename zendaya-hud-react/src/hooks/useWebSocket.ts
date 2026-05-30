@@ -7,6 +7,7 @@ const WS_URL =
   "ws://127.0.0.1:7475/ws";
 
 const VALID_AI: AiState[] = ["idle", "aware", "listening", "thinking", "speaking", "searching", "mapping", "alert", "error"];
+const VALID_BODY: BodyAction[] = ["nod", "shake", "wave", "shrug"];
 
 // Connects to the Python state server's /ws endpoint and translates each
 // payload into store mutations. Single connection per app, with auto-reconnect.
@@ -103,7 +104,7 @@ export function useWebSocket() {
         if (typeof data.amplitude === "number") {
           z.setAudioLevel(Math.max(0, Math.min(1, data.amplitude)));
         }
-        if (data.visemes && typeof data.visemes === "object") {
+        if (data.visemes && typeof data.visemes === "object" && !Array.isArray(data.visemes)) {
           z.setVisemes(normaliseVisemes(data.visemes));
         }
         if (data.telemetry !== undefined && (data.telemetry === null || typeof data.telemetry === "object")) {
@@ -112,7 +113,7 @@ export function useWebSocket() {
         if (data.perception !== undefined && (data.perception === null || typeof data.perception === "object")) {
           z.setPerception(data.perception as any);
         }
-        if (typeof data.body_action === "string" && data.body_action) {
+        if (typeof data.body_action === "string" && (VALID_BODY as string[]).includes(data.body_action)) {
           z.firePulseBodyAction(data.body_action as BodyAction);
         }
       };
