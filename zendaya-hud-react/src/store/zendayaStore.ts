@@ -31,6 +31,22 @@ export interface NowPlaying {
   source: "spotify" | "local";
 }
 
+export type Telemetry = {
+  cpu: number; mem: number; mic_level: number;
+  mood: string; vision_active: boolean; gestures_active: boolean;
+  hud_enabled: boolean; online: boolean;
+  user_name: string; language: string;
+  last_gesture: { name: string; ts: number };
+};
+export type Perception = {
+  face: { present: boolean; ts: number };
+  last_gesture: { name: string; ts: number };
+};
+export type BodyAction = "" | "nod" | "shake" | "wave" | "shrug";
+
+export type { Visemes } from "./normaliseVisemes";
+import type { Visemes } from "./normaliseVisemes";
+
 interface ZendayaState {
   // Live state from backend
   ai: AiState;
@@ -51,6 +67,12 @@ interface ZendayaState {
 
   notifications: Notification[];
   nowPlaying: NowPlaying | null;
+
+  // Avatar / perception state from backend broadcast
+  visemes: Visemes;
+  telemetry: Telemetry | null;
+  perception: Perception | null;
+  bodyActionPulse: { action: BodyAction; ts: number };
 
   // Cinematic atmosphere (blueprint \u00a76 + \u00a77 + \u00a78)
   bgDim: number;        // 0..1; how much to dim/blur background during scene swaps
@@ -78,6 +100,10 @@ interface ZendayaState {
   pushNotification: (text: string) => void;
   popNotification: (id: number) => void;
   setNowPlaying: (np: NowPlaying | null) => void;
+  setVisemes: (v: Visemes) => void;
+  setTelemetry: (t: Telemetry | null) => void;
+  setPerception: (p: Perception | null) => void;
+  firePulseBodyAction: (a: BodyAction) => void;
   setBgDim: (v: number) => void;
   setFogDensity: (v: number) => void;
   setQuality: (q: "high" | "low") => void;
@@ -104,6 +130,10 @@ export const useZendaya = create<ZendayaState>((set) => ({
 
   notifications: [],
   nowPlaying: null,
+  visemes: { aa: 0, ih: 0, ee: 0, oh: 0, ou: 0 },
+  telemetry: null,
+  perception: null,
+  bodyActionPulse: { action: "" as BodyAction, ts: 0 },
   bgDim: 0,
   fogDensity: 0.04,
   quality: "high",
@@ -135,6 +165,13 @@ export const useZendaya = create<ZendayaState>((set) => ({
     set((s) => ({
       nowPlaying: np,
       docked: np !== null ? true : s.activeModule !== "none",
+    })),
+  setVisemes: (v) => set({ visemes: v }),
+  setTelemetry: (t) => set({ telemetry: t }),
+  setPerception: (p) => set({ perception: p }),
+  firePulseBodyAction: (a) =>
+    set((s) => ({
+      bodyActionPulse: { action: a, ts: Math.max(s.bodyActionPulse.ts + 1, performance.now()) },
     })),
   setBgDim: (v) => set({ bgDim: Math.max(0, Math.min(1, v)) }),
   setFogDensity: (v) => set({ fogDensity: Math.max(0, v) }),
