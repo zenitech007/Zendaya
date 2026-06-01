@@ -131,3 +131,26 @@ def test_collect_tick_handles_provider_value_then_recovers():
     sent = next(m for m in t2 if "telemetry" in m)
     assert sent["telemetry"] is not None
     assert sent["telemetry"]["cpu"] == 10.0
+
+
+def test_collect_tick_skips_telemetry_provider_when_not_included():
+    """include_telemetry=False must not invoke the (expensive) provider at all."""
+    import zendaya_state_server as ss
+
+    calls = {"n": 0}
+
+    def counting():
+        calls["n"] += 1
+        return {"cpu": 1.0}
+
+    ss.set_telemetry_provider(counting)
+    try:
+        tick = ss._collect_tick(include_telemetry=False)
+        assert calls["n"] == 0, "provider must not be called when telemetry excluded"
+        assert not any("telemetry" in m for m in tick), f"no telemetry expected; got {tick}"
+        # And it still fires when included.
+        tick2 = ss._collect_tick(include_telemetry=True)
+        assert calls["n"] == 1
+        assert any("telemetry" in m for m in tick2)
+    finally:
+        ss._TELEMETRY_PROVIDER = None

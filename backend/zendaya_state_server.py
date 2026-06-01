@@ -451,7 +451,7 @@ def window_control(payload: WindowControlIn):
 
 
 # ── Broadcast loop (30 Hz with decimation) ─────────────
-def _collect_tick() -> list[dict]:
+def _collect_tick(include_telemetry: bool = True) -> list[dict]:
     """Build the broadcast messages for one tick.
 
     Returns a list of small JSON-dict messages (one per channel with new data),
@@ -477,9 +477,11 @@ def _collect_tick() -> list[dict]:
         out.append({"visemes": {k: float(weights.get(k, 0.0)) for k in _VISEME_KEYS}})
         _BROADCAST_LAST_SENT["visemes"] = {k: float(weights.get(k, 0.0)) for k in _VISEME_KEYS}
 
-    # telemetry (always sent if provider; null one time on exception)
+    # telemetry (sent when due; null one time on exception). The provider is
+    # only invoked when include_telemetry is set, so the caller's 2 Hz throttle
+    # avoids running psutil + emotion analysis on every 30 Hz tick.
     provider = globals().get("_TELEMETRY_PROVIDER")
-    if provider is not None:
+    if include_telemetry and provider is not None:
         try:
             tel = provider()
             out.append({"telemetry": tel})
@@ -526,13 +528,12 @@ def _broadcast_loop() -> None:
     while not _broadcast_stop.is_set():
         t0 = time.time()
         try:
-            messages = _collect_tick()
-            # Throttle telemetry to 2 Hz inside the 30 Hz loop.
-            if any("telemetry" in m for m in messages):
-                if t0 - last_telemetry_send < 0.5:
-                    messages = [m for m in messages if "telemetry" not in m]
-                else:
-                    last_telemetry_send = t0
+            # Throttle telemetry to 2 Hz inside the 30 Hz loop by only asking
+            # _collect_tick to invoke the (expensive) provider when due.
+            want_telemetry = (t0 - last_telemetry_send) >= 0.5
+            messages = _collect_tick(include_telemetry=want_telemetry)
+            if want_telemetry and any("telemetry" in m for m in messages):
+                last_telemetry_send = t0
             # Track perception heartbeat; _collect_tick already emits perception
             # every tick when providers exist, so only force one when absent.
             if any("perception" in m for m in messages):
