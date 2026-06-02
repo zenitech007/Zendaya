@@ -1,11 +1,13 @@
 import { Canvas } from "@react-three/fiber";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { motion, AnimatePresence } from "framer-motion";
-import MainScene from "./scenes/MainScene";
+import SceneManager from "./scenes/SceneManager";
 import Hud from "./components/HUD/Hud";
 import ModuleHost from "./components/Modules/ModuleHost";
 import ThemeRoot from "./themes/ThemeRoot";
 import ChromeFrame from "./components/chrome/ChromeFrame";
+import Atmosphere from "./components/Atmosphere/Atmosphere";
+import { THEMES } from "./themes/registry";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useAdaptiveQuality } from "./hooks/useAdaptiveQuality";
 import { useAudioEngine } from "./hooks/useAudioEngine";
@@ -17,6 +19,8 @@ export default function App() {
   useAudioEngine();
   const minimized = useZendaya((s) => s.minimized);
   const quality = useZendaya((s) => s.quality);
+  const activeThemeId = useZendaya((s) => s.activeThemeId);
+  const bloom = 0.45 * (THEMES[activeThemeId]?.bloom ?? 1);
   const dpr: [number, number] = quality === "high" ? [1, 2] : [1, 1];
 
   return (
@@ -37,10 +41,10 @@ export default function App() {
             gl={{ alpha: true, antialias: quality === "high", powerPreference: "high-performance" }}
             dpr={dpr}
           >
-            <MainScene />
+            <SceneManager />
             <EffectComposer enableNormalPass={false}>
               <Bloom
-                intensity={0.55}
+                intensity={bloom}
                 luminanceThreshold={0.35}
                 luminanceSmoothing={0.6}
                 mipmapBlur
@@ -65,6 +69,8 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <Atmosphere />
       </div>
     </ThemeRoot>
   );
