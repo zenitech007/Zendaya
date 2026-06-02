@@ -17,7 +17,7 @@ export default function ThemePicker() {
             type="button"
             className={"zen-theme-dot" + (isActive ? " active" : "")}
             aria-label={t.name}
-            aria-current={isActive}
+            aria-current={isActive || undefined}
             title={t.name}
             style={{ "--dot": t.primary } as CSSProperties}
             onClick={() => setTheme(id)}
