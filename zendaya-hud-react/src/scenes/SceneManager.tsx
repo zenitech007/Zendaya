@@ -4,11 +4,8 @@ import * as THREE from "three";
 import { useZendaya } from "../store/zendayaStore";
 import IdleOrbScene from "./IdleOrbScene";
 import GlobeScene from "./GlobeScene";
-
-/** Pure routing: which scene should be shown for the given store signals. */
-export function selectScene(s: { scene: string; activeModule: string }): "idle" | "globe" {
-  return s.scene === "map" || s.activeModule === "map" ? "globe" : "idle";
-}
+import { selectScene as _selectScene } from "./sceneRouting";
+export { selectScene } from "./sceneRouting";
 
 /**
  * Owns the shared orb->globe morph progress (0 idle … 1 globe), GSAP-tweened on
@@ -23,7 +20,7 @@ export default function SceneManager() {
   const docked = useZendaya((s) => s.docked);
   const dockCorner = useZendaya((s) => s.dockCorner);
 
-  const target = selectScene({ scene, activeModule });
+  const target = _selectScene({ scene, activeModule });
 
   // Drive the morph progress.
   useEffect(() => {

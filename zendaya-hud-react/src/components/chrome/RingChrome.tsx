@@ -1,11 +1,16 @@
+import { useRef } from "react";
 import type { CSSProperties } from "react";
+import { useChromeReaction } from "./chromeFx";
 
 const ORIGIN: CSSProperties = { transformOrigin: "200px 200px" };
 
 export default function RingChrome() {
+  const ref = useRef<SVGSVGElement>(null);
+  useChromeReaction(ref);
   const ticks = Array.from({ length: 60 });
   return (
     <svg
+      ref={ref}
       className="zen-ring-chrome"
       data-testid="ring-chrome"
       viewBox="0 0 400 400"

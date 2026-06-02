@@ -11,7 +11,13 @@ describe("selectScene", () => {
   it("returns globe when the map module is active", () => {
     expect(selectScene({ scene: "main", activeModule: "map" })).toBe("globe");
   });
-  it("returns idle for a non-map module", () => {
+  it("returns weather when the weather module is active", () => {
+    expect(selectScene({ scene: "main", activeModule: "weather" })).toBe("weather");
+  });
+  it("returns clock when the clock module is active", () => {
+    expect(selectScene({ scene: "main", activeModule: "clock" })).toBe("clock");
+  });
+  it("returns idle for a non-scene module", () => {
     expect(selectScene({ scene: "main", activeModule: "calculator" })).toBe("idle");
   });
 });

@@ -1,11 +1,16 @@
+import { useRef } from "react";
 import type { CSSProperties } from "react";
+import { useChromeReaction } from "./chromeFx";
 
 const ORIGIN: CSSProperties = { transformOrigin: "200px 200px" };
 
 export default function ApertureChrome() {
+  const ref = useRef<SVGSVGElement>(null);
+  useChromeReaction(ref);
   const blades = Array.from({ length: 12 });
   return (
     <svg
+      ref={ref}
       className="zen-aperture-chrome"
       data-testid="aperture-chrome"
       viewBox="0 0 400 400"

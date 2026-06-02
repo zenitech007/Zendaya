@@ -199,6 +199,41 @@ canvas {
   outline-offset: 2px;
 }
 
+/* ---------- Chrome reaction picker ---------- */
+.zen-chromefx-picker {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+  z-index: 30;
+}
+.zen-fx-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 11px;
+  border: 1px solid color-mix(in srgb, var(--zen-primary) 30%, transparent);
+  background: color-mix(in srgb, var(--zen-primary) 6%, transparent);
+  color: var(--zen-text-glow);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+.zen-fx-dot:hover { opacity: 0.85; }
+.zen-fx-dot.active {
+  opacity: 1;
+  border-color: var(--zen-primary);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--zen-primary) 50%, transparent);
+}
+.zen-fx-lbl { pointer-events: none; }
+
 /* ---------- Atmosphere — theme-driven grain + scanlines ---------- */
 .zen-atmosphere {
   position: absolute;
