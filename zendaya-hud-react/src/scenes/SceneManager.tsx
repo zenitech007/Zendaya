@@ -6,6 +6,7 @@ import { selectScene, type StageScene } from "./sceneRouting";
 import IdleOrbScene from "./IdleOrbScene";
 import GlobeScene from "./GlobeScene";
 import ClockScene from "./ClockScene";
+import WeatherScene from "./WeatherScene";
 
 // Keep the old import path working for tests/consumers that import the router.
 export { selectScene };
@@ -84,6 +85,7 @@ export default function SceneManager() {
       <group ref={stage}>
         <IdleOrbScene progressRef={progressRef} />
         {mounted === "globe" && <GlobeScene progressRef={progressRef} />}
+        {mounted === "weather" && <WeatherScene progressRef={progressRef} />}
         {mounted === "clock" && <ClockScene progressRef={progressRef} />}
       </group>
     </>

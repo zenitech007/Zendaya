@@ -10,6 +10,10 @@ export interface DissolveFieldProps {
   count?: number;
   orbRadius?: number;
   globeRadius?: number;
+  /** Override target positions (e.g. a weather form). Length must be count*3. */
+  targetPositions?: Float32Array;
+  /** Plain mode: skip land/ocean coloring; tint orb→accent by progress. */
+  plain?: boolean;
 }
 
 /**
@@ -23,6 +27,8 @@ export default function DissolveField({
   count = 9000,
   orbRadius = 0.62,
   globeRadius = 1.5,
+  targetPositions,
+  plain = false,
 }: DissolveFieldProps) {
   const colors = useThemeColors();
 
@@ -30,17 +36,18 @@ export default function DissolveField({
     const g = new THREE.BufferGeometry();
     const orb = fibonacciSphere(count, orbRadius);
     const { positions: globe, landness } = buildGlobePoints(count, globeRadius);
+    const target = targetPositions ?? globe;
     const seed = new Float32Array(count * 3);
     for (let i = 0; i < count * 3; i++) seed[i] = Math.random();
     // `position` is required by three for bounds; the real position is computed
     // in the vertex shader from aOrbPos/aGlobePos.
     g.setAttribute("position", new THREE.BufferAttribute(orb.slice(), 3));
     g.setAttribute("aOrbPos", new THREE.BufferAttribute(orb, 3));
-    g.setAttribute("aGlobePos", new THREE.BufferAttribute(globe, 3));
+    g.setAttribute("aGlobePos", new THREE.BufferAttribute(target, 3));
     g.setAttribute("aLandness", new THREE.BufferAttribute(landness, 1));
     g.setAttribute("aSeed", new THREE.BufferAttribute(seed, 3));
     return g;
-  }, [count, orbRadius, globeRadius]);
+  }, [count, orbRadius, globeRadius, targetPositions]);
 
   const material = useMemo(
     () =>
@@ -56,6 +63,8 @@ export default function DissolveField({
           uColorOrb: { value: colors.scene.clone() },
           uColorLand: { value: colors.accent.clone() },
           uColorOcean: { value: colors.scene.clone() },
+          uPlain: { value: plain ? 1 : 0 },
+          uColorPlain: { value: colors.accent.clone() },
         },
         vertexShader: `
           uniform float uProgress;
@@ -91,6 +100,8 @@ export default function DissolveField({
           uniform vec3 uColorOrb;
           uniform vec3 uColorLand;
           uniform vec3 uColorOcean;
+          uniform float uPlain;
+          uniform vec3 uColorPlain;
           varying float vLandness;
 
           void main() {
@@ -103,12 +114,19 @@ export default function DissolveField({
             vec3 globeCol = mix(uColorOcean * 0.4, uColorLand, land);
             // dim ocean particles once settled so continents read
             float oceanFade = mix(1.0, 0.25, (1.0 - land) * uProgress);
-            vec3 col = mix(uColorOrb, globeCol, uProgress);
+            vec3 colGlobe = mix(uColorOrb, globeCol, uProgress);
+
+            // plain (weather) coloring: orb -> theme accent, brightness from noise
+            vec3 colPlain = mix(uColorOrb, uColorPlain, uProgress);
+            colPlain *= (0.7 + 0.6 * vLandness);
+
+            vec3 col = mix(colGlobe, colPlain, uPlain);
+            float fade = mix(oceanFade, 1.0, uPlain);
 
             // fade particles in by progress 0.18 (solid orb owns the rest state)
             float born = smoothstep(0.0, 0.18, uProgress);
 
-            gl_FragColor = vec4(col, alpha * uOpacity * oceanFade * born);
+            gl_FragColor = vec4(col, alpha * uOpacity * fade * born);
           }
         `,
       }),
@@ -130,6 +148,10 @@ export default function DissolveField({
     });
     gsap.to(u.uColorOcean.value, {
       r: colors.scene.r, g: colors.scene.g, b: colors.scene.b,
+      duration: 0.6, ease: "power2.inOut",
+    });
+    gsap.to(u.uColorPlain.value, {
+      r: colors.accent.r, g: colors.accent.g, b: colors.accent.b,
       duration: 0.6, ease: "power2.inOut",
     });
   }, [colors, material]);
