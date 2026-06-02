@@ -18,19 +18,46 @@ interface CacheEntry {
   at: number;
 }
 
+interface IpapiResponse {
+  latitude?: number;
+  longitude?: number;
+  city?: string;
+}
+interface OpenMeteoCurrent {
+  temperature_2m?: number;
+  weather_code?: number;
+  wind_speed_10m?: number;
+  relative_humidity_2m?: number;
+}
+interface OpenMeteoResponse {
+  current?: OpenMeteoCurrent;
+}
+
 // Module-level cache shared by the scene and the readout; ~10-min TTL.
 let _cache: CacheEntry | null = null;
+// Shared in-flight request so multiple consumers (scene + readout) mounting on
+// the same tick issue a single network round-trip instead of racing duplicates.
+let _inflight: Promise<WeatherCore> | null = null;
 const TTL = 10 * 60 * 1000;
 
+async function fetchJson<T>(url: string): Promise<T> {
+  const r = await fetch(url);
+  // Without this, a 429/5xx error body still resolves `.json()` and the bad
+  // payload silently flows through (e.g. weather_code defaults to 0 = "Clear").
+  if (!r.ok) throw new Error(`${r.status} ${r.statusText || "request failed"}`);
+  return (await r.json()) as T;
+}
+
 async function fetchWeather(): Promise<WeatherCore> {
-  const geo = await fetch("https://ipapi.co/json/").then((r) => r.json());
-  const lat = geo.latitude;
-  const lon = geo.longitude;
+  const geo = await fetchJson<IpapiResponse>("https://ipapi.co/json/");
+  if (geo.latitude == null || geo.longitude == null) {
+    throw new Error("geolocation unavailable");
+  }
   const city = geo.city ?? "—";
   const url =
-    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+    `https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}` +
     `&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m`;
-  const wx = await fetch(url).then((r) => r.json());
+  const wx = await fetchJson<OpenMeteoResponse>(url);
   const c = wx.current ?? {};
   const code = c.weather_code ?? 0;
   return {
@@ -41,6 +68,16 @@ async function fetchWeather(): Promise<WeatherCore> {
     city,
     form: wmoToForm(code),
   };
+}
+
+/** Dedupe concurrent first-load fetches into one shared promise. */
+function loadWeather(): Promise<WeatherCore> {
+  if (!_inflight) {
+    _inflight = fetchWeather().finally(() => {
+      _inflight = null;
+    });
+  }
+  return _inflight;
 }
 
 /** Geolocates via ipapi + fetches Open-Meteo current conditions; cached. */
@@ -61,7 +98,7 @@ export function useWeather(): WeatherData {
       return;
     }
     setState((s) => ({ ...s, loading: true, error: null }));
-    fetchWeather()
+    loadWeather()
       .then((data) => {
         _cache = { data, at: Date.now() };
         if (alive) setState({ ...data, loading: false, error: null });

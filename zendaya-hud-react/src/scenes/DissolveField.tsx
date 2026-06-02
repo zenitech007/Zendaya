@@ -35,6 +35,9 @@ export default function DissolveField({
   const geometry = useMemo(() => {
     const g = new THREE.BufferGeometry();
     const orb = fibonacciSphere(count, orbRadius);
+    // Even when `targetPositions` overrides the globe geometry (weather forms),
+    // we still need `landness` from buildGlobePoints — plain mode reuses it as a
+    // per-particle brightness factor in the fragment shader. Don't drop this call.
     const { positions: globe, landness } = buildGlobePoints(count, globeRadius);
     const target = targetPositions ?? globe;
     const seed = new Float32Array(count * 3);
