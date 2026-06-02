@@ -15,6 +15,29 @@ export type ModuleId =
 
 export type DockCorner = "bl" | "br";
 
+export type ClockFace = "orbital" | "digits" | "analog";
+export type ChromeFx = "aperture" | "spin" | "radar";
+
+const CLOCK_FACES: readonly ClockFace[] = ["orbital", "digits", "analog"];
+const CHROME_FX: readonly ChromeFx[] = ["aperture", "spin", "radar"];
+const FACE_KEY = "zendaya.hud.clockFace";
+const FX_KEY = "zendaya.hud.chromeFx";
+
+/** Read a persisted enum pref from localStorage, falling back if missing/invalid. */
+export function readPref<T extends string>(
+  key: string,
+  allowed: readonly T[],
+  fallback: T,
+): T {
+  try {
+    const v = localStorage.getItem(key);
+    if (v && (allowed as readonly string[]).includes(v)) return v as T;
+  } catch {
+    /* ignore */
+  }
+  return fallback;
+}
+
 export interface Notification {
   id: number;
   text: string;
@@ -87,6 +110,10 @@ interface ZendayaState {
   // Theme engine
   activeThemeId: string;
 
+  // UI preferences (persisted to localStorage; never from the backend)
+  clockFace: ClockFace;
+  chromeFx: ChromeFx;
+
   // setters
   setAi: (s: AiState) => void;
   setText: (t: string) => void;
@@ -114,6 +141,8 @@ interface ZendayaState {
   setFps: (n: number) => void;
   setTheme: (id: string) => void;
   cycleTheme: () => void;
+  setClockFace: (f: ClockFace) => void;
+  setChromeFx: (fx: ChromeFx) => void;
 }
 
 let _nid = 0;
@@ -145,6 +174,8 @@ export const useZendaya = create<ZendayaState>((set) => ({
   quality: "high",
   fps: 60,
   activeThemeId: "forge",
+  clockFace: readPref(FACE_KEY, CLOCK_FACES, "orbital"),
+  chromeFx: readPref(FX_KEY, CHROME_FX, "aperture"),
 
   setAi: (s) => set({ ai: s }),
   setText: (t) => set({ text: t }),
@@ -193,4 +224,12 @@ export const useZendaya = create<ZendayaState>((set) => ({
       const next = THEME_ORDER[(i + 1) % THEME_ORDER.length];
       return { activeThemeId: next };
     }),
+  setClockFace: (f) => {
+    try { localStorage.setItem(FACE_KEY, f); } catch { /* ignore */ }
+    set({ clockFace: f });
+  },
+  setChromeFx: (fx) => {
+    try { localStorage.setItem(FX_KEY, fx); } catch { /* ignore */ }
+    set({ chromeFx: fx });
+  },
 }));
