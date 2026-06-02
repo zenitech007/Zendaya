@@ -18,6 +18,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { AudioManager } from "../systems/AudioManager";
 import { AmbientEngine } from "../systems/AmbientEngine";
+import { ambientParamsFor } from "../systems/ambientParams";
 import { StateAudioRouter } from "../systems/StateAudioRouter";
 import { AdaptiveAudioController } from "../systems/AdaptiveAudioController";
 import { SpatialAudioEngine } from "../systems/SpatialAudioEngine";
@@ -39,6 +40,8 @@ export function useAudioEngine() {
 
       // Kick off ambient layer — slowly fades in (3 s)
       AmbientEngine.start();
+      // Shape the ambient synth to the current theme.
+      AmbientEngine.applyTheme(ambientParamsFor(useZendaya.getState().activeThemeId));
 
       // Orb stereo drift
       SpatialAudioEngine.startOrbDrift();
@@ -148,6 +151,18 @@ export function useAudioEngine() {
         StateAudioRouter.onAction("show_notification");
       }
       prevCount = count;
+    });
+    return () => unsub();
+  }, []);
+
+  // ── Subscribe to theme changes → reshape ambient timbre ──────────────────
+  useEffect(() => {
+    let prev = useZendaya.getState().activeThemeId;
+    const unsub = useZendaya.subscribe((state) => {
+      if (state.activeThemeId !== prev) {
+        AmbientEngine.applyTheme(ambientParamsFor(state.activeThemeId));
+        prev = state.activeThemeId;
+      }
     });
     return () => unsub();
   }, []);

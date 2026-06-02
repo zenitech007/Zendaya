@@ -20,6 +20,7 @@
  */
 
 import { AudioManager } from "./AudioManager";
+import type { AmbientParams } from "./ambientParams";
 
 type AmbientComplexity = "full" | "standard" | "reduced" | "minimal";
 
@@ -210,6 +211,24 @@ class AmbientEngineSingleton {
     gain.gain.linearRampToValueAtTime(0.04, t + 4.0); // very quiet
 
     this.voices.push({ osc, gain, lfo: this.orbitalLfo });
+  }
+
+  // ── Per-theme timbre — crossfade the voice bank to the active theme ───────
+  // Voice order from start(): [0]=core hum, [1]=2nd harmonic, [2]=energy
+  // texture, [3]=orbital air. setTargetAtTime gives a click-free glide.
+  applyTheme(p: AmbientParams) {
+    const ctx = AudioManager.ctx;
+    if (!ctx || !this._running) return;
+    const t = ctx.currentTime;
+    const tau = 0.8; // ~0.8 s glide time-constant
+    const [core, harm, tex, air] = this.voices;
+    if (core) core.osc.frequency.setTargetAtTime(p.baseFreq, t, tau);
+    if (harm) harm.osc.frequency.setTargetAtTime(p.baseFreq * 2, t, tau);
+    if (tex) {
+      tex.osc.frequency.setTargetAtTime(220 * p.brightness, t, tau);
+      tex.gain.gain.setTargetAtTime(0.08 * p.harmonicMix, t, tau);
+    }
+    if (air) air.osc.frequency.setTargetAtTime(p.airFreq, t, tau);
   }
 
   get isRunning() { return this._running; }
