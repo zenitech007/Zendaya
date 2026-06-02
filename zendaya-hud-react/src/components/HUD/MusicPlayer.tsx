@@ -58,8 +58,8 @@ export default function MusicPlayer() {
                 background:
                   np.artUrl
                     ? `url(${np.artUrl}) center/cover`
-                    : "linear-gradient(135deg, #ec4899, #a855f7)",
-                boxShadow: "0 12px 28px rgba(0,0,0,0.45), 0 0 22px rgba(168,85,247,0.35)",
+                    : "linear-gradient(135deg, var(--zen-accent), var(--zen-primary))",
+                boxShadow: "0 12px 28px rgba(0,0,0,0.45), 0 0 22px color-mix(in srgb, var(--zen-primary) 35%, transparent)",
               }}
             />
             <div className="flex-1 min-w-0">

@@ -33,16 +33,16 @@ export default function Notes() {
         className="w-full h-64 p-3 rounded resize-none focus:outline-none"
         style={{
           background: "rgba(0,0,0,0.5)",
-          color: "#ffd9b8",
+          color: "var(--zen-text-glow)",
           fontFamily: '"Share Tech Mono", monospace',
           fontSize: "0.9em",
           lineHeight: 1.5,
-          border: "1px solid rgba(255,138,60,0.18)",
+          border: "1px solid color-mix(in srgb, var(--zen-primary) 18%, transparent)",
         }}
       />
       <div
         className="text-xs mt-2 text-right tracking-widest"
-        style={{ color: "rgba(255,138,60,0.55)" }}
+        style={{ color: "color-mix(in srgb, var(--zen-primary) 55%, transparent)" }}
       >
         {text.length} chars · autosaved
       </div>

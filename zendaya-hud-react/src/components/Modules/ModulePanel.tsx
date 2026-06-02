@@ -28,31 +28,31 @@ export default function ModulePanel({ title, children }: Props) {
       className="pointer-events-auto absolute z-30 w-[440px] max-w-[44vw] rounded-2xl border"
       style={{
         ...positionStyle,
-        borderColor: "rgba(255,138,60,0.35)",
+        borderColor: "color-mix(in srgb, var(--zen-primary) 35%, transparent)",
         background:
-          "linear-gradient(180deg, rgba(20,12,6,0.72) 0%, rgba(8,5,3,0.85) 100%)",
+          "linear-gradient(180deg, color-mix(in srgb, var(--zen-bg-0) 72%, transparent) 0%, color-mix(in srgb, var(--zen-bg-1) 85%, transparent) 100%)",
         backdropFilter: "blur(14px)",
         WebkitBackdropFilter: "blur(14px)",
         boxShadow:
-          "0 18px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,138,60,0.08) inset, 0 0 60px rgba(255,138,60,0.12)",
-        color: "#ffd9b8",
+          "0 18px 60px rgba(0,0,0,0.55), 0 0 0 1px color-mix(in srgb, var(--zen-primary) 8%, transparent) inset, 0 0 60px color-mix(in srgb, var(--zen-primary) 12%, transparent)",
+        color: "var(--zen-text-glow)",
         fontFamily: '"Share Tech Mono", monospace',
       }}
     >
       <div
         className="flex items-center justify-between px-4 py-2 border-b"
-        style={{ borderColor: "rgba(255,138,60,0.25)" }}
+        style={{ borderColor: "color-mix(in srgb, var(--zen-primary) 25%, transparent)" }}
       >
         <div
           className="tracking-[0.35em] text-xs"
-          style={{ color: "#ff8a3c" }}
+          style={{ color: "var(--zen-primary)" }}
         >
           {title.toUpperCase()}
         </div>
         <button
           onClick={() => setActiveModule("none")}
           className="text-xs hover:text-white transition-colors"
-          style={{ color: "rgba(255,138,60,0.7)" }}
+          style={{ color: "color-mix(in srgb, var(--zen-primary) 70%, transparent)" }}
           aria-label="Close module"
         >
           ✕
