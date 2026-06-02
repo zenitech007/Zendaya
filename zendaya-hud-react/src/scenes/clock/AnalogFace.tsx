@@ -16,6 +16,9 @@ export default function AnalogFace({ progressRef, fadeRef }: FaceProps) {
   const rimColor = useMemo(() => colors.primary.clone(), [colors]);
   const handColor = useMemo(() => colors.accent.clone(), [colors]);
   const ticks = useMemo(() => Array.from({ length: 12 }, (_, i) => i), []);
+  // Reused across frames so the render loop allocates no Date objects; we still
+  // need a Date (not raw Date.now()) for the timezone-aware local hour/minute.
+  const clock = useRef(new Date());
 
   useEffect(() => () => {
     mats.current = [];
@@ -30,7 +33,8 @@ export default function AnalogFace({ progressRef, fadeRef }: FaceProps) {
     if (group.current) group.current.visible = presence > 0.001;
     for (const m of mats.current) if (m) m.opacity = presence;
 
-    const now = new Date();
+    const now = clock.current;
+    now.setTime(Date.now());
     const sec = now.getSeconds() + now.getMilliseconds() / 1000;
     const min = now.getMinutes() + sec / 60;
     const hour = (now.getHours() % 12) + min / 60;

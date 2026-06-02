@@ -20,6 +20,9 @@ export default function OrbitalFace({ progressRef, fadeRef }: FaceProps) {
 
   const ringColor = useMemo(() => colors.primary.clone(), [colors]);
   const nodeColor = useMemo(() => colors.accent.clone(), [colors]);
+  // Reused across frames so the render loop allocates no Date objects; we still
+  // need a Date (not raw Date.now()) for the timezone-aware local hour/minute.
+  const clock = useRef(new Date());
 
   useEffect(() => () => {
     nodes.current = [];
@@ -38,7 +41,8 @@ export default function OrbitalFace({ progressRef, fadeRef }: FaceProps) {
     if (group.current) group.current.visible = presence > 0.001;
     for (const m of mats.current) if (m) m.opacity = presence * 0.6;
 
-    const now = new Date();
+    const now = clock.current;
+    now.setTime(Date.now());
     const fracs = [
       (now.getHours() % 12) / 12,
       now.getMinutes() / 60,
