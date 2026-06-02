@@ -146,4 +146,10 @@ describe("useWebSocket — set_theme action", () => {
     ws.fireMessage({ action: "set_theme", payload: { name: "bogus" } });
     expect(useZendaya.getState().activeThemeId).toBe("forge");
   });
+
+  it("set_theme with a non-string name is ignored", async () => {
+    const { ws } = await freshHook();
+    ws.fireMessage({ action: "set_theme", payload: { name: 42 } });
+    expect(useZendaya.getState().activeThemeId).toBe("forge");
+  });
 });
