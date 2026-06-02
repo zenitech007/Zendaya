@@ -40,6 +40,7 @@ beforeEach(() => {
     telemetry: null,
     perception: null,
     bodyActionPulse: { action: "", ts: 0 },
+    activeThemeId: "forge",
   });
 });
 
@@ -130,5 +131,19 @@ describe("useWebSocket — malformed payloads", () => {
     const { ws } = await freshHook();
     ws.fireMessage({ visemes: [0.5, 0.2] });
     expect(useZendaya.getState().visemes.aa).toBe(0);
+  });
+});
+
+describe("useWebSocket — set_theme action", () => {
+  it("set_theme switches to a known theme", async () => {
+    const { ws } = await freshHook();
+    ws.fireMessage({ action: "set_theme", payload: { name: "iris" } });
+    expect(useZendaya.getState().activeThemeId).toBe("iris");
+  });
+
+  it("set_theme ignores an unknown theme name", async () => {
+    const { ws } = await freshHook();
+    ws.fireMessage({ action: "set_theme", payload: { name: "bogus" } });
+    expect(useZendaya.getState().activeThemeId).toBe("forge");
   });
 });

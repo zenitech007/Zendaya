@@ -197,6 +197,11 @@ function dispatchAction(action: string, payload: Record<string, any>) {
       if (text) z.pushNotification(text);
       break;
     }
+    case "set_theme": {
+      const name = typeof payload.name === "string" ? payload.name : "";
+      z.setTheme(name); // setTheme ignores unknown ids
+      break;
+    }
     default:
       // unknown action — ignore silently
       break;
