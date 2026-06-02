@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { THEMES, THEME_ORDER } from "../themes/registry";
 
 export type AiState = "idle" | "aware" | "listening" | "thinking" | "speaking" | "searching" | "mapping" | "alert" | "error";
 
@@ -83,6 +84,9 @@ interface ZendayaState {
   quality: "high" | "low";
   fps: number;
 
+  // Theme engine
+  activeThemeId: string;
+
   // setters
   setAi: (s: AiState) => void;
   setText: (t: string) => void;
@@ -108,6 +112,8 @@ interface ZendayaState {
   setFogDensity: (v: number) => void;
   setQuality: (q: "high" | "low") => void;
   setFps: (n: number) => void;
+  setTheme: (id: string) => void;
+  cycleTheme: () => void;
 }
 
 let _nid = 0;
@@ -138,6 +144,7 @@ export const useZendaya = create<ZendayaState>((set) => ({
   fogDensity: 0.04,
   quality: "high",
   fps: 60,
+  activeThemeId: "forge",
 
   setAi: (s) => set({ ai: s }),
   setText: (t) => set({ text: t }),
@@ -177,4 +184,12 @@ export const useZendaya = create<ZendayaState>((set) => ({
   setFogDensity: (v) => set({ fogDensity: Math.max(0, v) }),
   setQuality: (q) => set({ quality: q }),
   setFps: (n) => set({ fps: n }),
+  setTheme: (id) =>
+    set(() => (THEMES[id] ? { activeThemeId: id } : {})),
+  cycleTheme: () =>
+    set((s) => {
+      const i = THEME_ORDER.indexOf(s.activeThemeId);
+      const next = THEME_ORDER[(i + 1) % THEME_ORDER.length];
+      return { activeThemeId: next };
+    }),
 }));
