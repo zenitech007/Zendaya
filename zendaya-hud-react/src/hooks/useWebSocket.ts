@@ -133,8 +133,9 @@ export function useWebSocket() {
   }, []);
 }
 
-// Blueprint actions → store mutations. The visual timelines themselves
-// live in components/animations (they read the store and animate on change).
+// Blueprint actions → store mutations. The visual reactions themselves live in
+// the scene + chrome components (SceneManager, chromeFx) which subscribe to the
+// store and animate on change.
 function dispatchAction(action: string, payload: Record<string, any>) {
   const z = useZendaya.getState();
   switch (action) {
