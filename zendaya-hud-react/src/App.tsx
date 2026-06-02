@@ -6,6 +6,8 @@ import Hud from "./components/HUD/Hud";
 import ModuleHost from "./components/Modules/ModuleHost";
 import ThemeRoot from "./themes/ThemeRoot";
 import ChromeFrame from "./components/chrome/ChromeFrame";
+import ClockReadout from "./components/HUD/ClockReadout";
+import ClockFacePicker from "./components/HUD/ClockFacePicker";
 import Atmosphere from "./components/Atmosphere/Atmosphere";
 import { THEMES } from "./themes/registry";
 import { useWebSocket } from "./hooks/useWebSocket";
@@ -66,6 +68,8 @@ export default function App() {
               <Hud />
               <ChromeFrame />
               <ModuleHost />
+              <ClockReadout />
+              <ClockFacePicker />
             </motion.div>
           )}
         </AnimatePresence>

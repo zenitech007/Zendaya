@@ -261,3 +261,67 @@ canvas {
     color-mix(in srgb, var(--zen-primary) 12%, transparent) 100%
   );
 }
+
+/* ---------- Clock readout + face picker ---------- */
+.zen-clock-readout {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  font-family: "Share Tech Mono", monospace;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--zen-primary) 70%, transparent);
+  z-index: 20;
+}
+.zen-clock-time {
+  font-size: 34px;
+  letter-spacing: 0.14em;
+  color: var(--zen-text-glow);
+}
+.zen-clock-sec {
+  font-size: 20px;
+  opacity: 0.6;
+}
+.zen-clock-date {
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  opacity: 0.6;
+  color: var(--zen-text-glow);
+}
+.zen-clock-face-picker {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+  z-index: 30;
+}
+.zen-face-dot {
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 11px;
+  border: 1px solid color-mix(in srgb, var(--zen-primary) 30%, transparent);
+  background: color-mix(in srgb, var(--zen-primary) 6%, transparent);
+  color: var(--zen-text-glow);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+.zen-face-dot:hover {
+  opacity: 0.85;
+}
+.zen-face-dot.active {
+  opacity: 1;
+  border-color: var(--zen-primary);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--zen-primary) 50%, transparent);
+}
+.zen-face-lbl {
+  pointer-events: none;
+}
