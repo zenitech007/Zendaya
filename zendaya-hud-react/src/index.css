@@ -5,10 +5,15 @@
 @tailwind utilities;
 
 :root {
-  --zen-bg: #0a0612;
-  --zen-violet: #a855f7;
-  --zen-pink: #ec4899;
-  --zen-cyan: #06b6d4;
+  /* Theme defaults (Forge) — overridden at runtime by ThemeRoot inline vars */
+  --zen-primary: #ff8a1e;
+  --zen-accent: #19d3a0;
+  --zen-bg-0: #1a0d05;
+  --zen-bg-1: #070302;
+  --zen-text-glow: #ffb060;
+  --zen-grain: 0.18;
+
+  --zen-bg: var(--zen-bg-1);
   --zen-text: rgba(255, 255, 255, 0.92);
   --zen-dim: rgba(255, 255, 255, 0.55);
   --zen-faint: rgba(255, 255, 255, 0.3);
@@ -39,12 +44,13 @@ body::before {
   inset: 0;
   background: radial-gradient(
     ellipse at center,
-    rgba(168, 85, 247, 0.08) 0%,
-    rgba(10, 6, 18, 0) 55%,
+    color-mix(in srgb, var(--zen-primary) 10%, transparent) 0%,
+    rgba(0, 0, 0, 0) 55%,
     rgba(0, 0, 0, 0.6) 100%
   );
   pointer-events: none;
   z-index: 0;
+  transition: background 0.6s ease;
 }
 
 canvas {
@@ -58,9 +64,9 @@ canvas {
   letter-spacing: 0.42em;
   color: #fff;
   text-shadow:
-    0 0 16px rgba(236, 72, 153, 0.55),
-    0 0 38px rgba(168, 85, 247, 0.45),
-    0 0 80px rgba(168, 85, 247, 0.2);
+    0 0 16px var(--zen-text-glow),
+    0 0 38px color-mix(in srgb, var(--zen-primary) 60%, transparent),
+    0 0 80px color-mix(in srgb, var(--zen-primary) 30%, transparent);
   padding-left: 0.42em;
   white-space: nowrap;
 }
@@ -99,7 +105,7 @@ canvas {
 }
 .zen-player-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--zen-pink), var(--zen-violet));
+  background: linear-gradient(90deg, var(--zen-accent), var(--zen-primary));
   border-radius: 2px;
   transition: width 0.3s linear;
 }
@@ -124,8 +130,65 @@ canvas {
 .zen-player-btn.primary {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, var(--zen-pink), var(--zen-violet));
+  background: linear-gradient(135deg, var(--zen-accent), var(--zen-primary));
   color: #fff;
   border: none;
-  box-shadow: 0 8px 24px rgba(168, 85, 247, 0.4);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--zen-primary) 40%, transparent);
+}
+
+/* ---------- Theme engine layers ---------- */
+.zen-theme-root {
+  position: absolute;
+  inset: 0;
+}
+
+.zen-chrome-frame {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 15;
+}
+.zen-ring-chrome,
+.zen-aperture-chrome {
+  width: min(78vh, 78vw);
+  height: min(78vh, 78vw);
+  opacity: 0.9;
+}
+
+@keyframes zen-rot { to { transform: rotate(360deg); } }
+.zen-rot      { animation: zen-rot 26s linear infinite; }
+.zen-rot-slow { animation: zen-rot 60s linear infinite; }
+.zen-rot-rev  { animation: zen-rot 18s linear infinite reverse; }
+
+.zen-theme-picker {
+  position: absolute;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  pointer-events: auto;
+  z-index: 30;
+}
+.zen-theme-dot {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: var(--dot);
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 0 8px var(--dot);
+}
+.zen-theme-dot:hover { opacity: 0.85; transform: scale(1.15); }
+.zen-theme-dot.active {
+  opacity: 1;
+  transform: scale(1.25);
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
 }
