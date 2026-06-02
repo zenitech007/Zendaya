@@ -185,9 +185,10 @@ export const useZendaya = create<ZendayaState>((set) => ({
   setQuality: (q) => set({ quality: q }),
   setFps: (n) => set({ fps: n }),
   setTheme: (id) =>
-    set(() => (THEMES[id] ? { activeThemeId: id } : {})),
+    set(THEMES[id] ? { activeThemeId: id } : {}),
   cycleTheme: () =>
     set((s) => {
+      // Unknown/stale id → indexOf returns -1 → (-1+1)%len === 0 → recover to first theme.
       const i = THEME_ORDER.indexOf(s.activeThemeId);
       const next = THEME_ORDER[(i + 1) % THEME_ORDER.length];
       return { activeThemeId: next };

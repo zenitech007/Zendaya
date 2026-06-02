@@ -27,4 +27,10 @@ describe("theme store slice", () => {
     useZendaya.getState().cycleTheme();
     expect(useZendaya.getState().activeThemeId).toBe("forge");
   });
+
+  it("cycleTheme recovers to the first theme from an unknown id", () => {
+    useZendaya.setState({ activeThemeId: "stale-id" });
+    useZendaya.getState().cycleTheme();
+    expect(useZendaya.getState().activeThemeId).toBe("forge");
+  });
 });
