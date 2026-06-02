@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useThemeColors } from "../../themes/useThemeColors";
@@ -16,6 +16,10 @@ export default function AnalogFace({ progressRef, fadeRef }: FaceProps) {
   const rimColor = useMemo(() => colors.primary.clone(), [colors]);
   const handColor = useMemo(() => colors.accent.clone(), [colors]);
   const ticks = useMemo(() => Array.from({ length: 12 }, (_, i) => i), []);
+
+  useEffect(() => () => {
+    mats.current = [];
+  }, []);
 
   const registerMat = useCallback((el: THREE.MeshBasicMaterial | null) => {
     if (el && !mats.current.includes(el)) mats.current.push(el);

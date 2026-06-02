@@ -38,8 +38,8 @@ export default function DigitsFace({ progressRef, fadeRef }: FaceProps) {
     if (ringMat.current) ringMat.current.opacity = presence * 0.4;
     if (nodeMat.current) nodeMat.current.opacity = presence;
 
-    const sec = new Date().getSeconds() / 60;
-    const ang = sec * Math.PI * 2 - Math.PI / 2;
+    const secFrac = (Date.now() % 60000) / 60000; // 0..1 over a minute
+    const ang = secFrac * Math.PI * 2 - Math.PI / 2;
     if (node.current) node.current.position.set(Math.cos(ang) * 1.7, Math.sin(ang) * 1.7, 0);
   });
 

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useThemeColors } from "../../themes/useThemeColors";
@@ -20,6 +20,11 @@ export default function OrbitalFace({ progressRef, fadeRef }: FaceProps) {
 
   const ringColor = useMemo(() => colors.primary.clone(), [colors]);
   const nodeColor = useMemo(() => colors.accent.clone(), [colors]);
+
+  useEffect(() => () => {
+    nodes.current = [];
+    mats.current = [];
+  }, []);
 
   const registerNode = useCallback((el: THREE.Mesh | null) => {
     if (el && !nodes.current.includes(el)) nodes.current.push(el);
