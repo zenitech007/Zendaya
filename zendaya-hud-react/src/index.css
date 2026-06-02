@@ -66,14 +66,14 @@ canvas {
 .zen-wordmark {
   font-family: "Orbitron", sans-serif;
   font-weight: 900;
-  font-size: 4.5rem;
-  letter-spacing: 0.42em;
+  font-size: 2.75rem;
+  letter-spacing: 0.18em;
   color: #fff;
   text-shadow:
     0 0 16px var(--zen-text-glow),
     0 0 38px color-mix(in srgb, var(--zen-primary) 60%, transparent),
     0 0 80px color-mix(in srgb, var(--zen-primary) 30%, transparent);
-  padding-left: 0.42em;
+  padding-left: 0.18em;
   white-space: nowrap;
 }
 

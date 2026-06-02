@@ -35,17 +35,20 @@ function Wordmark() {
   return (
     <AnimatePresence>
       {!docked && (
-        <motion.div
+        <div
           key="wordmark"
-          initial={{ opacity: 0, y: 18, letterSpacing: "0.25em" }}
-          animate={{ opacity: 1, y: 0, letterSpacing: "0.42em" }}
-          exit={{ opacity: 0, y: 12 }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute left-1/2 -translate-x-1/2 zen-wordmark"
-          style={{ top: "calc(50% + 180px)" }}
+          className="absolute inset-0 flex items-center justify-center"
         >
-          ZENDAYA
-        </motion.div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, letterSpacing: "0.06em" }}
+            animate={{ opacity: 1, scale: 1, letterSpacing: "0.18em" }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            className="zen-wordmark"
+          >
+            Z.E.N.D.A.Y.A
+          </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );
