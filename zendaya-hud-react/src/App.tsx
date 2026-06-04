@@ -9,6 +9,7 @@ import ChromeFrame from "./components/chrome/ChromeFrame";
 import ClockReadout from "./components/HUD/ClockReadout";
 import ClockFacePicker from "./components/HUD/ClockFacePicker";
 import WeatherReadout from "./components/HUD/WeatherReadout";
+import CommandTerminal from "./components/HUD/CommandTerminal";
 import Atmosphere from "./components/Atmosphere/Atmosphere";
 import { THEMES } from "./themes/registry";
 import { useWebSocket } from "./hooks/useWebSocket";
@@ -77,6 +78,7 @@ export default function App() {
         </AnimatePresence>
 
         <Atmosphere />
+        <CommandTerminal />
       </div>
     </ThemeRoot>
   );
