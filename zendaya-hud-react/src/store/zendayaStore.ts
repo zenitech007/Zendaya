@@ -68,6 +68,9 @@ export type Perception = {
 };
 export type BodyAction = "" | "nod" | "shake" | "wave" | "shrug";
 
+export type TerminalRole = "user" | "zendaya" | "system";
+export interface TerminalLine { id: number; role: TerminalRole; text: string; ts: number; }
+
 export type { Visemes } from "./normaliseVisemes";
 import type { Visemes } from "./normaliseVisemes";
 
@@ -91,6 +94,7 @@ interface ZendayaState {
 
   notifications: Notification[];
   nowPlaying: NowPlaying | null;
+  terminalLog: TerminalLine[];
 
   // Avatar / perception state from backend broadcast
   visemes: Visemes;
@@ -131,6 +135,8 @@ interface ZendayaState {
   pushNotification: (text: string) => void;
   popNotification: (id: number) => void;
   setNowPlaying: (np: NowPlaying | null) => void;
+  pushTerminalLine: (role: TerminalRole, text: string) => void;
+  clearTerminalLog: () => void;
   setVisemes: (v: Visemes) => void;
   setTelemetry: (t: Telemetry | null) => void;
   setPerception: (p: Perception | null) => void;
@@ -146,6 +152,7 @@ interface ZendayaState {
 }
 
 let _nid = 0;
+let _tid = 0;
 
 export const useZendaya = create<ZendayaState>((set) => ({
   ai: "idle",
@@ -165,6 +172,7 @@ export const useZendaya = create<ZendayaState>((set) => ({
 
   notifications: [],
   nowPlaying: null,
+  terminalLog: [],
   visemes: { aa: 0, ih: 0, ee: 0, oh: 0, ou: 0 },
   telemetry: null,
   perception: null,
@@ -204,6 +212,14 @@ export const useZendaya = create<ZendayaState>((set) => ({
       nowPlaying: np,
       docked: np !== null ? true : s.activeModule !== "none",
     })),
+  pushTerminalLine: (role, text) =>
+    set((s) => ({
+      terminalLog: [
+        ...s.terminalLog,
+        { id: ++_tid, role, text, ts: Date.now() },
+      ].slice(-100),
+    })),
+  clearTerminalLog: () => set({ terminalLog: [] }),
   setVisemes: (v) => set({ visemes: v }),
   setTelemetry: (t) => set({ telemetry: t }),
   setPerception: (p) => set({ perception: p }),
