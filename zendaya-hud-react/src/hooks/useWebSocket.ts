@@ -1,6 +1,11 @@
 import { useEffect, useRef } from "react";
-import { useZendaya, type AiState, type ModuleId, type DockCorner, type BodyAction } from "../store/zendayaStore";
+import { useZendaya, type AiState, type BodyAction } from "../store/zendayaStore";
 import { normaliseVisemes } from "../store/normaliseVisemes";
+import {
+  openMap, goHome, openModule, setThemeById, dock, undock,
+  showTerminal, hideTerminal, activateVoice, deactivateVoice,
+  minimize, restore, showNotification,
+} from "../commands/hudControls";
 
 const WS_URL =
   new URLSearchParams(location.search).get("ws") ||
@@ -133,76 +138,57 @@ export function useWebSocket() {
   }, []);
 }
 
-// Blueprint actions → store mutations. The visual reactions themselves live in
-// the scene + chrome components (SceneManager, chromeFx) which subscribe to the
-// store and animate on change.
-function dispatchAction(action: string, payload: Record<string, any>) {
-  const z = useZendaya.getState();
+// Blueprint actions → store mutations, routed through the shared hudControls
+// module (the same functions the in-HUD slash commands use). The visual
+// reactions themselves live in the scene + chrome components which subscribe to
+// the store and animate on change.
+export function dispatchAction(action: string, payload: Record<string, any>) {
   switch (action) {
     case "open_map":
-      z.setScene("map");
-      z.setActiveModule("map");
-      z.setPanel("globe");
+      openMap();
       break;
     case "close_map":
-      z.setScene("main");
-      z.setActiveModule("none");
-      z.setPanel("none");
+      goHome();
       break;
-    case "open_module": {
-      const valid: ModuleId[] = ["map", "calculator", "clock", "notes", "weather"];
-      const name = typeof payload.name === "string" ? (payload.name as ModuleId) : "none";
-      if (valid.includes(name)) {
-        if (payload.corner === "bl" || payload.corner === "br") {
-          z.setDockCorner(payload.corner as DockCorner);
-        }
-        z.setActiveModule(name);
-        if (name === "map") {
-          z.setScene("map");
-          z.setPanel("globe");
-        }
-      }
+    case "open_module":
+      openModule(
+        typeof payload.name === "string" ? payload.name : "",
+        typeof payload.corner === "string" ? payload.corner : undefined,
+      );
       break;
-    }
     case "close_module":
-      z.setActiveModule("none");
-      z.setScene("main");
-      z.setPanel("none");
+      goHome();
       break;
     case "dock_orb":
-      z.setDocked(true);
+      dock();
       break;
     case "undock_orb":
-      z.setDocked(false);
+      undock();
       break;
     case "show_terminal":
-      z.setTerminalOpen(true);
+      showTerminal();
       break;
     case "hide_terminal":
-      z.setTerminalOpen(false);
+      hideTerminal();
       break;
     case "activate_voice":
-      z.setVoiceActive(true);
+      activateVoice();
       break;
     case "deactivate_voice":
-      z.setVoiceActive(false);
+      deactivateVoice();
       break;
     case "minimize_ui":
-      z.setMinimized(true);
+      minimize();
       break;
     case "restore_ui":
-      z.setMinimized(false);
+      restore();
       break;
-    case "show_notification": {
-      const text = typeof payload.text === "string" ? payload.text : "";
-      if (text) z.pushNotification(text);
+    case "show_notification":
+      showNotification(typeof payload.text === "string" ? payload.text : "");
       break;
-    }
-    case "set_theme": {
-      const name = typeof payload.name === "string" ? payload.name : "";
-      z.setTheme(name); // setTheme ignores unknown ids
+    case "set_theme":
+      setThemeById(typeof payload.name === "string" ? payload.name : "");
       break;
-    }
     default:
       // unknown action — ignore silently
       break;
