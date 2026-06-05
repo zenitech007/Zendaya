@@ -427,3 +427,27 @@ canvas {
 .zen-terminal-input::placeholder {
   color: color-mix(in srgb, var(--zen-primary) 45%, transparent);
 }
+
+.zen-conn-status {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--zen-primary) 85%, #fff);
+  background: color-mix(in srgb, #000 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--zen-primary) 55%, transparent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--zen-primary) 28%, transparent);
+  backdrop-filter: blur(6px);
+  animation: zen-conn-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes zen-conn-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}

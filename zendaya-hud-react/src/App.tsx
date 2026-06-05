@@ -10,6 +10,7 @@ import ClockReadout from "./components/HUD/ClockReadout";
 import ClockFacePicker from "./components/HUD/ClockFacePicker";
 import WeatherReadout from "./components/HUD/WeatherReadout";
 import CommandTerminal from "./components/HUD/CommandTerminal";
+import ConnectionStatus from "./components/HUD/ConnectionStatus";
 import Atmosphere from "./components/Atmosphere/Atmosphere";
 import { THEMES } from "./themes/registry";
 import { useWebSocket } from "./hooks/useWebSocket";
@@ -81,6 +82,7 @@ export default function App() {
 
         <Atmosphere />
         <CommandTerminal />
+        <ConnectionStatus />
       </div>
     </ThemeRoot>
   );
