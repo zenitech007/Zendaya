@@ -33,7 +33,7 @@ class FakeAudioContext {
   buffers: any[] = [];
   failNextStart = false;
 
-  createBuffer(channels: number, length: number, rate: number) {
+  createBuffer(_channels: number, length: number, rate: number) {
     const data = new Float32Array(length);
     const buf = {
       length,
