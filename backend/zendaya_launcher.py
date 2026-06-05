@@ -87,3 +87,33 @@ def remove_pid() -> None:
         PID_FILE.unlink()
     except OSError:
         pass
+
+
+# ── Spawn the backend + wait for it to be healthy ──
+def _open_log(path: Path):
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    return open(path, "a", encoding="utf-8", buffering=1)
+
+
+def spawn_backend() -> subprocess.Popen:
+    """Launch the backend headless (hidden), teeing its output to backend.log."""
+    out = _open_log(BACKEND_LOG)
+    proc = subprocess.Popen(
+        [str(VENV_PYTHONW), "zendaya.py", "--headless"],
+        cwd=str(BACKEND_DIR),
+        stdout=out,
+        stderr=subprocess.STDOUT,
+        creationflags=CREATE_NO_WINDOW,
+    )
+    log.info("Spawned backend pid=%s", proc.pid)
+    return proc
+
+
+def wait_for_health(timeout: float = HEALTH_TIMEOUT, interval: float = HEALTH_INTERVAL) -> bool:
+    """Poll /health until the Zendaya backend answers or the budget elapses."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if backend_is_ours():
+            return True
+        time.sleep(interval)
+    return False
