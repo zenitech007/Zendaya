@@ -67,6 +67,7 @@ export class VoiceQueue {
   }
 
   private begin(rate: number, id: number): void {
+    if (id === this.currentId) return;
     let ctx: AudioContext;
     try {
       ctx = this.ensureCtx();
@@ -98,11 +99,14 @@ export class VoiceQueue {
     src.connect(ctx.destination);
 
     const startAt = Math.max(this.nextStartTime, ctx.currentTime);
-    try { src.start(startAt); } catch { /* already started / closed */ }
-    this.nextStartTime = startAt + buf.duration;
-
-    this.active.add(src);
-    src.onended = () => { this.active.delete(src); };
+    try {
+      src.start(startAt);
+      this.nextStartTime = startAt + buf.duration;
+      this.active.add(src);
+      src.onended = () => { this.active.delete(src); };
+    } catch {
+      /* scheduling failed (suspended/closed ctx); don't advance or track */
+    }
   }
 
   private end(id: number): void {

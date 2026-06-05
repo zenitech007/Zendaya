@@ -15,8 +15,12 @@ class FakeBufferSource {
   onended: (() => void) | null = null;
   started: number | null = null;
   stopped = false;
+  failStart = false;
   connect = vi.fn();
-  start = vi.fn((t: number) => { this.started = t; });
+  start = vi.fn((t: number) => {
+    if (this.failStart) throw new Error("start failed");
+    this.started = t;
+  });
   stop = vi.fn(() => { this.stopped = true; });
 }
 
@@ -27,6 +31,7 @@ class FakeAudioContext {
   destination = {} as AudioNode;
   sources: FakeBufferSource[] = [];
   buffers: any[] = [];
+  failNextStart = false;
 
   createBuffer(channels: number, length: number, rate: number) {
     const data = new Float32Array(length);
@@ -41,6 +46,10 @@ class FakeAudioContext {
   }
   createBufferSource() {
     const s = new FakeBufferSource();
+    if (this.failNextStart) {
+      s.failStart = true;
+      this.failNextStart = false;
+    }
     this.sources.push(s);
     return s as unknown as AudioBufferSourceNode;
   }
@@ -106,5 +115,43 @@ describe("VoiceQueue", () => {
     // int16ToFloat32 of zeros is zeros — buffer length should match sample count
     expect(ctx.buffers[0].length).toBe(4);
     expect(Array.from(int16ToFloat32(Int16Array.from([0, 0])))).toEqual([0, 0]);
+  });
+
+  it("duplicate begin with the same id does not reset the timeline", () => {
+    const { ctx, q } = makeQueue();
+    // First begin (id=7) + first chunk (22050 samples @ 22050 Hz = 1.0 s)
+    q.handle({ event: "begin", rate: 22050, id: 7 });
+    q.handle({ event: "chunk", id: 7, seq: 0, b64: b64Zeros(22050) }); // 1.0 s
+    // nextStartTime is now 10 + 1.0 = 11.0
+    const expectedFirstEnd = 10 + 22050 / 22050; // 11.0
+
+    // Duplicate begin — same id, must be a no-op (does NOT reset nextStartTime)
+    q.handle({ event: "begin", rate: 22050, id: 7 });
+
+    // Second chunk (11025 samples @ 22050 Hz = 0.5 s) must start gaplessly at 11.0
+    q.handle({ event: "chunk", id: 7, seq: 1, b64: b64Zeros(11025) }); // 0.5 s
+    expect(ctx.sources.length).toBe(2);
+    expect(ctx.sources[1].started).toBeCloseTo(expectedFirstEnd, 5);
+  });
+
+  it("a throwing start() does not advance the timeline or leak the source", () => {
+    const { ctx, q } = makeQueue();
+    q.handle({ event: "begin", rate: 22050, id: 9 });
+
+    // Arm the fake so the next createBufferSource()'s start() will throw
+    ctx.failNextStart = true;
+    // Push a chunk whose start() throws — timeline must NOT advance
+    q.handle({ event: "chunk", id: 9, seq: 0, b64: b64Zeros(22050) }); // would be 1.0 s
+    const failingSource = ctx.sources[0];
+    expect(failingSource.started).toBeNull(); // start() threw, so started was never set
+
+    // Push a good second chunk — it must start at ctx.currentTime (10), NOT at 10+1
+    q.handle({ event: "chunk", id: 9, seq: 1, b64: b64Zeros(11025) }); // 0.5 s
+    const goodSource = ctx.sources[1];
+    expect(goodSource.started).toBeCloseTo(10, 5); // timeline not advanced past the failed start
+
+    // The failing source must NOT be in the active set — stop() must not call its stop()
+    q.handle({ event: "stop" });
+    expect(failingSource.stopped).toBe(false);
   });
 });
