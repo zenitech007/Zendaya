@@ -36,6 +36,7 @@ beforeEach(() => {
     audioLevel: 0,
     panel: "",
     nowPlaying: null,
+    musicCmd: null,
     visemes: { aa: 0, ih: 0, ee: 0, oh: 0, ou: 0 },
     telemetry: null,
     perception: null,
@@ -151,5 +152,40 @@ describe("useWebSocket — set_theme action", () => {
     const { ws } = await freshHook();
     ws.fireMessage({ action: "set_theme", payload: { name: 42 } });
     expect(useZendaya.getState().activeThemeId).toBe("forge");
+  });
+});
+
+describe("useWebSocket — now_playing maps stream fields", () => {
+  it("carries stream_url and track_id onto the store", async () => {
+    const { ws } = await freshHook();
+    ws.fireMessage({
+      now_playing: {
+        track: "Song",
+        artist: "Artist",
+        is_playing: true,
+        progress_ms: 0,
+        duration_ms: 1000,
+        source: "local",
+        stream_url: "/music/stream/abc",
+        track_id: "abc",
+      },
+    });
+    const np = useZendaya.getState().nowPlaying!;
+    expect(np.streamUrl).toBe("/music/stream/abc");
+    expect(np.trackId).toBe("abc");
+  });
+});
+
+describe("useWebSocket — music_control action", () => {
+  it("a known cmd is pushed to musicCmd", async () => {
+    const { ws } = await freshHook();
+    ws.fireMessage({ action: "music_control", payload: { cmd: "next" } });
+    expect(useZendaya.getState().musicCmd?.cmd).toBe("next");
+  });
+
+  it("an unknown cmd is ignored", async () => {
+    const { ws } = await freshHook();
+    ws.fireMessage({ action: "music_control", payload: { cmd: "explode" } });
+    expect(useZendaya.getState().musicCmd).toBeNull();
   });
 });

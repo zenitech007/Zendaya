@@ -103,6 +103,8 @@ export function useWebSocket() {
               progress_ms: np.progress_ms ?? 0,
               duration_ms: np.duration_ms ?? 0,
               source: np.source === "local" ? "local" : "spotify",
+              streamUrl: typeof np.stream_url === "string" ? np.stream_url : undefined,
+              trackId: typeof np.track_id === "string" ? np.track_id : undefined,
             });
           }
         }
@@ -189,6 +191,13 @@ export function dispatchAction(action: string, payload: Record<string, any>) {
     case "set_theme":
       setThemeById(typeof payload.name === "string" ? payload.name : "");
       break;
+    case "music_control": {
+      const cmd = typeof payload.cmd === "string" ? payload.cmd : "";
+      if (cmd === "play" || cmd === "pause" || cmd === "next" || cmd === "prev") {
+        useZendaya.getState().pushMusicCmd(cmd);
+      }
+      break;
+    }
     default:
       // unknown action — ignore silently
       break;
