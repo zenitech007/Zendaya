@@ -67,3 +67,23 @@ def backend_is_ours() -> bool:
     Guards against latching onto an unrelated process holding port 7475."""
     data = _http_get_json(HEALTH_URL)
     return bool(data) and data.get("name") == "Zendaya"
+
+
+# ── PID file (tracks the supervisor; used by --quit / --status) ──
+def write_pid(pid: int | None = None) -> None:
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    PID_FILE.write_text(str(os.getpid() if pid is None else pid), encoding="utf-8")
+
+
+def read_pid() -> int | None:
+    try:
+        return int(PID_FILE.read_text(encoding="utf-8").strip())
+    except (OSError, ValueError):
+        return None
+
+
+def remove_pid() -> None:
+    try:
+        PID_FILE.unlink()
+    except OSError:
+        pass
