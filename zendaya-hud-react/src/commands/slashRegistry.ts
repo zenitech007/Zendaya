@@ -3,6 +3,7 @@ import {
   openMap, goHome, openModule, setThemeById,
   dock, undock, minimize, restore, activateVoice, deactivateVoice,
 } from "./hudControls";
+import { quit } from "../api/backend";
 
 interface SlashCommand {
   help: string;
@@ -36,6 +37,10 @@ export const SLASH_COMMANDS: Record<string, SlashCommand> = {
       if (v === "off") { deactivateVoice(); return "→ voice off"; }
       return "usage: /voice <on|off>";
     },
+  },
+  quit: {
+    help: "/quit — shut Zendaya down",
+    run: () => { void quit(); return "→ shutting down Zendaya…"; },
   },
   help: {
     help: "/help — list commands",
