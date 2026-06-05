@@ -53,6 +53,8 @@ export interface NowPlaying {
   progress_ms: number;
   duration_ms: number;
   source: "spotify" | "local";
+  streamUrl?: string;
+  trackId?: string;
 }
 
 export type Telemetry = {
@@ -94,6 +96,7 @@ interface ZendayaState {
 
   notifications: Notification[];
   nowPlaying: NowPlaying | null;
+  musicCmd: { cmd: string; seq: number } | null;
   terminalLog: TerminalLine[];
 
   // Avatar / perception state from backend broadcast
@@ -135,6 +138,7 @@ interface ZendayaState {
   pushNotification: (text: string) => void;
   popNotification: (id: number) => void;
   setNowPlaying: (np: NowPlaying | null) => void;
+  pushMusicCmd: (cmd: string) => void;
   pushTerminalLine: (role: TerminalRole, text: string) => void;
   clearTerminalLog: () => void;
   setVisemes: (v: Visemes) => void;
@@ -153,6 +157,7 @@ interface ZendayaState {
 
 let _nid = 0;
 let _tid = 0;
+let _mseq = 0;
 
 export const useZendaya = create<ZendayaState>((set) => ({
   ai: "idle",
@@ -172,6 +177,7 @@ export const useZendaya = create<ZendayaState>((set) => ({
 
   notifications: [],
   nowPlaying: null,
+  musicCmd: null,
   terminalLog: [],
   visemes: { aa: 0, ih: 0, ee: 0, oh: 0, ou: 0 },
   telemetry: null,
@@ -212,6 +218,7 @@ export const useZendaya = create<ZendayaState>((set) => ({
       nowPlaying: np,
       docked: np !== null ? true : s.activeModule !== "none",
     })),
+  pushMusicCmd: (cmd) => set({ musicCmd: { cmd, seq: ++_mseq } }),
   pushTerminalLine: (role, text) =>
     set((s) => ({
       terminalLog: [
