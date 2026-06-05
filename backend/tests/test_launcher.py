@@ -138,3 +138,50 @@ def test_supervise_gives_up_after_max(monkeypatch):
     monkeypatch.setattr(L.time, "sleep", lambda s: None)
     monkeypatch.setattr(L, "spawn_backend", lambda: _FakeProc([1]))  # always crash
     assert L.supervise(_FakeProc([1])) == 1
+
+
+def test_main_quit_calls_request_quit(monkeypatch):
+    monkeypatch.setattr(L, "setup_logging", lambda: None)
+    called = []
+    monkeypatch.setattr(L, "request_quit", lambda: called.append(True))
+    assert L.main(["--quit"]) == 0
+    assert called == [True]
+
+
+def test_main_reattaches_when_backend_up(monkeypatch):
+    monkeypatch.setattr(L, "setup_logging", lambda: None)
+    monkeypatch.setattr(L, "backend_is_ours", lambda: True)
+    hud, spawned = [], []
+    monkeypatch.setattr(L, "launch_hud", lambda: hud.append(True) or True)
+    monkeypatch.setattr(L, "spawn_backend", lambda: spawned.append(True))
+    assert L.main([]) == 0
+    assert hud == [True]
+    assert spawned == []  # did NOT start a second backend
+
+
+def test_main_full_launch_path(monkeypatch):
+    monkeypatch.setattr(L, "setup_logging", lambda: None)
+    monkeypatch.setattr(L, "backend_is_ours", lambda: False)
+    monkeypatch.setattr(L, "write_pid", lambda: None)
+    sentinel = object()
+    monkeypatch.setattr(L, "spawn_backend", lambda: sentinel)
+    monkeypatch.setattr(L, "wait_for_health", lambda: True)
+    launched = []
+    monkeypatch.setattr(L, "launch_hud", lambda: launched.append(True) or True)
+    monkeypatch.setattr(L, "supervise", lambda p: 0 if p is sentinel else 99)
+    assert L.main([]) == 0
+    assert launched == [True]
+
+
+def test_main_aborts_on_health_timeout(monkeypatch):
+    monkeypatch.setattr(L, "setup_logging", lambda: None)
+    monkeypatch.setattr(L, "backend_is_ours", lambda: False)
+    monkeypatch.setattr(L, "write_pid", lambda: None)
+    monkeypatch.setattr(L, "spawn_backend", lambda: object())
+    monkeypatch.setattr(L, "wait_for_health", lambda: False)
+    removed, launched = [], []
+    monkeypatch.setattr(L, "remove_pid", lambda: removed.append(True))
+    monkeypatch.setattr(L, "launch_hud", lambda: launched.append(True))
+    assert L.main([]) == 1
+    assert launched == []
+    assert removed == [True]

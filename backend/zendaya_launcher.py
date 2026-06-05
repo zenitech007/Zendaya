@@ -168,3 +168,53 @@ def supervise(proc: subprocess.Popen) -> int:
         time.sleep(delay)
         proc = spawn_backend()
         restarts += 1
+
+
+# ── Quit + CLI ──
+def request_quit(timeout: float = 10.0) -> None:
+    """Ask the running backend to shut down (POST /quit), wait briefly for it to
+    exit, then drop the PID file. Used by the Quit shortcut / --quit."""
+    try:
+        req = urllib.request.Request(QUIT_URL, method="POST", data=b"")
+        urllib.request.urlopen(req, timeout=5.0)
+        log.info("Sent /quit to backend.")
+    except (urllib.error.URLError, OSError) as exc:
+        log.warning("Quit request failed (backend may be down): %s", exc)
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if not backend_is_ours():
+            break
+        time.sleep(0.25)
+    remove_pid()
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    setup_logging()
+
+    if "--quit" in argv:
+        request_quit()
+        return 0
+
+    if "--status" in argv:
+        print("Zendaya backend:", "running" if backend_is_ours() else "not running")
+        return 0
+
+    # Default: launch. If a healthy Zendaya is already up, just attach a HUD.
+    if backend_is_ours():
+        log.info("Backend already running — attaching a new HUD.")
+        launch_hud()
+        return 0
+
+    write_pid()
+    proc = spawn_backend()
+    if not wait_for_health():
+        log.error("Backend did not become healthy within %ss — aborting.", HEALTH_TIMEOUT)
+        remove_pid()
+        return 1
+    launch_hud()
+    return supervise(proc)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
