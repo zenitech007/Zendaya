@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useZendaya, type AiState, type BodyAction } from "../store/zendayaStore";
 import { normaliseVisemes } from "../store/normaliseVisemes";
+import { voicePlayer } from "../audio/voicePlayer";
 import {
   openMap, goHome, openModule, setThemeById, dock, undock,
   showTerminal, hideTerminal, activateVoice, deactivateVoice,
@@ -122,6 +123,12 @@ export function useWebSocket() {
         }
         if (typeof data.body_action === "string" && (VALID_BODY as string[]).includes(data.body_action)) {
           z.firePulseBodyAction(data.body_action as BodyAction);
+        }
+        if (data.audio && typeof data.audio === "object" && !Array.isArray(data.audio)) {
+          // Teed TTS PCM — play directly via the singleton, NOT through the
+          // store (a chunk arrives every ~90 ms; routing through Zustand would
+          // re-render the whole tree each time).
+          voicePlayer.handle(data.audio);
         }
       };
     }

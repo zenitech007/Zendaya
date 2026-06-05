@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useZendaya } from "../store/zendayaStore";
 import { useWebSocket } from "../hooks/useWebSocket";
+import { voicePlayer } from "../audio/voicePlayer";
 
 class FakeWS extends EventTarget {
   static instances: FakeWS[] = [];
@@ -187,5 +188,24 @@ describe("useWebSocket — music_control action", () => {
     const { ws } = await freshHook();
     ws.fireMessage({ action: "music_control", payload: { cmd: "explode" } });
     expect(useZendaya.getState().musicCmd).toBeNull();
+  });
+});
+
+describe("useWebSocket — audio frames route to voicePlayer", () => {
+  it("forwards an audio frame to voicePlayer.handle", async () => {
+    const spy = vi.spyOn(voicePlayer, "handle").mockImplementation(() => {});
+    const { ws } = await freshHook();
+    ws.fireMessage({ audio: { event: "begin", rate: 22050, id: 1 } });
+    expect(spy).toHaveBeenCalledWith({ event: "begin", rate: 22050, id: 1 });
+    spy.mockRestore();
+  });
+
+  it("ignores a non-object audio field", async () => {
+    const spy = vi.spyOn(voicePlayer, "handle").mockImplementation(() => {});
+    const { ws } = await freshHook();
+    ws.fireMessage({ audio: "nope" });
+    ws.fireMessage({ audio: [1, 2, 3] });
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
 });
