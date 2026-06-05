@@ -15,12 +15,14 @@ import { THEMES } from "./themes/registry";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useAdaptiveQuality } from "./hooks/useAdaptiveQuality";
 import { useAudioEngine } from "./hooks/useAudioEngine";
+import { useVoicePlayback } from "./hooks/useVoicePlayback";
 import { useZendaya } from "./store/zendayaStore";
 
 export default function App() {
   useWebSocket();
   useAdaptiveQuality();
   useAudioEngine();
+  useVoicePlayback();
   const minimized = useZendaya((s) => s.minimized);
   const quality = useZendaya((s) => s.quality);
   const activeThemeId = useZendaya((s) => s.activeThemeId);
