@@ -117,3 +117,27 @@ def wait_for_health(timeout: float = HEALTH_TIMEOUT, interval: float = HEALTH_IN
             return True
         time.sleep(interval)
     return False
+
+
+# ── Tauri HUD ──
+def find_hud_exe() -> Path | None:
+    """Locate the built Tauri HUD .exe; prefer the productName, else any top-level .exe."""
+    preferred = RELEASE_DIR / HUD_EXE_NAME
+    if preferred.exists():
+        return preferred
+    if RELEASE_DIR.is_dir():
+        exes = sorted(RELEASE_DIR.glob("*.exe"))
+        if exes:
+            return exes[0]
+    return None
+
+
+def launch_hud() -> bool:
+    """Open the Tauri HUD window. Returns False (and logs) if the build is missing."""
+    exe = find_hud_exe()
+    if exe is None:
+        log.error("HUD executable not found in %s — run setup-zendaya.ps1 first.", RELEASE_DIR)
+        return False
+    subprocess.Popen([str(exe)], cwd=str(exe.parent))
+    log.info("Launched HUD: %s", exe)
+    return True

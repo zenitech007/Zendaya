@@ -68,3 +68,42 @@ def test_wait_for_health_times_out(monkeypatch):
     monkeypatch.setattr(L, "backend_is_ours", lambda: False)
     monkeypatch.setattr(L.time, "sleep", lambda s: None)
     assert L.wait_for_health(timeout=0.05, interval=0.01) is False
+
+
+def test_find_hud_exe_prefers_product_name(tmp_path, monkeypatch):
+    monkeypatch.setattr(L, "RELEASE_DIR", tmp_path)
+    monkeypatch.setattr(L, "HUD_EXE_NAME", "Zendaya HUD.exe")
+    (tmp_path / "Zendaya HUD.exe").write_text("x")
+    (tmp_path / "zzz.exe").write_text("x")
+    assert L.find_hud_exe() == tmp_path / "Zendaya HUD.exe"
+
+
+def test_find_hud_exe_glob_fallback(tmp_path, monkeypatch):
+    monkeypatch.setattr(L, "RELEASE_DIR", tmp_path)
+    monkeypatch.setattr(L, "HUD_EXE_NAME", "Missing.exe")
+    (tmp_path / "app.exe").write_text("x")
+    assert L.find_hud_exe() == tmp_path / "app.exe"
+
+
+def test_find_hud_exe_none_when_absent(tmp_path, monkeypatch):
+    monkeypatch.setattr(L, "RELEASE_DIR", tmp_path / "does-not-exist")
+    monkeypatch.setattr(L, "HUD_EXE_NAME", "Missing.exe")
+    assert L.find_hud_exe() is None
+
+
+def test_launch_hud_returns_false_when_missing(monkeypatch):
+    monkeypatch.setattr(L, "find_hud_exe", lambda: None)
+    called = []
+    monkeypatch.setattr(L.subprocess, "Popen", lambda *a, **k: called.append(a))
+    assert L.launch_hud() is False
+    assert called == []
+
+
+def test_launch_hud_starts_exe_when_present(tmp_path, monkeypatch):
+    exe = tmp_path / "Zendaya HUD.exe"
+    exe.write_text("x")
+    monkeypatch.setattr(L, "find_hud_exe", lambda: exe)
+    started = []
+    monkeypatch.setattr(L.subprocess, "Popen", lambda *a, **k: started.append((a, k)))
+    assert L.launch_hud() is True
+    assert started and started[0][0][0] == [str(exe)]
