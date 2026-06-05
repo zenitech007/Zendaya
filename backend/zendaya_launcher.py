@@ -141,3 +141,30 @@ def launch_hud() -> bool:
     subprocess.Popen([str(exe)], cwd=str(exe.parent))
     log.info("Launched HUD: %s", exe)
     return True
+
+
+# ── Supervision (crash → restart with capped backoff) ──
+RESTART_BACKOFF = [1, 2, 4, 8, 16]  # seconds; index clamps to last
+MAX_RESTARTS = 5                     # crashes before giving up (avoids hot-loop)
+
+
+def supervise(proc: subprocess.Popen) -> int:
+    """Block on the backend. Exit 0 => intentional quit (stop). Crash => restart with
+    capped exponential backoff. Returns the final exit code (0 = clean)."""
+    restarts = 0
+    while True:
+        code = proc.wait()
+        if code == 0:
+            log.info("Backend exited cleanly (code 0) — shutting down launcher.")
+            remove_pid()
+            return 0
+        log.warning("Backend crashed (code %s).", code)
+        if restarts >= MAX_RESTARTS:
+            log.error("Backend crashed %s times — giving up.", restarts)
+            remove_pid()
+            return code
+        delay = RESTART_BACKOFF[min(restarts, len(RESTART_BACKOFF) - 1)]
+        log.info("Restarting backend in %ss (attempt %s).", delay, restarts + 1)
+        time.sleep(delay)
+        proc = spawn_backend()
+        restarts += 1

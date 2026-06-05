@@ -107,3 +107,34 @@ def test_launch_hud_starts_exe_when_present(tmp_path, monkeypatch):
     monkeypatch.setattr(L.subprocess, "Popen", lambda *a, **k: started.append((a, k)))
     assert L.launch_hud() is True
     assert started and started[0][0][0] == [str(exe)]
+
+
+class _FakeProc:
+    def __init__(self, codes):
+        self._codes = list(codes)
+        self.pid = 99
+
+    def wait(self):
+        return self._codes.pop(0)
+
+
+def test_supervise_clean_exit_no_restart(monkeypatch):
+    monkeypatch.setattr(L, "remove_pid", lambda: None)
+    spawned = []
+    monkeypatch.setattr(L, "spawn_backend", lambda: spawned.append(1))
+    assert L.supervise(_FakeProc([0])) == 0
+    assert spawned == []
+
+
+def test_supervise_restarts_on_crash_then_clean(monkeypatch):
+    monkeypatch.setattr(L, "remove_pid", lambda: None)
+    monkeypatch.setattr(L.time, "sleep", lambda s: None)
+    monkeypatch.setattr(L, "spawn_backend", lambda: _FakeProc([0]))  # restart exits clean
+    assert L.supervise(_FakeProc([1])) == 0
+
+
+def test_supervise_gives_up_after_max(monkeypatch):
+    monkeypatch.setattr(L, "remove_pid", lambda: None)
+    monkeypatch.setattr(L.time, "sleep", lambda s: None)
+    monkeypatch.setattr(L, "spawn_backend", lambda: _FakeProc([1]))  # always crash
+    assert L.supervise(_FakeProc([1])) == 1
