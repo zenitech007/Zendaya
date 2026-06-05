@@ -105,12 +105,15 @@ poetry install
 cp .env.example .env
 # Edit .env with your Supabase credentials and API keys
 
-# Test database connection
-poetry run python test_db_connection.py
-
-# Start the backend
-poetry run python main.py
+# Dev: run the backend directly (interactive console REPL)
+cd backend
+python zendaya.py
 ```
+
+> **Production launch (Windows):** run `setup-zendaya.ps1` once (builds the HUD
+> and creates desktop shortcuts), then start everything with the **Zendaya**
+> desktop shortcut — it runs the backend hidden in the background and opens the
+> HUD. Quit with the **Quit Zendaya** shortcut or by typing `/quit` in the HUD.
 
 ### 2. Web Dashboard
 
