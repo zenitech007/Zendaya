@@ -23,3 +23,8 @@ export async function sendChat(text: string): Promise<void> {
   });
   if (!res.ok) throw new Error(`chat failed: ${res.status}`);
 }
+
+/** Ask the backend to shut down cleanly (used by the /quit command). Never throws. */
+export async function quit(): Promise<void> {
+  await fetch(`${backendHttpOrigin()}/quit`, { method: "POST" }).catch(() => {});
+}
