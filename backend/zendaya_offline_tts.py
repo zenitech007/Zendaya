@@ -53,8 +53,8 @@ def set_voice_engine(engine: str) -> str:
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps({"engine": engine}), encoding="utf-8")
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"(voice engine: failed to persist preference: {e})")
     return engine
 
 
@@ -168,8 +168,8 @@ def synth_to_pcm(text: str, target_sr: int = TARGET_SR, speaker: Optional[str] =
 # ── /voice command ──────────────────────────────────────────────────────────
 _OFFLINE_WORDS = ("offline", "coqui", "local", "free")
 _CLOUD_WORDS = ("elevenlabs", "eleven", "cloud", "online")
-_OFFLINE_RE = re.compile(r"\b(?:%s)\b[\w\s]*\bvoice\b" % "|".join(_OFFLINE_WORDS))
-_CLOUD_RE = re.compile(r"\b(?:%s)\b[\w\s]*\bvoice\b" % "|".join(_CLOUD_WORDS))
+_OFFLINE_RE = re.compile(r"\b(?:%s)\b\s+voice\b" % "|".join(_OFFLINE_WORDS))
+_CLOUD_RE = re.compile(r"\b(?:%s)\b\s+voice\b" % "|".join(_CLOUD_WORDS))
 
 
 def parse_voice_command(user_text: str) -> Optional[str]:
@@ -188,9 +188,13 @@ def parse_voice_command(user_text: str) -> Optional[str]:
         return "status"
     if low in ("voice status", "which voice", "what voice are you using"):
         return "status"
-    if _OFFLINE_RE.search(low):
+    off = bool(_OFFLINE_RE.search(low))
+    cloud = bool(_CLOUD_RE.search(low))
+    if off and cloud:
+        return "status"
+    if off:
         return "offline"
-    if _CLOUD_RE.search(low):
+    if cloud:
         return "elevenlabs"
     return None
 

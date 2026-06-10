@@ -153,3 +153,31 @@ def test_handle_voice_command_switch_persists(tmp_data_dir):
     msg = ot.handle_voice_command("elevenlabs")
     assert ot.get_voice_engine() == "elevenlabs"
     assert "elevenlabs" in msg.lower()
+
+
+def test_parse_voice_command_ignores_non_adjacent_free():
+    import zendaya_offline_tts as ot
+    assert ot.parse_voice_command("feel free to change your voice") is None
+
+
+def test_parse_voice_command_both_engines_returns_status():
+    import zendaya_offline_tts as ot
+    assert ot.parse_voice_command("offline voice or elevenlabs voice") == "status"
+
+
+def test_is_ready_reflects_model_state(monkeypatch):
+    import zendaya_offline_tts as ot
+    monkeypatch.setattr(ot, "_model", None)
+    assert ot.is_ready() is False
+    monkeypatch.setattr(ot, "_model", object())
+    assert ot.is_ready() is True
+
+
+def test_warmup_returns_false_on_error(monkeypatch):
+    import zendaya_offline_tts as ot
+
+    def _boom():
+        raise ot.OfflineTTSError("deps missing")
+
+    monkeypatch.setattr(ot, "_get_model", _boom)
+    assert ot.warmup() is False
