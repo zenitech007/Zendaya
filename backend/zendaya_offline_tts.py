@@ -56,3 +56,42 @@ def set_voice_engine(engine: str) -> str:
     except Exception:
         pass
     return engine
+
+
+# ── text + audio helpers ────────────────────────────────────────────────────
+_SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
+
+
+def _split_sentences(text: str) -> list:
+    text = (text or "").strip()
+    if not text:
+        return []
+    parts = [p.strip() for p in _SENT_SPLIT.split(text) if p.strip()]
+    return parts or [text]
+
+
+def _wave_to_pcm16(wav: np.ndarray, sr: int, target_sr: int) -> bytes:
+    wav = np.asarray(wav, dtype=np.float32).flatten()
+    if wav.size and sr != target_sr:
+        n_out = int(round(wav.size * target_sr / sr))
+        if n_out > 0:
+            x_old = np.linspace(0.0, 1.0, num=wav.size, endpoint=False)
+            x_new = np.linspace(0.0, 1.0, num=n_out, endpoint=False)
+            wav = np.interp(x_new, x_old, wav).astype(np.float32)
+    wav = np.clip(wav, -1.0, 1.0)
+    return (wav * 32767.0).astype("<i2").tobytes()
+
+
+class PcmBytesResponse:
+    """Adapts a PCM byte buffer to the .iter_content() interface that
+    zendaya._stream_pcm_playback() consumes (same shape as a streaming
+    requests.Response), so the offline path reuses the HUD/viseme pipeline."""
+
+    def __init__(self, data: bytes, chunk: int = 4096):
+        self._data = data
+        self._chunk = chunk
+
+    def iter_content(self, chunk_size: int = 4096):
+        size = chunk_size or self._chunk
+        for i in range(0, len(self._data), size):
+            yield self._data[i:i + size]
