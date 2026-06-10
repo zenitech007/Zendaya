@@ -1,0 +1,5 @@
+# Stale compiled output: Vite bundles the .ts/.tsx sources directly and tsc runs
+# with "noEmit": true, so no .js should ever be emitted next to sources. Ignoring
+# src/**/*.js prevents accidentally re-committing transpiled artifacts that would
+# shadow the TypeScript sources under moduleResolution "bundler".
+src/**/*.js
