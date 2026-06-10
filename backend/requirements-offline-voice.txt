@@ -1,0 +1,6 @@
+# Offline voice (Coqui TTS) extra dependencies.
+# coqui-tts and torch are already installed in the venv.
+# torchcodec is required because torch>=2.9 moved audio IO to it.
+torchcodec>=0.14
+# System dependency (NOT pip): FFmpeg shared libraries must be installed and on PATH
+# so torchcodec can load codecs. On Windows:  winget install Gyan.FFmpeg
