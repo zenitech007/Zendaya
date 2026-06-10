@@ -1,6 +1,8 @@
 """Unit tests for Zendaya's offline Coqui TTS engine (Coqui mocked for speed)."""
 from __future__ import annotations
 
+import os
+
 import numpy as np
 import pytest
 
@@ -181,3 +183,31 @@ def test_warmup_returns_false_on_error(monkeypatch):
 
     monkeypatch.setattr(ot, "_get_model", _boom)
     assert ot.warmup() is False
+
+
+def test_ensure_espeak_prepends_path_when_missing(monkeypatch, tmp_path):
+    import zendaya_offline_tts as ot
+    monkeypatch.setattr(ot.shutil, "which", lambda name: None)
+    (tmp_path / "espeak-ng.exe").write_text("")
+    monkeypatch.setattr(ot, "_ESPEAK_WIN_DIR", str(tmp_path))
+    monkeypatch.setenv("PATH", "EXISTING")
+    ot._ensure_espeak_on_path()
+    assert os.environ["PATH"].startswith(str(tmp_path))
+    assert "EXISTING" in os.environ["PATH"]
+
+
+def test_ensure_espeak_noop_when_already_on_path(monkeypatch):
+    import zendaya_offline_tts as ot
+    monkeypatch.setattr(ot.shutil, "which", lambda name: r"C:\some\espeak-ng.exe")
+    monkeypatch.setenv("PATH", "ORIGINAL")
+    ot._ensure_espeak_on_path()
+    assert os.environ["PATH"] == "ORIGINAL"
+
+
+def test_ensure_espeak_noop_when_binary_absent(monkeypatch, tmp_path):
+    import zendaya_offline_tts as ot
+    monkeypatch.setattr(ot.shutil, "which", lambda name: None)
+    monkeypatch.setattr(ot, "_ESPEAK_WIN_DIR", str(tmp_path / "nonexistent"))
+    monkeypatch.setenv("PATH", "ORIGINAL")
+    ot._ensure_espeak_on_path()
+    assert os.environ["PATH"] == "ORIGINAL"

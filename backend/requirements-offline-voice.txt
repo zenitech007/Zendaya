@@ -1,6 +1,18 @@
-# Offline voice (Coqui TTS) extra dependencies.
+# Offline voice (Coqui TTS / VITS) extra dependencies.
 # coqui-tts and torch are already installed in the venv.
-# torchcodec is required because torch>=2.9 moved audio IO to it.
+
+# --- pip ---
+# torchcodec is required because torch>=2.9 moved audio IO to it (needed for `import TTS`).
 torchcodec>=0.14
-# System dependency (NOT pip): FFmpeg shared libraries must be installed and on PATH
-# so torchcodec can load codecs. On Windows:  winget install Gyan.FFmpeg
+
+# --- system dependencies (NOT pip) ---
+# eSpeak-NG: REQUIRED. The tts_models/en/vctk/vits model uses espeak-ng as its
+# phonemizer backend; without it, model load raises "No espeak backend found".
+# Windows:  winget install --id eSpeak-NG.eSpeak-NG -e
+# Installs to "C:\Program Files\eSpeak NG"; the module auto-prepends that dir to
+# PATH at model-load time (see zendaya_offline_tts._ensure_espeak_on_path), so a
+# manual PATH edit is not required.
+#
+# FFmpeg: NOT required for VITS synthesis (verified). Only needed later if/when the
+# XTTS-v2 voice-cloning path is added (it loads reference audio via torchcodec).
+# Windows (only for future XTTS):  winget install Gyan.FFmpeg

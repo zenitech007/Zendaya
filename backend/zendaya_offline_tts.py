@@ -8,7 +8,9 @@ lazily, right before `import TTS`.
 from __future__ import annotations
 
 import json
+import os
 import re
+import shutil
 import threading
 from pathlib import Path
 from typing import Optional
@@ -22,6 +24,8 @@ DEFAULT_SPEAKER = "p225"
 TARGET_SR = 22050
 VALID_ENGINES = ("offline", "elevenlabs")
 _DEFAULT_ENGINE = "offline"
+# Standard Windows install dir for eSpeak-NG (Coqui's VITS phonemizer backend).
+_ESPEAK_WIN_DIR = r"C:\Program Files\eSpeak NG"
 
 
 class OfflineTTSError(RuntimeError):
@@ -117,6 +121,20 @@ def _install_transformers_shim() -> None:
         pass
 
 
+def _ensure_espeak_on_path() -> None:
+    """Coqui's VITS phonemizer needs the espeak-ng executable on PATH. The Windows
+    installer doesn't always add it, so prepend the standard install dir if the
+    binary is present there but not yet discoverable."""
+    try:
+        if shutil.which("espeak-ng") or shutil.which("espeak"):
+            return
+        exe = os.path.join(_ESPEAK_WIN_DIR, "espeak-ng.exe")
+        if os.path.isfile(exe):
+            os.environ["PATH"] = _ESPEAK_WIN_DIR + os.pathsep + os.environ.get("PATH", "")
+    except Exception:
+        pass
+
+
 def _get_model():
     global _model
     if _model is not None:
@@ -125,6 +143,7 @@ def _get_model():
         if _model is not None:
             return _model
         _install_transformers_shim()
+        _ensure_espeak_on_path()
         try:
             from TTS.api import TTS as _TTSApi
         except Exception as e:
