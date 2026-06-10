@@ -163,3 +163,42 @@ def synth_to_pcm(text: str, target_sr: int = TARGET_SR, speaker: Optional[str] =
         sr = getattr(getattr(model, "synthesizer", None), "output_sample_rate", TARGET_SR) or TARGET_SR
         out += _wave_to_pcm16(np.asarray(wav, dtype=np.float32), sr, target_sr)
     return bytes(out)
+
+
+# ── /voice command ──────────────────────────────────────────────────────────
+_OFFLINE_WORDS = ("offline", "coqui", "local", "free")
+_CLOUD_WORDS = ("elevenlabs", "eleven", "cloud", "online")
+_OFFLINE_RE = re.compile(r"\b(?:%s)\b[\w\s]*\bvoice\b" % "|".join(_OFFLINE_WORDS))
+_CLOUD_RE = re.compile(r"\b(?:%s)\b[\w\s]*\bvoice\b" % "|".join(_CLOUD_WORDS))
+
+
+def parse_voice_command(user_text: str) -> Optional[str]:
+    """Return 'offline' | 'elevenlabs' | 'status' for a voice-engine command, else None."""
+    low = (user_text or "").strip().lower()
+    if not low:
+        return None
+    if low.startswith("/voice"):
+        arg = low[len("/voice"):].strip()
+        if arg in ("", "status"):
+            return "status"
+        if arg in _OFFLINE_WORDS:
+            return "offline"
+        if arg in _CLOUD_WORDS:
+            return "elevenlabs"
+        return "status"
+    if low in ("voice status", "which voice", "what voice are you using"):
+        return "status"
+    if _OFFLINE_RE.search(low):
+        return "offline"
+    if _CLOUD_RE.search(low):
+        return "elevenlabs"
+    return None
+
+
+def handle_voice_command(action: str) -> str:
+    if action == "status":
+        return "I'm currently using my %s voice." % get_voice_engine()
+    engine = set_voice_engine(action)
+    if engine == "offline":
+        return "Okay, switching to my offline voice."
+    return "Okay, switching to my ElevenLabs voice."

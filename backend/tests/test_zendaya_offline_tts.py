@@ -124,3 +124,32 @@ def test_synth_to_pcm_wraps_model_error(monkeypatch):
     monkeypatch.setattr(ot, "_get_model", lambda: _Broken(np.zeros(1, dtype=np.float32)))
     with pytest.raises(ot.OfflineTTSError):
         ot.synth_to_pcm("Hello.")
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("/voice offline", "offline"),
+    ("/voice elevenlabs", "elevenlabs"),
+    ("/voice", "status"),
+    ("/voice status", "status"),
+    ("use offline voice", "offline"),
+    ("switch to elevenlabs voice", "elevenlabs"),
+    ("use your free voice", "offline"),
+    ("what's the weather", None),
+    ("", None),
+])
+def test_parse_voice_command(text, expected):
+    import zendaya_offline_tts as ot
+    assert ot.parse_voice_command(text) == expected
+
+
+def test_handle_voice_command_status_reports_current(tmp_data_dir):
+    import zendaya_offline_tts as ot
+    ot.set_voice_engine("offline")
+    assert "offline" in ot.handle_voice_command("status").lower()
+
+
+def test_handle_voice_command_switch_persists(tmp_data_dir):
+    import zendaya_offline_tts as ot
+    msg = ot.handle_voice_command("elevenlabs")
+    assert ot.get_voice_engine() == "elevenlabs"
+    assert "elevenlabs" in msg.lower()
