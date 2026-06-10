@@ -211,3 +211,16 @@ def test_ensure_espeak_noop_when_binary_absent(monkeypatch, tmp_path):
     monkeypatch.setenv("PATH", "ORIGINAL")
     ot._ensure_espeak_on_path()
     assert os.environ["PATH"] == "ORIGINAL"
+
+
+@pytest.mark.slow
+def test_real_synthesis_smoke():
+    """Real Coqui synthesis. Self-skips if deps/model are absent, so it never
+    hard-fails the suite. Run the fast suite with -m "not slow"; run this with -m slow."""
+    import zendaya_offline_tts as ot
+    if not ot.warmup():
+        pytest.skip("Coqui offline TTS not available (deps/model missing)")
+    pcm = ot.synth_to_pcm("Hello from the offline voice.")
+    arr = np.frombuffer(pcm, dtype="<i2")
+    assert arr.dtype == np.int16
+    assert len(arr) > 22050  # at least ~1s of audio
