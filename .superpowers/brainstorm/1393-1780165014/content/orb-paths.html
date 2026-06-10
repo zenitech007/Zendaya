@@ -1,0 +1,64 @@
+<h2>What is "the orb" in this spec?</h2>
+<p class="subtitle">The current orb is a procedural sphere with a glow shader. No mesh, no rig, no mouth, no body. Visemes & body-action need an interpretation. Pick one.</p>
+
+<div class="cards">
+  <div class="card" data-choice="path-a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="placeholder" style="display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,#ff8a3c66 30%,transparent 70%);font-size:60px;color:#ff8a3c">●</div>
+    </div>
+    <div class="card-body">
+      <h3>A. Keep procedural orb, reinterpret channels (Recommended)</h3>
+      <p><strong>amplitude</strong> → scale (existing, fix broadcast).<br>
+      <strong>visemes</strong> → ripple/distortion strength (orb "talks" but no literal lips).<br>
+      <strong>body action</strong> → cute discrete GSAP keyframes: nod=vertical bounce, shake=wobble, wave=orbital arc, shrug=expand-and-relax.<br>
+      <strong>perception/telemetry</strong> → separate widgets, not on the orb.</p>
+      <div class="label" style="margin-top:8px">Honest scope. Ships fast. Respects current build.</div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="path-b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="placeholder" style="display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,#ff8a3c44 30%,transparent 70%);font-size:60px;color:#ff8a3c">◍</div>
+    </div>
+    <div class="card-body">
+      <h3>B. Richer orb mesh (mouth-on-sphere)</h3>
+      <p>Replace procedural sphere with a low-poly stylised face/mouth mesh. Real viseme blendshapes drive a literal mouth. Body action still abstract.</p>
+      <div class="label" style="margin-top:8px">~3× the scope. Needs a designed mesh + morph targets</div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="path-c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="placeholder" style="display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,#ff8a3c33 30%,transparent 70%);font-size:42px;color:#ff8a3c">🧍</div>
+    </div>
+    <div class="card-body">
+      <h3>C. Swap to VRM avatar (like zendaya-pet)</h3>
+      <p>Replace the orb entirely with a VRM humanoid. Real bones for wave/shrug, real blendshapes for visemes. Best for "human assistant" vibe.</p>
+      <div class="label" style="margin-top:8px">Biggest rewrite. Different product direction</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>What this means for "all four channels"</h3>
+  <div class="pros-cons">
+    <div class="pros">
+      <h4>Under Path A, all four still fit one spec</h4>
+      <ul>
+        <li>Voice: fix broadcast + scale + ripple uniform</li>
+        <li>Perception: tiny widget</li>
+        <li>Telemetry: corner widget + mood color bias</li>
+        <li>Body action: GSAP keyframe set for 4 moves</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <h4>Under Path B or C</h4>
+      <ul>
+        <li>Mesh/avatar work eats the whole spec</li>
+        <li>Channels would slip to a second spec</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle">👉 Pick a path in the terminal.</p>

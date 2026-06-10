@@ -1,0 +1,97 @@
+<style>
+  .ws { position:relative; height:250px; border-radius:14px; overflow:hidden;
+    background:radial-gradient(ellipse at 50% 45%, #241206 0%, #090402 80%);
+    display:flex; align-items:center; justify-content:center; }
+  /* shared dotted "particle" texture */
+  .dots { background-image:radial-gradient(circle, #ffd9a0 0.9px, transparent 1.3px);
+    background-size:7px 7px; }
+  /* 1 — particle morph */
+  .p-sun { width:96px; height:96px; border-radius:50%;
+    -webkit-mask:radial-gradient(circle at 50% 50%, #000 60%, transparent 62%);
+    mask:radial-gradient(circle at 50% 50%, #000 60%, transparent 62%);
+    filter:drop-shadow(0 0 16px rgba(255,138,60,.7)); }
+  .p-cloud { position:absolute; bottom:54px; width:150px; height:46px; border-radius:30px;
+    -webkit-mask:radial-gradient(ellipse at 50% 40%, #000 65%, transparent 70%);
+    mask:radial-gradient(ellipse at 50% 40%, #000 65%, transparent 70%);
+    opacity:.85; filter:drop-shadow(0 0 12px rgba(255,170,90,.4)); }
+  /* 2 — volumetric sphere */
+  .v-sphere { width:150px; height:150px; border-radius:50%;
+    background:
+      radial-gradient(circle at 36% 30%, rgba(255,220,180,.9), transparent 42%),
+      conic-gradient(from 210deg, #ff8a1e, #7a3a08, #ffb060, #5a2a05, #ff8a1e);
+    box-shadow:0 0 40px rgba(255,138,60,.5), inset -16px -10px 40px rgba(0,0,0,.6);
+    filter:blur(.3px); }
+  .v-atm { position:absolute; width:178px; height:178px; border-radius:50%;
+    border:1px solid rgba(255,138,60,.25); box-shadow:0 0 26px rgba(255,138,60,.25) inset; }
+  /* 3 — line glyph */
+  .g-ring { position:absolute; width:150px; height:150px; border-radius:50%;
+    border:1px solid rgba(255,138,60,.3); }
+  .g-sun { width:54px; height:54px; border-radius:50%;
+    border:2px solid #ffb060; box-shadow:0 0 18px rgba(255,138,60,.6); position:relative; }
+  .g-ray { position:absolute; left:50%; top:50%; width:2px; height:20px; background:#ffb060;
+    transform-origin:50% -20px; }
+  .g-cloud { position:absolute; bottom:60px; width:96px; height:34px; border-radius:20px;
+    border:2px solid rgba(255,200,150,.8); box-shadow:0 0 14px rgba(255,170,90,.4); }
+  .ws-temp { position:absolute; bottom:14px; left:0; right:0; text-align:center;
+    font-family:'Share Tech Mono',monospace; color:#ffb060; letter-spacing:.18em;
+    text-shadow:0 0 14px rgba(255,138,60,.7); }
+  .ws-temp b { font-size:22px; }
+  .ws-temp span { font-size:10px; opacity:.75; letter-spacing:.3em; }
+</style>
+
+<h2>WeatherScene &mdash; what is the hologram <em>made of</em>?</h2>
+<p class="subtitle">All three react to the real condition (sun / cloud / rain / storm) and tint to the active theme. The difference is the rendering language. Click one.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="particles" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0">
+      <div class="ws">
+        <div class="p-sun dots"></div>
+        <div class="p-cloud dots"></div>
+        <div class="ws-temp"><b>24&deg;</b> &nbsp;<span>PARTLY CLOUDY</span></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>1 &mdash; Particle morph &nbsp;<span style="font-size:10px;opacity:.6">(recommended)</span></h3>
+      <p>The orb&rsquo;s 9,000 particles <strong>rearrange</strong> into the weather: a radiant sun-disc, drifting cloud volumes, streaming rain, turbulent storm. Reuses the exact Phase&nbsp;B dissolve engine &mdash; the morph <em>is</em> the moment.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="sphere" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0">
+      <div class="ws">
+        <div class="v-atm"></div>
+        <div class="v-sphere"></div>
+        <div class="ws-temp"><b>24&deg;</b> &nbsp;<span>PARTLY CLOUDY</span></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>2 &mdash; Volumetric sky-sphere</h3>
+      <p>A glowing planet-like sphere with shader clouds swirling across its surface, sun-glow terminator, rain as a shimmer overlay. Reads as &ldquo;the weather on a little world.&rdquo; New shader work, less tied to the particle system.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="glyph" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0">
+      <div class="ws">
+        <div class="g-ring"></div>
+        <div class="g-sun">
+          <div class="g-ray" style="transform:translate(-50%,-50%) rotate(0deg)"></div>
+          <div class="g-ray" style="transform:translate(-50%,-50%) rotate(60deg)"></div>
+          <div class="g-ray" style="transform:translate(-50%,-50%) rotate(120deg)"></div>
+          <div class="g-ray" style="transform:translate(-50%,-50%) rotate(180deg)"></div>
+          <div class="g-ray" style="transform:translate(-50%,-50%) rotate(240deg)"></div>
+          <div class="g-ray" style="transform:translate(-50%,-50%) rotate(300deg)"></div>
+        </div>
+        <div class="g-cloud"></div>
+        <div class="ws-temp"><b>24&deg;</b> &nbsp;<span>PARTLY CLOUDY</span></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>3 &mdash; Line-art instrument</h3>
+      <p>A clean holographic diagram: glowing line glyphs (sun, cloud, rain strokes) framed by instrument rings &mdash; closer to a JARVIS readout than a literal sky. Crisp and legible, less atmospheric/volumetric.</p>
+    </div>
+  </div>
+
+</div>

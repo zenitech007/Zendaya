@@ -1,0 +1,74 @@
+<h2>How to sequence the four directions</h2>
+<p class="subtitle">Each one is its own spec → plan → implementation cycle. Pick what we tackle FIRST. The others get follow-up specs.</p>
+
+<div class="cards">
+  <div class="card" data-choice="bugs-first" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="placeholder" style="display:flex;align-items:center;justify-content:center;font-size:48px">🐛</div>
+    </div>
+    <div class="card-body">
+      <h3>1️⃣ Bugs first</h3>
+      <p>Diagnose what's broken NOW so we don't pile features on shaky ground. Best if there's a specific thing that frustrates you about the current HUD.</p>
+      <div class="label" style="margin-top:8px">Best when you have a known pain</div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="channels-first" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="placeholder" style="display:flex;align-items:center;justify-content:center;font-size:48px">📡</div>
+    </div>
+    <div class="card-body">
+      <h3>2️⃣ Channels first (Recommended)</h3>
+      <p>Wire telemetry, perception, visemes, body-action into the Zustand store. The HUD starts <em>showing real Zendaya</em> instead of placeholders. Unlocks everything else.</p>
+      <div class="label" style="margin-top:8px">Biggest leverage; unblocks polish</div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="polish-first" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="placeholder" style="display:flex;align-items:center;justify-content:center;font-size:48px">✨</div>
+    </div>
+    <div class="card-body">
+      <h3>3️⃣ Visual polish first</h3>
+      <p>Shader tuning, palette, glow, post-processing. Looks-and-feel pass on what's already there. Smaller diff but you risk re-polishing once channels come online.</p>
+      <div class="label" style="margin-top:8px">Pure aesthetic round</div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="modules-first" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="placeholder" style="display:flex;align-items:center;justify-content:center;font-size:48px">🧩</div>
+    </div>
+    <div class="card-body">
+      <h3>4️⃣ New module first</h3>
+      <p>Add a brand new module (conversation history? command palette? journal? alarms-from-AAF panel?). Higher novelty but easier to bolt on after channels are live.</p>
+      <div class="label" style="margin-top:8px">Additive feature work</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Why "channels first" is my recommendation</h3>
+  <div class="pros-cons">
+    <div class="pros">
+      <h4>Wiring channels unlocks</h4>
+      <ul>
+        <li>Orb actually pulses with your real voice level</li>
+        <li>Visemes drive the orb's "mouth" → lip-sync</li>
+        <li>Face presence + last gesture → HUD reactions</li>
+        <li>Mood / CPU / mem → ambient atmosphere</li>
+        <li>Body action → orb pose transitions</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <h4>Doing polish first risks</h4>
+      <ul>
+        <li>Re-tuning shaders once channels drive them</li>
+        <li>Building animations against fake data</li>
+        <li>"Looks great in screenshot, dead in real use"</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle">👉 Click in the browser to vote, or just tell me in the terminal.</p>

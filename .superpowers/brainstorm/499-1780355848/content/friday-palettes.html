@@ -1,0 +1,120 @@
+<style>
+  .hud-stage{
+    width:100%; height:212px; border-radius:10px; position:relative; overflow:hidden;
+    background: radial-gradient(circle at 50% 50%, var(--bg1), var(--bg2) 75%);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .hud-ring{ position:absolute; inset:0; margin:auto; border-radius:50%; pointer-events:none; }
+
+  .ticks{
+    width:190px; height:190px;
+    background: repeating-conic-gradient(from 0deg, var(--c1) 0 0.7deg, transparent 0.7deg 6deg);
+    -webkit-mask: radial-gradient(circle, transparent 0 87px, #000 87px 95px, transparent 95px);
+            mask: radial-gradient(circle, transparent 0 87px, #000 87px 95px, transparent 95px);
+    opacity:.55; filter: drop-shadow(0 0 2px var(--c1));
+  }
+  .seg-outer{
+    width:152px; height:152px;
+    background: conic-gradient(from -92deg,
+      var(--c1) 0 66deg, transparent 66deg 84deg,
+      var(--c1) 84deg 198deg, transparent 198deg 214deg,
+      var(--c1) 214deg 330deg, transparent 330deg 346deg,
+      var(--c1) 346deg 360deg);
+    -webkit-mask: radial-gradient(circle, transparent 0 60px, #000 60px 76px, transparent 76px);
+            mask: radial-gradient(circle, transparent 0 60px, #000 60px 76px, transparent 76px);
+    filter: drop-shadow(0 0 6px var(--c1));
+    animation: hud-spin 26s linear infinite;
+  }
+  .seg-inner{
+    width:112px; height:112px;
+    background: conic-gradient(from 90deg,
+      var(--c1) 0 148deg, transparent 148deg 168deg,
+      var(--c1) 168deg 360deg);
+    -webkit-mask: radial-gradient(circle, transparent 0 50px, #000 50px 56px, transparent 56px);
+            mask: radial-gradient(circle, transparent 0 50px, #000 50px 56px, transparent 56px);
+    opacity:.9; filter: drop-shadow(0 0 5px var(--c1));
+    animation: hud-spin 17s linear infinite reverse;
+  }
+  .accent{
+    width:130px; height:130px;
+    background: conic-gradient(from 196deg, var(--c2) 0 64deg, transparent 64deg 360deg);
+    -webkit-mask: radial-gradient(circle, transparent 0 59px, #000 59px 63px, transparent 63px);
+            mask: radial-gradient(circle, transparent 0 59px, #000 59px 63px, transparent 63px);
+    filter: drop-shadow(0 0 7px var(--c2));
+    animation: hud-spin 13s linear infinite;
+  }
+  .hud-core{
+    position:absolute; inset:0; margin:auto; width:74px; height:74px; border-radius:50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--c1) 22%, transparent) 0%, transparent 70%);
+  }
+  .hud-word{
+    position:relative; z-index:3; font-weight:700; letter-spacing:.2em;
+    font-size:14px; color:#fff;
+    text-shadow:0 0 8px var(--c1), 0 0 18px var(--c2);
+  }
+  @keyframes hud-spin { to { transform: rotate(360deg); } }
+  .swatch{ display:inline-block; width:11px; height:11px; border-radius:50%; vertical-align:middle; margin-right:5px; box-shadow:0 0 6px currentColor; }
+</style>
+
+<h2>Same F.R.I.D.A.Y. ring — four color combinations</h2>
+<p class="subtitle">Identical structure to your reference (segmented arcs, ticks, rotating accent sweep, glowing core). Only the palette changes. Which combination feels most beautiful for Zendaya?</p>
+
+<div class="cards">
+  <div class="card" data-choice="cyan-magenta" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="hud-stage" style="--c1:#1ad9ff; --c2:#ff3ea5; --bg1:#071620; --bg2:#02060c">
+        <div class="hud-ring ticks"></div><div class="hud-ring seg-outer"></div>
+        <div class="hud-ring seg-inner"></div><div class="hud-ring accent"></div>
+        <div class="hud-core"></div><div class="hud-word">ZENDAYA</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A · Tron Cyan + Magenta</h3>
+      <p><span class="swatch" style="color:#1ad9ff"></span>electric cyan rings, <span class="swatch" style="color:#ff3ea5"></span>magenta accent sweep. Bold, vivid, unmistakably futuristic.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="teal-gold" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="hud-stage" style="--c1:#2ee6c0; --c2:#ffd166; --bg1:#04140f; --bg2:#020806">
+        <div class="hud-ring ticks"></div><div class="hud-ring seg-outer"></div>
+        <div class="hud-ring seg-inner"></div><div class="hud-ring accent"></div>
+        <div class="hud-core"></div><div class="hud-word">ZENDAYA</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B · Teal + Warm Gold</h3>
+      <p><span class="swatch" style="color:#2ee6c0"></span>aqua-teal rings, <span class="swatch" style="color:#ffd166"></span>gold accent. Premium &amp; luxe — keeps FRIDAY's warmth as the highlight.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="violet-aqua" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="hud-stage" style="--c1:#9b6cff; --c2:#3ef0ff; --bg1:#0c0820; --bg2:#04030c">
+        <div class="hud-ring ticks"></div><div class="hud-ring seg-outer"></div>
+        <div class="hud-ring seg-inner"></div><div class="hud-ring accent"></div>
+        <div class="hud-core"></div><div class="hud-word">ZENDAYA</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C · Violet + Aqua (Nebula)</h3>
+      <p><span class="swatch" style="color:#9b6cff"></span>violet rings, <span class="swatch" style="color:#3ef0ff"></span>aqua accent. Cosmic and dreamy — more "AI from the future."</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="ice-arc" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="hud-stage" style="--c1:#7fd4ff; --c2:#eaf7ff; --bg1:#061018; --bg2:#01040a">
+        <div class="hud-ring ticks"></div><div class="hud-ring seg-outer"></div>
+        <div class="hud-ring seg-inner"></div><div class="hud-ring accent"></div>
+        <div class="hud-core"></div><div class="hud-word">ZENDAYA</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>D · Arc-Reactor Ice Blue</h3>
+      <p><span class="swatch" style="color:#7fd4ff"></span>ice-blue rings, <span class="swatch" style="color:#eaf7ff"></span>near-white accent. Clean, crisp, Tony-Stark arc-reactor energy.</p>
+    </div>
+  </div>
+</div>
+
+<p class="label">Click a palette — or describe your own combo in the terminal →</p>

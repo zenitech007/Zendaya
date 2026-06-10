@@ -1,0 +1,17 @@
+{
+  "extraPaths": ["backend"],
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "basic",
+  "reportMissingModuleSource": false,
+  "reportMissingImports": "warning",
+  "reportWildcardImportFromLibrary": false,
+  "exclude": [
+    "node_modules",
+    "dist",
+    "venv",
+    "zendaya-hud-react",
+    "zendaya-pet",
+    "zendaya-flutter-client",
+    "zendaya-unity-ar-client"
+  ]
+}

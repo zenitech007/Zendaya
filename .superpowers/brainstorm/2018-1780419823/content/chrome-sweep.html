@@ -1,0 +1,89 @@
+<style>
+  .ch { position:relative; height:240px; border-radius:14px; overflow:hidden;
+    background:radial-gradient(ellipse at 50% 50%, #1c0e05 0%, #070302 82%);
+    display:flex; align-items:center; justify-content:center; }
+  .ring-base { position:absolute; border-radius:50%; }
+  /* a small inner scene marker so you can see the "scene" behind the chrome */
+  .scene-core { width:54px; height:54px; border-radius:50%;
+    background:radial-gradient(circle,#ffd9a0,#ff8a1e); box-shadow:0 0 26px 6px rgba(255,138,60,.5); }
+
+  /* ---- 1 APERTURE PULSE ---- */
+  .ap-wrap { position:absolute; width:190px; height:190px; animation:ap-pulse 3.6s ease-in-out infinite; }
+  .ap-wrap .ring-base { inset:0; border:2px solid rgba(255,138,60,.5); }
+  .ap-wrap .r2 { inset:22px; border:1px dashed rgba(255,170,90,.45); }
+  .ap-wrap .r3 { inset:46px; border:1px solid rgba(255,138,60,.3); }
+  @keyframes ap-pulse {
+    0%,18% { transform:scale(1) rotate(0deg); opacity:.9; }
+    50% { transform:scale(.62) rotate(40deg); opacity:1; }
+    82%,100% { transform:scale(1) rotate(80deg); opacity:.9; }
+  }
+
+  /* ---- 2 SPIN + FLASH ---- */
+  .sp-wrap { position:absolute; width:190px; height:190px; animation:sp-rot 9s linear infinite; }
+  .sp-wrap .ring-base { inset:0; border:2px solid rgba(255,138,60,.45);
+    border-right-color:rgba(255,210,160,.9); border-top-color:rgba(255,210,160,.9); }
+  .sp-wrap .r2 { inset:30px; border:1px solid rgba(255,138,60,.3); }
+  .sp-flash { position:absolute; width:200px; height:200px; border-radius:50%;
+    border:2px solid #ffd9a0; box-shadow:0 0 22px rgba(255,170,90,.7); opacity:0;
+    animation:sp-flash 3.6s ease-out infinite; }
+  @keyframes sp-rot { to { transform:rotate(360deg); } }
+  @keyframes sp-flash { 0%,70%{opacity:0;transform:scale(1);} 80%{opacity:.9;transform:scale(1.02);} 100%{opacity:0;transform:scale(1.08);} }
+
+  /* ---- 3 RADAR SWEEP ---- */
+  .rd-wrap { position:absolute; width:190px; height:190px; }
+  .rd-wrap .ring-base { inset:0; border:1px solid rgba(255,138,60,.35); }
+  .rd-wrap .r2 { inset:36px; border:1px solid rgba(255,138,60,.25); }
+  .rd-sweep { position:absolute; width:190px; height:190px; border-radius:50%;
+    background:conic-gradient(from 0deg, rgba(255,170,90,.55), transparent 28%);
+    animation:rd-rot 2.6s linear infinite; -webkit-mask:radial-gradient(circle, transparent 32%, #000 33%);
+    mask:radial-gradient(circle, transparent 32%, #000 33%); }
+  @keyframes rd-rot { to { transform:rotate(360deg); } }
+</style>
+
+<h2>Chrome &mdash; how does the frame react to a scene change?</h2>
+<p class="subtitle">The SVG ring (Forge) / aperture (Iris) frame, coupled to the same 1.2s morph. Each tile is looping the behavior. Click one.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="aperture" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0">
+      <div class="ch">
+        <div class="scene-core"></div>
+        <div class="ap-wrap"><div class="ring-base"></div><div class="ring-base r2"></div><div class="ring-base r3"></div></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>1 &mdash; Aperture pulse &nbsp;<span style="font-size:10px;opacity:.6">(recommended)</span></h3>
+      <p>On scene change the rings <strong>contract inward then reopen</strong>, like a camera iris blinking, timed to the morph &mdash; the frame physically reacts as the orb becomes globe/weather/clock. (Can add a faint brightness flare on top.)</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="spin" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0">
+      <div class="ch">
+        <div class="scene-core"></div>
+        <div class="sp-wrap"><div class="ring-base"></div><div class="ring-base r2"></div></div>
+        <div class="sp-flash"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>2 &mdash; Spin-up + flash</h3>
+      <p>The rings keep rotating but briefly <strong>accelerate and flare brighter</strong> during the morph, then settle back to idle. Subtle &mdash; an energy surge rather than a structural move.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="radar" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0">
+      <div class="ch">
+        <div class="scene-core"></div>
+        <div class="rd-wrap"><div class="ring-base"></div><div class="ring-base r2"></div></div>
+        <div class="rd-sweep"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>3 &mdash; Radar sweep</h3>
+      <p>A bright arc <strong>sweeps once around</strong> the frame on each scene change (like a radar/scan line), lighting tick marks as it passes. Signals &ldquo;reconfiguring&rdquo; &mdash; more decorative than structural.</p>
+    </div>
+  </div>
+
+</div>

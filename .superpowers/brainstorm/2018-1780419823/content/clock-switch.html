@@ -1,0 +1,72 @@
+<style>
+  .cs2 { position:relative; height:240px; border-radius:14px 14px 0 0; overflow:hidden;
+    background:radial-gradient(ellipse at 50% 42%, #241206 0%, #090402 80%);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Share Tech Mono',monospace; perspective:600px; }
+  .orb-wrap2 { position:relative; width:170px; height:170px;
+    transform-style:preserve-3d; transform:rotateX(62deg); }
+  .ring2 { position:absolute; top:50%; left:50%; border-radius:50%;
+    border:1px solid rgba(255,138,60,.4); transform:translate(-50%,-50%); }
+  .ring2.h { width:170px; height:170px; border-color:rgba(255,138,60,.25); }
+  .ring2.m { width:118px; height:118px; border-color:rgba(255,170,90,.45); }
+  .ring2.s { width:70px; height:70px; border-style:dashed; border-color:rgba(255,200,150,.5); }
+  .node2 { position:absolute; width:8px; height:8px; border-radius:50%;
+    background:#ffce9e; box-shadow:0 0 12px 3px rgba(255,170,90,.8); }
+  .digits2 { position:absolute; z-index:3; color:#ffb060; letter-spacing:.18em; font-size:26px;
+    text-shadow:0 0 16px rgba(255,138,60,.8); }
+  /* switcher bar */
+  .switcher { display:flex; gap:18px; align-items:center; justify-content:center;
+    padding:16px 0 20px; background:#090402; border-radius:0 0 14px 14px;
+    font-family:'Share Tech Mono',monospace; }
+  .face-dot { display:flex; flex-direction:column; align-items:center; gap:6px; cursor:default; }
+  .fd-ic { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    border:1px solid rgba(255,138,60,.3); color:#ffce9e; font-size:13px;
+    background:rgba(255,138,60,.05); }
+  .face-dot.on .fd-ic { border-color:#ffb060; background:rgba(255,138,60,.18);
+    box-shadow:0 0 14px rgba(255,138,60,.5); transform:scale(1.12); }
+  .fd-lbl { font-size:8px; letter-spacing:.18em; opacity:.5; }
+  .face-dot.on .fd-lbl { opacity:.9; }
+</style>
+
+<h2>Switching clock faces</h2>
+<p class="subtitle">A switcher appears only while the clock is up, defaulting to orbital; your pick is remembered. The mock below shows the switcher style. Pick how it&rsquo;s triggered.</p>
+
+<div style="max-width:430px;margin:0 auto 26px">
+  <div class="cs2">
+    <div class="orb-wrap2">
+      <div class="ring2 h"><div class="node2" style="top:-4px; left:calc(50% - 4px)"></div></div>
+      <div class="ring2 m"><div class="node2" style="top:calc(50% - 4px); right:-4px"></div></div>
+      <div class="ring2 s"><div class="node2" style="bottom:5px; left:12px"></div></div>
+    </div>
+    <div class="digits2">13:47</div>
+  </div>
+  <div class="switcher">
+    <div class="face-dot on"><div class="fd-ic">&#9678;</div><div class="fd-lbl">ORBITAL</div></div>
+    <div class="face-dot"><div class="fd-ic" style="font-size:9px">13:47</div><div class="fd-lbl">DIGITS</div></div>
+    <div class="face-dot"><div class="fd-ic">&#128340;</div><div class="fd-lbl">ANALOG</div></div>
+  </div>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="picker" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Face-switcher dots &nbsp;<span style="font-size:10px;opacity:.6">(recommended)</span></h3>
+      <p>A small row of 3 labeled dots (shown above), styled like the existing theme picker, visible only while the clock scene is active. Discoverable, consistent, simple DOM control &mdash; no canvas click-handling needed.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="tap" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Tap the clock to cycle</h3>
+      <p>No extra UI &mdash; click/tap the clock itself to rotate orbital &rarr; digits &rarr; analog. Minimal and clean, but hidden (undiscoverable) and needs pointer raycasting onto the 3D scene.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="both" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Both</h3>
+      <p>Show the dots <em>and</em> allow tapping the clock to cycle. Most flexible, slightly more to build.</p>
+    </div>
+  </div>
+</div>

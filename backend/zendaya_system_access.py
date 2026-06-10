@@ -41,7 +41,289 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any
 
+import socket
+
 import psutil
+
+
+# ─────────────────────────────────────────────
+# 0a. NETWORK CONNECTIVITY CHECK
+# ─────────────────────────────────────────────
+
+_CONN_CACHE = {"ts": 0.0, "ok": False}
+_CONN_TTL = 5.0  # seconds
+
+
+def is_connected(host: str = "https://www.google.com/generate_204",
+                 timeout: float = 3.0) -> bool:
+    """Check internet connectivity via HTTPS (firewall-friendly).
+
+    Many networks block raw DNS port 53 even though HTTPS works fine,
+    so we probe a high-availability HTTPS endpoint. Result is cached
+    briefly so callers can hit this freely.
+    """
+    now = time.time()
+    if now - _CONN_CACHE["ts"] < _CONN_TTL:
+        return _CONN_CACHE["ok"]
+    ok = False
+    try:
+        import requests
+        r = requests.head(host, timeout=timeout, allow_redirects=False)
+        ok = r.status_code < 500
+    except Exception:
+        try:
+            socket.setdefaulttimeout(timeout)
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect(("8.8.8.8", 53))
+            s.close()
+            ok = True
+        except Exception:
+            ok = False
+    _CONN_CACHE["ts"] = now
+    _CONN_CACHE["ok"] = ok
+    return ok
+
+
+# ─────────────────────────────────────────────
+# 0b. PERSISTENT EVENT LOGGER
+# ─────────────────────────────────────────────
+
+_LOG_DIR = Path(__file__).parent.parent / "zendaya_logs"
+_LOG_FILE = _LOG_DIR / "assistant_history.json"
+
+
+def _load_history_safely() -> list:
+    """Read the history log, salvaging what we can if the file is corrupted.
+
+    Cause we hit in the wild: two writers (or a crash mid-write) leave the
+    file with valid JSON followed by trailing garbage, producing
+    `json.JSONDecodeError: Extra data: line 200 column 1`. raw_decode reads
+    just the first valid value and ignores the rest, so we recover history
+    instead of losing it. Bad files are renamed to .bad-<ts> for forensics.
+    """
+    if not _LOG_FILE.exists():
+        return []
+    try:
+        raw = _LOG_FILE.read_text(encoding="utf-8")
+    except Exception:
+        return []
+    if not raw.strip():
+        return []
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        pass
+    # Salvage: parse the leading JSON value, drop trailing garbage.
+    try:
+        decoder = json.JSONDecoder()
+        salvaged, _idx = decoder.raw_decode(raw.lstrip())
+        if isinstance(salvaged, list):
+            try:
+                bad = _LOG_FILE.with_suffix(
+                    f".bad-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+                )
+                _LOG_FILE.replace(bad)
+                _LOG_FILE.write_text(
+                    json.dumps(salvaged, indent=2, ensure_ascii=False),
+                    encoding="utf-8",
+                )
+                print(f"(Log recovered: {len(salvaged)} entries; corrupt file → {bad.name})")
+            except Exception:
+                pass
+            return salvaged
+    except Exception:
+        pass
+    # Total loss: archive and start fresh.
+    try:
+        bad = _LOG_FILE.with_suffix(
+            f".bad-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+        )
+        _LOG_FILE.replace(bad)
+        print(f"(Log corrupted, archived → {bad.name}; starting fresh)")
+    except Exception:
+        pass
+    return []
+
+
+def log_event(event_type: str, message: str, data: dict = None):
+    """Append an event to Zendaya's persistent history log."""
+    try:
+        _LOG_DIR.mkdir(exist_ok=True)
+        history = _load_history_safely()
+        history.append({
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "type": event_type,
+            "message": message,
+            "data": data or {},
+        })
+        if len(history) > 500:
+            history = history[-500:]
+        # Atomic write so a crash mid-write can't produce the
+        # "Extra data" corruption that triggered this fix.
+        tmp = _LOG_FILE.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(history, indent=2, ensure_ascii=False), encoding="utf-8")
+        os.replace(tmp, _LOG_FILE)
+    except Exception as e:
+        print(f"(Log write failed: {e})")
+
+
+def get_recent_logs(limit: int = 5) -> list:
+    """Retrieve the last N events from the history log."""
+    history = _load_history_safely()
+    return history[-limit:] if history else []
+
+
+# ─────────────────────────────────────────────
+# 0c. PC ACTIVITY SCANNER
+# ─────────────────────────────────────────────
+
+_SCAN_DIRECTORIES = {
+    "Documents": Path.home() / "Documents",
+    "Desktop": Path.home() / "Desktop",
+    "Downloads": Path.home() / "Downloads",
+}
+_IGNORED_EXTENSIONS = {'.tmp', '.log', '.bak', '.part', '.crdownload'}
+
+
+def scan_recent_activity(hours: int = 24, max_files: int = 15) -> list:
+    """Scan Documents/Desktop/Downloads for recently modified files."""
+    from datetime import timedelta
+    recent = []
+    now = datetime.now()
+    threshold = now - timedelta(hours=hours)
+
+    for name, dir_path in _SCAN_DIRECTORIES.items():
+        if not dir_path.exists():
+            continue
+        try:
+            for entry in os.scandir(dir_path):
+                if entry.is_file():
+                    if Path(entry.name).suffix.lower() in _IGNORED_EXTENSIONS:
+                        continue
+                    try:
+                        mtime = datetime.fromtimestamp(entry.stat().st_mtime)
+                        if mtime > threshold:
+                            recent.append({
+                                "name": entry.name,
+                                "path": entry.path,
+                                "modified": mtime.strftime("%I:%M %p"),
+                                "location": name,
+                            })
+                    except (FileNotFoundError, OSError):
+                        continue
+        except OSError:
+            continue
+
+    recent.sort(key=lambda x: x["modified"], reverse=True)
+    return recent[:max_files]
+
+
+# ─────────────────────────────────────────────
+# 0d. OFFLINE INTELLIGENCE (cache + base knowledge)
+# ─────────────────────────────────────────────
+
+import sqlite3
+import hashlib
+from datetime import timedelta as _timedelta
+
+_OFFLINE_DIR = Path(__file__).parent.parent / "zendaya_offline"
+_OFFLINE_DB = _OFFLINE_DIR / "offline.db"
+
+_BASE_KNOWLEDGE = {
+    "what are you": "I am Zendaya, your desktop AI assistant. I can run apps, manage files, control your system, and chat with you.",
+    "who are you": "I'm Zendaya — Zettascale Engine for Neural Decision-making and Autonomous Yield Augmentation. Your assistant.",
+    "what can you do": "I open apps, create and edit files, control volume and brightness, manage windows, search the web, send emails, take screenshots, and more.",
+    "who created you": "I was built by Larry as a personal AI desktop assistant inspired by JARVIS and Griot.",
+    "hello": "Hello. How can I help you?",
+    "hi": "Hi there. What can I do for you?",
+    "hey": "Hey. What's up?",
+    "how are you": "Running smoothly. How can I help?",
+    "thank you": "You're welcome.",
+    "thanks": "Anytime.",
+}
+
+
+def _offline_init():
+    try:
+        _OFFLINE_DIR.mkdir(exist_ok=True)
+        with sqlite3.connect(_OFFLINE_DB) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS api_cache (
+                    query_hash TEXT PRIMARY KEY,
+                    query TEXT,
+                    response TEXT,
+                    timestamp TEXT,
+                    expiry TEXT
+                )
+            """)
+            conn.commit()
+    except Exception as e:
+        print(f"(Offline init failed: {e})")
+
+
+_offline_init()
+
+
+def cache_response(query: str, response: str, expiry_hours: int = 72):
+    """Cache a Gemini response for offline reuse."""
+    try:
+        qh = hashlib.md5(query.lower().strip().encode()).hexdigest()
+        now = datetime.now()
+        expiry = now + _timedelta(hours=expiry_hours)
+        with sqlite3.connect(_OFFLINE_DB) as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO api_cache VALUES (?,?,?,?,?)",
+                (qh, query, response, now.isoformat(), expiry.isoformat())
+            )
+            conn.commit()
+    except Exception:
+        pass
+
+
+def get_cached_response(query: str) -> str:
+    """Retrieve a cached response if still valid; empty string otherwise."""
+    try:
+        qh = hashlib.md5(query.lower().strip().encode()).hexdigest()
+        now_iso = datetime.now().isoformat()
+        with sqlite3.connect(_OFFLINE_DB) as conn:
+            cur = conn.execute(
+                "SELECT response FROM api_cache WHERE query_hash=? AND expiry>?",
+                (qh, now_iso)
+            )
+            row = cur.fetchone()
+            return row[0] if row else ""
+    except Exception:
+        return ""
+
+
+def offline_response(query: str) -> str:
+    """
+    Generate a best-effort offline reply using base knowledge,
+    fuzzy matching, then API cache. Returns empty string if nothing matches.
+    """
+    q = query.lower().strip().rstrip("?.!")
+
+    if q in _BASE_KNOWLEDGE:
+        return _BASE_KNOWLEDGE[q]
+
+    q_words = set(q.split())
+    best, best_score = "", 0.0
+    for key, val in _BASE_KNOWLEDGE.items():
+        kw = set(key.split())
+        if not kw or not q_words:
+            continue
+        score = len(q_words & kw) / len(q_words | kw)
+        if score > 0.5 and score > best_score:
+            best, best_score = val, score
+    if best:
+        return best
+
+    cached = get_cached_response(query)
+    if cached:
+        return cached
+
+    return ""
+
 
 # Optional imports — degrade gracefully if not installed
 try:
@@ -85,6 +367,20 @@ def create_file(filepath: str) -> str:
         return f"File created: {expanded}"
     except Exception as e:
         return f"Couldn't create file: {e}"
+
+
+def write_file(filepath: str, content: str) -> str:
+    """Write content to a file. Creates parent directories if needed."""
+    try:
+        expanded = os.path.expandvars(os.path.expanduser(filepath))
+        parent = os.path.dirname(expanded)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        with open(expanded, "w", encoding="utf-8") as f:
+            f.write(content)
+        return f"File written: {expanded}"
+    except Exception as e:
+        return f"Couldn't write file: {e}"
 
 
 def rename_item(source: str, new_name: str) -> str:
@@ -473,6 +769,20 @@ def maximize_window(title: str) -> str:
         return f"Could not maximize: {e}"
 
 
+def close_window(title: str) -> str:
+    """Close a window by partial title match (PostMessage WM_CLOSE)."""
+    if not _PYGETWINDOW:
+        return "Window control requires pygetwindow."
+    try:
+        matches = gw.getWindowsWithTitle(title)
+        if not matches:
+            return f"No window found matching '{title}'."
+        matches[0].close()
+        return f"Closed: {matches[0].title}"
+    except Exception as e:
+        return f"Could not close: {e}"
+
+
 # ─────────────────────────────────────────────
 # 7.  PROCESS MANAGEMENT
 # ─────────────────────────────────────────────
@@ -557,6 +867,130 @@ def get_network_info() -> str:
         return "Network interfaces:\n" + "\n".join(lines)
     except Exception as e:
         return f"Network info failed: {e}"
+
+
+def _run_netsh(args, timeout=8):
+    if platform.system() != "Windows":
+        return 1, "", "netsh is Windows-only"
+    try:
+        proc = subprocess.run(
+            ["netsh"] + args,
+            capture_output=True, text=True, timeout=timeout,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        return proc.returncode, proc.stdout, proc.stderr
+    except subprocess.TimeoutExpired:
+        return 124, "", "netsh timeout"
+    except Exception as e:
+        return 1, "", str(e)
+
+
+def wifi_current() -> str:
+    """Show currently connected Wi-Fi: SSID, signal, speed."""
+    rc, out, err = _run_netsh(["wlan", "show", "interfaces"])
+    if rc != 0:
+        return f"Couldn't read wifi state: {err or 'netsh failed'}"
+    info = {}
+    for line in out.splitlines():
+        if ":" in line:
+            k, _, v = line.partition(":")
+            info[k.strip().lower()] = v.strip()
+    state = info.get("state", "").lower()
+    if "disconnected" in state or not info.get("ssid"):
+        return "Wi-Fi adapter is up but not connected to any network."
+    parts = [f"SSID: {info.get('ssid', '?')}"]
+    if "signal" in info: parts.append(f"signal {info['signal']}")
+    if "receive rate (mbps)" in info: parts.append(f"down {info['receive rate (mbps)']} Mbps")
+    if "transmit rate (mbps)" in info: parts.append(f"up {info['transmit rate (mbps)']} Mbps")
+    if "authentication" in info: parts.append(info["authentication"])
+    return "Wi-Fi: " + ", ".join(parts)
+
+
+def wifi_list_networks() -> str:
+    """List nearby Wi-Fi networks (SSID + signal)."""
+    rc, out, err = _run_netsh(["wlan", "show", "networks", "mode=bssid"])
+    if rc != 0:
+        return f"Couldn't scan networks: {err or 'netsh failed'}"
+    nets = []
+    current = None
+    for line in out.splitlines():
+        s = line.strip()
+        m_ssid = re.match(r"^SSID\s+\d+\s*:\s*(.+)$", s)
+        if m_ssid:
+            if current:
+                nets.append(current)
+            current = {"ssid": m_ssid.group(1).strip() or "(hidden)", "signal": "?", "auth": "?"}
+            continue
+        if current and s.lower().startswith("authentication"):
+            current["auth"] = s.split(":", 1)[1].strip()
+        if current and s.lower().startswith("signal"):
+            current["signal"] = s.split(":", 1)[1].strip()
+    if current:
+        nets.append(current)
+    if not nets:
+        return "No Wi-Fi networks visible right now."
+    nets.sort(key=lambda n: int(re.match(r"(\d+)", n["signal"]).group(1)) if re.match(r"(\d+)", n["signal"]) else 0, reverse=True)
+    lines = [f"Found {len(nets)} Wi-Fi networks:"]
+    for n in nets[:15]:
+        lines.append(f"  {n['ssid']:<30} {n['signal']:>5}  {n['auth']}")
+    return "\n".join(lines)
+
+
+def wifi_connect(ssid: str) -> str:
+    """Connect to a saved Wi-Fi profile by SSID."""
+    rc, out, err = _run_netsh(["wlan", "connect", f"name={ssid}"])
+    if rc == 0 and "completed successfully" in out.lower():
+        return f"Connecting to '{ssid}'..."
+    return f"Couldn't connect to '{ssid}': {(err or out).strip() or 'no saved profile (connect once via Windows first)'}"
+
+
+def wifi_disconnect() -> str:
+    rc, out, err = _run_netsh(["wlan", "disconnect"])
+    if rc == 0:
+        return "Wi-Fi disconnected."
+    return f"Disconnect failed: {(err or out).strip()}"
+
+
+def wifi_toggle(state: str) -> str:
+    """Enable or disable the Wi-Fi adapter (requires admin)."""
+    action = "enable" if state == "on" else "disable"
+    rc, out, err = _run_netsh(["interface", "set", "interface", "Wi-Fi", action])
+    if rc == 0:
+        return f"Wi-Fi adapter {action}d."
+    if "elevation" in (err + out).lower() or "access is denied" in (err + out).lower():
+        return f"Need admin rights to {action} the Wi-Fi adapter. Run Zendaya as admin and try again."
+    return f"Couldn't {action} Wi-Fi: {(err or out).strip()}"
+
+
+def speedtest() -> str:
+    """Run a speed test. Tries speedtest-cli first, then falls back to a rough HTTP probe."""
+    try:
+        proc = subprocess.run(
+            ["speedtest-cli", "--simple"],
+            capture_output=True, text=True, timeout=60,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            return "Speedtest:\n" + proc.stdout.strip()
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        return f"speedtest-cli failed: {e}"
+
+    # Fallback: HTTP latency probe to a CDN
+    try:
+        import time as _t
+        start = _t.time()
+        import urllib.request
+        with urllib.request.urlopen("https://www.google.com/generate_204", timeout=5) as r:
+            r.read()
+        ping_ms = (_t.time() - start) * 1000
+        return (
+            f"Rough probe: HTTP latency to Google = {ping_ms:.0f} ms. "
+            "For real down/up speeds: pip install speedtest-cli"
+        )
+    except Exception as e:
+        return f"Couldn't reach the internet for a speed test: {e}"
 
 
 # ─────────────────────────────────────────────
@@ -654,6 +1088,38 @@ def handle_system_access(user_text: str) -> Optional[str]:
     lt = user_text.lower().strip()
     original = user_text.strip()
 
+    # ── WIFI / NETWORK (handled early to beat the greedy folder/show patterns) ──
+    if re.search(r"\b(?:wifi|wi-?fi|network|internet)\b", lt) or re.search(r"\b(speed\s*test|speedtest)\b", lt):
+        # speed test
+        if re.search(r"\b(?:run\s+a?\s*)?(?:speed\s*test|speedtest|internet\s+speed|how\s+fast\s+is\s+my\s+(?:wifi|internet))\b", lt):
+            return speedtest()
+        # list / scan
+        if re.search(r"\b(?:list|show|scan|see|nearby|available)\b.*\bwifi\b", lt) or re.search(r"\bwifi\s+networks?\b", lt):
+            return wifi_list_networks()
+        # toggle on/off — both word orders
+        m = re.search(r"\bturn\s+(on|off)\s+(?:the\s+|my\s+)?(?:wifi|wi-?fi)\b", lt) \
+            or re.search(r"\bturn\s+(?:the\s+|my\s+)?(?:wifi|wi-?fi)\s+(on|off)\b", lt)
+        if m:
+            return wifi_toggle(m.group(1))
+        # disconnect
+        if re.search(r"\b(?:disconnect|drop)\s+(?:from\s+)?(?:the\s+|my\s+)?(?:wifi|wi-?fi)\b", lt):
+            return wifi_disconnect()
+        # connect to <ssid>
+        m = re.search(r"\bconnect\s+(?:to\s+)?(?:wifi\s+|the\s+)?['\"]?(.+?)['\"]?\s*(?:network)?\s*$", user_text, re.I)
+        if m and re.search(r"\b(wifi|wi-?fi|network)\b", lt):
+            ssid = m.group(1).strip()
+            ssid = re.sub(r"\b(wifi|wi-?fi|network|the)\b", "", ssid, flags=re.I).strip()
+            if ssid:
+                return wifi_connect(ssid)
+        # current network
+        if re.search(r"\b(?:what|which|current)\s+(?:wifi|wi-?fi)\b", lt) or re.search(r"\bam\s+i\s+on\s+wifi\b", lt):
+            return wifi_current()
+        # generic "network info / status / details"
+        if re.search(r"\b(?:network|internet|connection)\s+(?:info|status|details|address)\b", lt) \
+           or re.search(r"\b(?:show|list|tell)\s+me\s+(?:about\s+)?(?:my\s+)?(?:network|internet|connection|wifi)\b", lt):
+            return get_network_info()
+        # Fall through if nothing more specific matched
+
     # ── FOLDER CREATION (specific: name provided) ──
     m = re.match(r"(?:zendaya,?\s*)?(?:create|make|new)\s+(?:a\s+)?(?:new\s+)?folder\s+(?:called\s+|named\s+)?['\"]?(.+?)['\"]?(?:\s+(?:in|on|at)\s+(.+))?$", lt)
     if m:
@@ -734,9 +1200,39 @@ def handle_system_access(user_text: str) -> Optional[str]:
         return create_file(full_path)
 
     # ── LIST FOLDER ──
-    m = re.match(r"(?:zendaya,?\s*)?(?:list|show|what'?s?\s+in)\s+(?:the\s+)?(?:folder\s+)?['\"]?(.+?)['\"]?\s*(?:folder|directory)?$", lt)
-    if m and any(w in lt for w in ["list", "show", "what's in", "whats in"]):
-        return list_folder(m.group(1).strip())
+    # Must mention "folder"/"directory"/"contents" OR target must look like a path
+    # (drive letter, slash, tilde, dot-segment) or a single bare word with no spaces.
+    # This prevents prose like "show me the map of the world" from being routed here.
+    _path_tail = (
+        r"(?:"
+        r"[A-Za-z]:[\\/].*"          # C:\foo\bar
+        r"|[\\/~].*"                 # /foo, ~/foo, \foo
+        r"|\.{1,2}[\\/].*"           # ./foo, ../foo
+        r"|\S+[\\/]\S+"              # contains a separator
+        r"|\S+\.\w{1,5}"             # has a file extension
+        r"|[\w\-.]+"                 # single bare word (Desktop, Downloads, etc.)
+        r")"
+    )
+    m = re.match(
+        rf"(?:zendaya,?\s*)?(?:list|show|what'?s?\s+in)\s+(?:the\s+)?(?:contents\s+of\s+)?(?:folder\s+|directory\s+)?['\"]?(?P<p>{_path_tail})['\"]?\s+(?:folder|directory|contents)\s*$",
+        lt,
+    )
+    if m:
+        return list_folder(m.group("p").strip())
+    # Also allow "list X" / "show X" when X is a single bare word that exists on disk
+    # (so "list Desktop" still works, but "show me the map of the world" doesn't).
+    m = re.match(r"(?:zendaya,?\s*)?(?:list|show|what'?s?\s+in)\s+(?:the\s+)?(?:folder\s+|directory\s+)?['\"]?([\w\-.~/\\:]+)['\"]?(?:\s+folder)?\s*$", lt)
+    if m:
+        candidate = m.group(1).strip()
+        try:
+            expanded = os.path.expanduser(candidate)
+            home_join = os.path.expanduser(f"~/{candidate}")
+            if os.path.isdir(expanded):
+                return list_folder(expanded)
+            if os.path.isdir(home_join):
+                return list_folder(home_join)
+        except Exception:
+            pass
 
     # ── OPEN FOLDER ──
     m = re.match(r"(?:zendaya,?\s*)?open\s+(?:the\s+)?(?:folder\s+)?['\"]?(.+?)['\"]?\s+(?:folder|in\s+explorer|in\s+file\s+manager)$", lt)
@@ -838,6 +1334,15 @@ def handle_system_access(user_text: str) -> Optional[str]:
     if m:
         return maximize_window(m.group(1).strip())
 
+    m = re.match(r"(?:zendaya,?\s*)?close\s+(?:the\s+)?(.+?)(?:\s+window)?$", lt)
+    if m:
+        target = m.group(1).strip()
+        # Don't shadow shell-like "close <process>" — only treat as window
+        # close if the phrase explicitly mentions "window" or matches an
+        # open window title.
+        if "window" in lt or (_PYGETWINDOW and gw.getWindowsWithTitle(target)):
+            return close_window(target)
+
     # ── PROCESSES ──
     m = re.match(r"(?:zendaya,?\s*)?(?:list|show)\s+(?:running\s+)?processes?(?:\s+for\s+(.+))?$", lt)
     if m:
@@ -851,8 +1356,8 @@ def handle_system_access(user_text: str) -> Optional[str]:
     if re.search(r"\b(battery|charge|power)\b", lt) and re.search(r"\b(status|level|how much|remaining|check)\b", lt):
         return get_battery_status()
 
-    # ── NETWORK ──
-    if re.search(r"\b(network|wifi|wi-fi|ip\s*address|internet|connection)\s*(?:info|status|details|address)?\b", lt):
+    # ── NETWORK INTERFACES (general info; Wi-Fi handled at top of function) ──
+    if re.search(r"\b(network|ip\s*address|internet|connection)\s*(?:info|status|details|address)?\b", lt):
         return get_network_info()
 
     # ── DISK ──

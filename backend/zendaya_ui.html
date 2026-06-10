@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ZENDAYA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07090f;
+    --violet: #a855f7;
+    --cyan: #06b6d4;
+    --red: #ef4444;
+    --text: rgba(255,255,255,0.85);
+    --dim: rgba(255,255,255,0.45);
+    --faint: rgba(255,255,255,0.25);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    overflow: hidden;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(circle at center, rgba(168,85,247,0.04), transparent 60%),
+      radial-gradient(rgba(168,85,247,0.18) 1px, transparent 1px);
+    background-size: 100% 100%, 28px 28px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* HUD corner brackets */
+  .corner {
+    position: fixed;
+    width: 60px; height: 60px;
+    border-color: rgba(168,85,247,0.4);
+    z-index: 5;
+    opacity: 0;
+    animation: fadeIn 1.6s ease forwards;
+    animation-delay: 0.2s;
+  }
+  .corner.tl { top: 24px; left: 24px; border-top: 1px solid; border-left: 1px solid; }
+  .corner.tr { top: 24px; right: 24px; border-top: 1px solid; border-right: 1px solid; }
+  .corner.bl { bottom: 24px; left: 24px; border-bottom: 1px solid; border-left: 1px solid; }
+  .corner.br { bottom: 24px; right: 24px; border-bottom: 1px solid; border-right: 1px solid; }
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  /* System info strip */
+  #sysinfo {
+    position: fixed;
+    top: 24px; right: 56px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
+    color: var(--faint);
+    z-index: 6;
+  }
+  #sysinfo .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #555; margin-right: 6px; transform: translateY(-1px); transition: background 0.4s, box-shadow 0.4s; }
+  #sysinfo.connected .dot { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+  #sysinfo.offline   .dot { background: var(--red);  box-shadow: 0 0 8px var(--red); }
+
+  /* Stage */
+  .stage {
+    position: relative;
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 1;
+  }
+
+  #ring-wrap {
+    position: relative;
+    width: min(58vh, 58vw);
+    aspect-ratio: 1 / 1;
+    margin-top: -4vh;
+  }
+  #zendaya-ring {
+    width: 100%; height: 100%;
+    display: block;
+    will-change: transform;
+  }
+
+  #name-badge {
+    margin-top: 2.4rem;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 2.5rem;
+    letter-spacing: 0.5em;
+    color: #fff;
+    text-shadow:
+      0 0 12px rgba(168,85,247,0.55),
+      0 0 32px rgba(168,85,247,0.25);
+    padding-left: 0.5em;
+  }
+  #name-rule {
+    margin-top: 0.6rem;
+    width: 320px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--violet), var(--cyan), transparent);
+    opacity: 0.85;
+  }
+  #clock {
+    margin-top: 0.9rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--dim);
+    letter-spacing: 0.18em;
+  }
+  #date {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--faint);
+    letter-spacing: 0.22em;
+    margin-top: 0.25rem;
+  }
+  #status-label {
+    margin-top: 1.0rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    color: var(--violet);
+    text-shadow: 0 0 8px rgba(168,85,247,0.5);
+    transition: color 0.4s, text-shadow 0.4s;
+  }
+
+  /* Response area — bottom third */
+  #response-wrap {
+    position: fixed;
+    left: 0; right: 0; bottom: 88px;
+    height: 18vh;
+    display: flex; align-items: flex-start; justify-content: center;
+    pointer-events: none;
+    z-index: 2;
+  }
+  #response-inner {
+    width: min(960px, 80vw);
+    padding-top: 18px;
+    border-top: 1px solid transparent;
+    border-image: linear-gradient(90deg, transparent, var(--violet), var(--cyan), transparent) 1;
+    overflow: hidden;
+    position: relative;
+  }
+  #response-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1rem;
+    line-height: 1.55;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    white-space: pre-wrap;
+    text-align: center;
+  }
+  .resp-line {
+    display: block;
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .resp-line.fade {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  .caret {
+    display: inline-block;
+    width: 0.55ch;
+    background: var(--cyan);
+    color: transparent;
+    margin-left: 2px;
+    animation: blink 0.9s steps(2, start) infinite;
+  }
+  @keyframes blink { to { visibility: hidden; } }
+
+  /* Waveform bottom strip */
+  #wave {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    height: 64px;
+    display: flex; align-items: flex-end; justify-content: center;
+    gap: 4px;
+    padding: 0 24px 12px 24px;
+    z-index: 3;
+  }
+  #wave .bar {
+    width: 6px;
+    height: 4px;
+    background: rgba(168,85,247,0.15);
+    border-radius: 2px;
+    transition: background 0.5s;
+  }
+
+  /* Panel overlay (globe, etc.) */
+  #panel {
+    position: fixed; inset: 0;
+    display: none;
+    align-items: center; justify-content: center;
+    background: radial-gradient(circle at center, rgba(7,9,15,0.92), rgba(7,9,15,0.98));
+    backdrop-filter: blur(2px);
+    z-index: 8;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  #panel.visible { display: flex; opacity: 1; }
+  #panel canvas { display: block; }
+  #panel-title {
+    position: absolute;
+    top: 56px; left: 50%; transform: translateX(-50%);
+    font-family: 'Orbitron', sans-serif; font-weight: 700;
+    font-size: 1.1rem; letter-spacing: 0.4em;
+    color: #fff;
+    text-shadow: 0 0 12px rgba(168,85,247,0.55);
+    z-index: 9;
+  }
+  #panel-close {
+    position: absolute;
+    top: 56px; right: 56px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem; letter-spacing: 0.25em;
+    color: rgba(255,255,255,0.45);
+    cursor: pointer;
+    padding: 6px 10px;
+    border: 1px solid rgba(168,85,247,0.4);
+    z-index: 9;
+    user-select: none;
+  }
+  #panel-close:hover { color: #fff; border-color: var(--cyan); }
+  #panel-stage {
+    width: 80vmin; height: 80vmin;
+    position: relative;
+  }
+</style>
+</head>
+<body>
+
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<div id="sysinfo" class="offline">
+  <span class="dot"></span><span id="sysinfo-text">ZENDAYA v1.0 | LOCAL | OFFLINE</span>
+</div>
+
+<div class="stage">
+  <div id="ring-wrap">
+    <canvas id="zendaya-ring"></canvas>
+  </div>
+  <div id="name-badge">ZENDAYA</div>
+  <div id="name-rule"></div>
+  <div id="clock">--:--:--</div>
+  <div id="date">—</div>
+  <div id="status-label">[ IDLE ]</div>
+</div>
+
+<div id="response-wrap">
+  <div id="response-inner">
+    <div id="response-text"></div>
+  </div>
+</div>
+
+<div id="wave"></div>
+
+<div id="panel">
+  <div id="panel-title">[ GLOBAL VIEW ]</div>
+  <div id="panel-close">[ ESC ] CLOSE</div>
+  <div id="panel-stage"></div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+let _panelOpen = false;
+let _renderer, _scene, _camera, _globe, _animId, _resizeHandler;
+
+function buildEarthTexture() {
+  // Procedural land/ocean texture so we have zero external image deps.
+  const w = 1024, h = 512;
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d');
+
+  // Ocean base — deep violet/cyan gradient.
+  const og = ctx.createLinearGradient(0, 0, 0, h);
+  og.addColorStop(0, '#0a0e1c');
+  og.addColorStop(1, '#091824');
+  ctx.fillStyle = og;
+  ctx.fillRect(0, 0, w, h);
+
+  // Latitude bands (very subtle).
+  for (let y = 0; y < h; y += 8) {
+    ctx.fillStyle = `rgba(6,182,212,${0.03 + (Math.sin(y*0.1)*0.5+0.5)*0.03})`;
+    ctx.fillRect(0, y, w, 1);
+  }
+
+  // Continent silhouettes — hand-tuned blob fields in equirectangular space.
+  // Each entry: [centerLon°, centerLat°, scaleX, scaleY, jitter].
+  const continents = [
+    [-100, 45, 38, 24, 0.55],   // North America
+    [-60, -15, 24, 28, 0.55],   // South America
+    [15,   8,  18, 30, 0.6],    // Africa
+    [25,  55,  22, 18, 0.5],    // Europe
+    [85,  35,  46, 24, 0.55],   // Asia
+    [135,-25,  18, 12, 0.5],    // Australia
+    [0,  -82,  90,  6, 0.3],    // Antarctica band
+  ];
+
+  function lonLatToXY(lon, lat) {
+    const x = ((lon + 180) / 360) * w;
+    const y = ((90 - lat) / 180) * h;
+    return [x, y];
+  }
+
+  // Stamp continents by drawing many soft blobs.
+  for (const [clon, clat, sx, sy, j] of continents) {
+    for (let i = 0; i < 220; i++) {
+      const u = Math.random() * 2 - 1;
+      const v = Math.random() * 2 - 1;
+      if (u*u + v*v > 1) continue;
+      const lon = clon + u * sx + (Math.random()-0.5) * sx * j * 0.6;
+      const lat = clat + v * sy + (Math.random()-0.5) * sy * j * 0.6;
+      const [x, y] = lonLatToXY(lon, lat);
+      const rad = 4 + Math.random() * 9;
+      const grd = ctx.createRadialGradient(x, y, 0, x, y, rad);
+      grd.addColorStop(0, 'rgba(168,85,247,0.95)');
+      grd.addColorStop(1, 'rgba(168,85,247,0)');
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(x, y, rad, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  // Coastline highlights.
+  ctx.globalCompositeOperation = 'lighter';
+  for (const [clon, clat, sx, sy] of continents) {
+    for (let i = 0; i < 60; i++) {
+      const a = (i / 60) * Math.PI * 2;
+      const lon = clon + Math.cos(a) * sx;
+      const lat = clat + Math.sin(a) * sy;
+      const [x, y] = lonLatToXY(lon, lat);
+      ctx.fillStyle = 'rgba(6,182,212,0.5)';
+      ctx.beginPath();
+      ctx.arc(x, y, 1.6, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // Lat/lon grid — very faint.
+  ctx.strokeStyle = 'rgba(168,85,247,0.18)';
+  ctx.lineWidth = 1;
+  for (let lat = -60; lat <= 60; lat += 30) {
+    const y = ((90 - lat) / 180) * h;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+  for (let lon = -180; lon <= 180; lon += 30) {
+    const x = ((lon + 180) / 360) * w;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function initGlobe() {
+  const stage = document.getElementById('panel-stage');
+  // Clean up prior instance (in case panel was shown twice).
+  while (stage.firstChild) stage.removeChild(stage.firstChild);
+
+  const w = stage.clientWidth, h = stage.clientHeight;
+  _renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  _renderer.setPixelRatio(window.devicePixelRatio || 1);
+  _renderer.setSize(w, h);
+  stage.appendChild(_renderer.domElement);
+
+  _scene = new THREE.Scene();
+  _camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 100);
+  _camera.position.set(0, 0, 4.2);
+
+  // Sphere with the procedural texture.
+  const tex = buildEarthTexture();
+  const mat = new THREE.MeshStandardMaterial({
+    map: tex,
+    emissive: new THREE.Color(0x1a0f2e),
+    emissiveIntensity: 0.4,
+    roughness: 0.85,
+    metalness: 0.1,
+  });
+  _globe = new THREE.Mesh(new THREE.SphereGeometry(1.4, 64, 64), mat);
+  _scene.add(_globe);
+
+  // Atmosphere — a slightly larger inverted-faced sphere with additive shader-ish effect.
+  const atmoMat = new THREE.ShaderMaterial({
+    transparent: true,
+    side: THREE.BackSide,
+    blending: THREE.AdditiveBlending,
+    uniforms: { uColorA: { value: new THREE.Color('#a855f7') }, uColorB: { value: new THREE.Color('#06b6d4') } },
+    vertexShader: `
+      varying vec3 vN;
+      void main() { vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
+    `,
+    fragmentShader: `
+      varying vec3 vN;
+      uniform vec3 uColorA; uniform vec3 uColorB;
+      void main() {
+        float intensity = pow(0.65 - dot(vN, vec3(0,0,1)), 3.0);
+        vec3 col = mix(uColorA, uColorB, clamp(intensity*1.4, 0.0, 1.0));
+        gl_FragColor = vec4(col, intensity);
+      }
+    `,
+  });
+  const atmo = new THREE.Mesh(new THREE.SphereGeometry(1.55, 64, 64), atmoMat);
+  _scene.add(atmo);
+
+  // Lights.
+  const key = new THREE.DirectionalLight(0xffffff, 1.2);
+  key.position.set(3, 2, 5);
+  _scene.add(key);
+  _scene.add(new THREE.AmbientLight(0x4a3b7a, 0.55));
+  const rim = new THREE.DirectionalLight(0x06b6d4, 0.6);
+  rim.position.set(-4, -1, -3);
+  _scene.add(rim);
+
+  // Star dust.
+  const stars = new THREE.BufferGeometry();
+  const starCount = 600;
+  const starPos = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount; i++) {
+    const r = 30;
+    starPos[i*3]   = (Math.random()-0.5) * r * 2;
+    starPos[i*3+1] = (Math.random()-0.5) * r * 2;
+    starPos[i*3+2] = (Math.random()-0.5) * r * 2;
+  }
+  stars.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.04, transparent: true, opacity: 0.6 });
+  _scene.add(new THREE.Points(stars, starMat));
+
+  _resizeHandler = () => {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    _renderer.setSize(w, h);
+    _camera.aspect = w / h;
+    _camera.updateProjectionMatrix();
+  };
+  window.addEventListener('resize', _resizeHandler);
+
+  function loop() {
+    _animId = requestAnimationFrame(loop);
+    if (_globe) _globe.rotation.y += 0.0035;
+    _renderer.render(_scene, _camera);
+  }
+  loop();
+}
+
+function disposeGlobe() {
+  if (_animId) cancelAnimationFrame(_animId);
+  if (_resizeHandler) window.removeEventListener('resize', _resizeHandler);
+  _animId = null;
+  _resizeHandler = null;
+  if (_renderer) {
+    try { _renderer.dispose(); } catch {}
+    if (_renderer.domElement && _renderer.domElement.parentNode) {
+      _renderer.domElement.parentNode.removeChild(_renderer.domElement);
+    }
+  }
+  _renderer = _scene = _camera = _globe = null;
+}
+
+function showPanel(name) {
+  const panel = document.getElementById('panel');
+  if (!panel) return;
+  if (name === 'none' || !name) {
+    hidePanel();
+    return;
+  }
+  if (_panelOpen) hidePanel();
+  panel.classList.add('visible');
+  _panelOpen = true;
+  if (name === 'globe' || name === 'world' || name === 'map') {
+    document.getElementById('panel-title').textContent = '[ GLOBAL VIEW ]';
+    // Defer one frame so the panel has dimensions.
+    requestAnimationFrame(() => initGlobe());
+  }
+}
+function hidePanel() {
+  const panel = document.getElementById('panel');
+  if (!panel) return;
+  panel.classList.remove('visible');
+  _panelOpen = false;
+  disposeGlobe();
+}
+
+document.getElementById('panel-close').addEventListener('click', hidePanel);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hidePanel(); });
+
+// Expose to non-module scope so the WS handler below can reach us.
+window.__zendayaPanel = { show: showPanel, hide: hidePanel };
+</script>
+
+<script>
+(() => {
+  // ───────────────────────────────────────────────
+  // Globals + state
+  // ───────────────────────────────────────────────
+  const canvas = document.getElementById('zendaya-ring');
+  const ctx = canvas.getContext('2d');
+  const statusEl = document.getElementById('status-label');
+  const responseEl = document.getElementById('response-text');
+  const sysinfo = document.getElementById('sysinfo');
+  const sysText = document.getElementById('sysinfo-text');
+  const clockEl = document.getElementById('clock');
+  const dateEl = document.getElementById('date');
+  const waveEl = document.getElementById('wave');
+
+  const STATES = {
+    idle:      { label: '[ IDLE ]',      color: '#a855f7', dim: 0.55, glow: 18, arcLen: Math.PI * 0.55, arcSpeed: 0.003, particleSpeed: 0.25, breathe: 0.0,  waveColor: 'rgba(168,85,247,0.15)', waveMode: 'flat' },
+    listening: { label: '[ LISTENING ]', color: '#06b6d4', dim: 1.0,  glow: 55, arcLen: Math.PI * 1.30, arcSpeed: 0.012, particleSpeed: 0.55, breathe: 1.0,  waveColor: 'rgba(6,182,212,0.6)',   waveMode: 'random' },
+    thinking:  { label: '[ THINKING ]',  color: '#a855f7', dim: 1.0,  glow: 45, arcLen: Math.PI * 0.45, arcSpeed: 0.030, particleSpeed: 0.85, breathe: 0.2,  waveColor: 'rgba(168,85,247,0.4)',  waveMode: 'flat' },
+    speaking:  { label: '[ SPEAKING ]',  color: '#a855f7', dim: 1.0,  glow: 60, arcLen: Math.PI * 1.10, arcSpeed: 0.018, particleSpeed: 0.95, breathe: 0.5,  waveColor: 'rgba(168,85,247,0.8)',  waveMode: 'wave' },
+    error:     { label: '[ ERROR ]',     color: '#ef4444', dim: 1.0,  glow: 50, arcLen: Math.PI * 0.85, arcSpeed: 0.020, particleSpeed: 0.65, breathe: 0.0,  waveColor: 'rgba(239,68,68,0.7)',   waveMode: 'flicker' }
+  };
+
+  let activeState = 'idle';
+  let target = STATES.idle;
+
+  // Lerp-ed live values
+  let cur = {
+    glow: target.glow,
+    arcLen: target.arcLen,
+    arcSpeed: target.arcSpeed,
+    particleSpeed: target.particleSpeed,
+    dim: target.dim,
+    color: hexToRgb(target.color),
+    breathe: target.breathe
+  };
+
+  let arcAngle = -Math.PI / 2;
+
+  // Particles
+  const PARTICLE_COUNT = 42;
+  const particles = [];
+  function makeParticle(w, h, R) {
+    const angle = Math.random() * Math.PI * 2;
+    const radius = R * (0.18 + Math.random() * 0.78);
+    return {
+      angle,
+      radius,
+      r: R,
+      omega: (Math.random() * 0.8 + 0.2) * (Math.random() < 0.5 ? -1 : 1) * 0.012,
+      size: 1 + Math.random() * 2.2,
+      driftPhase: Math.random() * Math.PI * 2,
+      driftRate: 0.005 + Math.random() * 0.01,
+      driftAmp: 4 + Math.random() * 10,
+      a: 0.35 + Math.random() * 0.55
+    };
+  }
+
+  // Waveform bars
+  const BAR_COUNT = 40;
+  const barEls = [];
+  for (let i = 0; i < BAR_COUNT; i++) {
+    const b = document.createElement('div');
+    b.className = 'bar';
+    waveEl.appendChild(b);
+    barEls.push(b);
+  }
+  const barTargets = new Float32Array(BAR_COUNT);
+  const barLevels = new Float32Array(BAR_COUNT);
+
+  // ───────────────────────────────────────────────
+  // Helpers
+  // ───────────────────────────────────────────────
+  function hexToRgb(hex) {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return m ? { r: parseInt(m[1],16), g: parseInt(m[2],16), b: parseInt(m[3],16) } : { r: 168, g: 85, b: 247 };
+  }
+  function rgbStr(c, a=1) { return `rgba(${c.r},${c.g},${c.b},${a})`; }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function lerpColor(a, b, t) {
+    return { r: lerp(a.r,b.r,t), g: lerp(a.g,b.g,t), b: lerp(a.b,b.b,t) };
+  }
+
+  // ───────────────────────────────────────────────
+  // Resize / DPR
+  // ───────────────────────────────────────────────
+  let cssW = 0, cssH = 0;
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    cssW = canvas.offsetWidth;
+    cssH = canvas.offsetHeight;
+    canvas.width = cssW * dpr;
+    canvas.height = cssH * dpr;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+
+    const R = Math.min(cssW, cssH) * 0.42;
+    if (particles.length === 0) {
+      for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(makeParticle(cssW, cssH, R));
+    } else {
+      for (const p of particles) p.r = R;
+    }
+  }
+  window.addEventListener('resize', resize);
+
+  // ───────────────────────────────────────────────
+  // Render loop
+  // ───────────────────────────────────────────────
+  let breathePhase = 0;
+  function render() {
+    // Lerp toward target.
+    const k = 0.05;
+    cur.glow         = lerp(cur.glow,         target.glow,         k);
+    cur.arcLen       = lerp(cur.arcLen,       target.arcLen,       k);
+    cur.arcSpeed     = lerp(cur.arcSpeed,     target.arcSpeed,     k);
+    cur.particleSpeed= lerp(cur.particleSpeed,target.particleSpeed,k);
+    cur.dim          = lerp(cur.dim,          target.dim,          k);
+    cur.breathe      = lerp(cur.breathe,      target.breathe,      k);
+    cur.color        = lerpColor(cur.color,   hexToRgb(target.color), k);
+
+    arcAngle += cur.arcSpeed;
+    breathePhase += 0.04;
+
+    // Background clear (transparent bg keeps body styling)
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    const cx = cssW / 2;
+    const cy = cssH / 2;
+    const R = Math.min(cssW, cssH) * 0.42;
+
+    // Breathing glow modifier
+    const breatheMul = 1 + (Math.sin(breathePhase) * 0.5 + 0.5) * 0.4 * cur.breathe;
+
+    // Base ring
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = `rgba(168,85,247,${0.30 * cur.dim})`;
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // Inner faint ring
+    ctx.save();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = `rgba(6,182,212,${0.10 * cur.dim})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R * 0.86, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // Active arc with violet→cyan gradient + glow
+    ctx.save();
+    const grad = ctx.createLinearGradient(cx - R, cy, cx + R, cy);
+    grad.addColorStop(0, '#a855f7');
+    grad.addColorStop(1, '#06b6d4');
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = grad;
+    ctx.shadowBlur = cur.glow * breatheMul;
+    ctx.shadowColor = rgbStr(cur.color, 0.95);
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, arcAngle, arcAngle + cur.arcLen);
+    ctx.stroke();
+    ctx.restore();
+
+    // Tick marks around the ring
+    ctx.save();
+    ctx.strokeStyle = `rgba(168,85,247,${0.25 * cur.dim})`;
+    ctx.lineWidth = 1;
+    const ticks = 60;
+    for (let i = 0; i < ticks; i++) {
+      const a = (i / ticks) * Math.PI * 2;
+      const big = i % 5 === 0;
+      const r0 = R + (big ? 8 : 4);
+      const r1 = R + (big ? 16 : 9);
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
+      ctx.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Inner particles
+    ctx.save();
+    for (const p of particles) {
+      p.angle += p.omega * cur.particleSpeed * 1.6;
+      p.driftPhase += p.driftRate;
+      const drift = Math.sin(p.driftPhase) * p.driftAmp;
+      const px = cx + Math.cos(p.angle) * (p.radius + drift * 0.05);
+      const py = cy + Math.sin(p.angle) * (p.radius + drift * 0.05);
+      ctx.beginPath();
+      ctx.fillStyle = rgbStr(cur.color, p.a * cur.dim);
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = rgbStr(cur.color, 0.8);
+      ctx.arc(px, py, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Inner core glow
+    ctx.save();
+    const radial = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.7);
+    radial.addColorStop(0, rgbStr(cur.color, 0.18 * cur.dim));
+    radial.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = radial;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Waveform bars
+    updateBars();
+
+    requestAnimationFrame(render);
+  }
+
+  // ───────────────────────────────────────────────
+  // Waveform animation
+  // ───────────────────────────────────────────────
+  let waveTime = 0;
+  function updateBars() {
+    waveTime += 1;
+    const mode = target.waveMode;
+    const color = target.waveColor;
+    for (let i = 0; i < BAR_COUNT; i++) {
+      let t;
+      if (mode === 'random') {
+        if (waveTime % 4 === 0) barTargets[i] = Math.random();
+        t = barTargets[i];
+      } else if (mode === 'wave') {
+        t = 0.35 + 0.55 * (Math.sin((i * 0.45) + waveTime * 0.12) * 0.5 + 0.5)
+              * (Math.sin(waveTime * 0.05 + i * 0.1) * 0.5 + 0.5);
+      } else if (mode === 'flicker') {
+        t = Math.random() < 0.4 ? Math.random() : 0.05;
+      } else {
+        t = 0.0;
+      }
+      barLevels[i] = lerp(barLevels[i], t, 0.18);
+      const h = 4 + barLevels[i] * 56;
+      const el = barEls[i];
+      el.style.height = h.toFixed(1) + 'px';
+      el.style.background = color;
+    }
+  }
+
+  // ───────────────────────────────────────────────
+  // State
+  // ───────────────────────────────────────────────
+  function setState(name) {
+    if (!STATES[name]) name = 'idle';
+    activeState = name;
+    target = STATES[name];
+    statusEl.textContent = target.label;
+    statusEl.style.color = target.color;
+    statusEl.style.textShadow = `0 0 10px ${target.color}`;
+  }
+
+  // ───────────────────────────────────────────────
+  // Typewriter
+  // ───────────────────────────────────────────────
+  let typer = null;
+  function typeWrite(text) {
+    if (!text) return;
+    // Move existing line to "fading out" state
+    const old = responseEl.querySelector('.resp-line.active');
+    if (old) {
+      old.classList.remove('active');
+      old.classList.add('fade');
+      setTimeout(() => old.remove(), 800);
+    }
+    if (typer) { clearInterval(typer); typer = null; }
+
+    const line = document.createElement('span');
+    line.className = 'resp-line active';
+    const span = document.createElement('span');
+    line.appendChild(span);
+    const caret = document.createElement('span');
+    caret.className = 'caret';
+    caret.textContent = '_';
+    line.appendChild(caret);
+    responseEl.appendChild(line);
+
+    let i = 0;
+    typer = setInterval(() => {
+      if (i >= text.length) {
+        clearInterval(typer); typer = null;
+        // Trim history to ~3 lines.
+        const lines = responseEl.querySelectorAll('.resp-line');
+        if (lines.length > 3) {
+          for (let k = 0; k < lines.length - 3; k++) {
+            lines[k].classList.add('fade');
+            setTimeout(((el) => () => el.remove())(lines[k]), 800);
+          }
+        }
+        return;
+      }
+      span.textContent += text.charAt(i++);
+    }, 25);
+  }
+
+  // ───────────────────────────────────────────────
+  // Clock
+  // ───────────────────────────────────────────────
+  function tickClock() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    clockEl.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    dateEl.textContent = `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  }
+  setInterval(tickClock, 1000);
+  tickClock();
+
+  // ───────────────────────────────────────────────
+  // WebSocket
+  // ───────────────────────────────────────────────
+  const WS_URL = (() => {
+    // Default per spec; allow override via ?ws= for flexibility.
+    const u = new URL(window.location.href);
+    return u.searchParams.get('ws') || 'ws://localhost:8765';
+  })();
+  let ws = null;
+  let reconnectTimer = null;
+
+  function setConnected(connected) {
+    sysinfo.classList.toggle('connected', connected);
+    sysinfo.classList.toggle('offline', !connected);
+    sysText.textContent = `ZENDAYA v1.0 | LOCAL | ${connected ? 'CONNECTED' : 'OFFLINE'}`;
+  }
+
+  function connect() {
+    try {
+      ws = new WebSocket(WS_URL);
+    } catch (e) {
+      scheduleReconnect();
+      return;
+    }
+    ws.onopen = () => {
+      setConnected(true);
+      setState('idle');
+    };
+    ws.onmessage = (ev) => {
+      let data = null;
+      try { data = JSON.parse(ev.data); } catch { return; }
+      if (!data || typeof data !== 'object') return;
+      if (data.state) setState(data.state);
+      if (data.text) typeWrite(String(data.text));
+      if (data.panel !== undefined && window.__zendayaPanel) {
+        window.__zendayaPanel.show(String(data.panel));
+      }
+    };
+    ws.onerror = () => {};
+    ws.onclose = () => {
+      setConnected(false);
+      scheduleReconnect();
+    };
+  }
+  function scheduleReconnect() {
+    if (reconnectTimer) return;
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      connect();
+    }, 3000);
+  }
+
+  // ───────────────────────────────────────────────
+  // Boot
+  // ───────────────────────────────────────────────
+  resize();
+  setState('idle');
+  setConnected(false);
+  requestAnimationFrame(render);
+  connect();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<style>
+  .tl-stage{
+    width:100%; height:196px; border-radius:10px; position:relative; overflow:hidden;
+    background: radial-gradient(circle at 50% 50%, var(--bg1), var(--bg2) 78%);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .tl-ring{ position:absolute; inset:0; margin:auto; border-radius:50%; pointer-events:none; }
+  .tl-word{
+    position:relative; z-index:4; font-weight:700; letter-spacing:.24em; font-size:13px;
+    color:#fff; text-shadow:0 0 8px var(--c1), 0 0 16px var(--c2);
+  }
+  @keyframes tl-spin{ to{ transform:rotate(360deg);} }
+  @keyframes tl-flick{ 0%,100%{opacity:.95} 40%{opacity:.7} 55%{opacity:1} 70%{opacity:.6} }
+
+  /* ---------- FORGE (orange FRIDAY ring) ---------- */
+  .forge .ticks{ width:170px;height:170px;
+    background:repeating-conic-gradient(from 0deg,var(--c1) 0 .7deg,transparent .7deg 6deg);
+    -webkit-mask:radial-gradient(circle,transparent 0 78px,#000 78px 85px,transparent 85px);
+            mask:radial-gradient(circle,transparent 0 78px,#000 78px 85px,transparent 85px);
+    opacity:.5;}
+  .forge .seg-o{ width:136px;height:136px;
+    background:conic-gradient(from -92deg,var(--c1) 0 66deg,transparent 66deg 84deg,var(--c1) 84deg 198deg,transparent 198deg 214deg,var(--c1) 214deg 330deg,transparent 330deg 346deg,var(--c1) 346deg 360deg);
+    -webkit-mask:radial-gradient(circle,transparent 0 53px,#000 53px 68px,transparent 68px);
+            mask:radial-gradient(circle,transparent 0 53px,#000 53px 68px,transparent 68px);
+    filter:drop-shadow(0 0 5px var(--c1)); animation:tl-spin 26s linear infinite;}
+  .forge .seg-i{ width:98px;height:98px;
+    background:conic-gradient(from 90deg,var(--c1) 0 148deg,transparent 148deg 168deg,var(--c1) 168deg 360deg);
+    -webkit-mask:radial-gradient(circle,transparent 0 43px,#000 43px 49px,transparent 49px);
+            mask:radial-gradient(circle,transparent 0 43px,#000 43px 49px,transparent 49px);
+    opacity:.9; filter:drop-shadow(0 0 4px var(--c1)); animation:tl-spin 17s linear infinite reverse;}
+  .forge .acc{ width:114px;height:114px;
+    background:conic-gradient(from 196deg,var(--c2) 0 60deg,transparent 60deg 360deg);
+    -webkit-mask:radial-gradient(circle,transparent 0 52px,#000 52px 56px,transparent 56px);
+            mask:radial-gradient(circle,transparent 0 52px,#000 52px 56px,transparent 56px);
+    filter:drop-shadow(0 0 6px var(--c2)); animation:tl-spin 13s linear infinite;}
+
+  /* ---------- CHRONOS (metal gauges) ---------- */
+  .chronos .metal{ width:160px;height:160px;
+    background:conic-gradient(from 0deg,#23262c,#9aa0aa,#33363c,#c8ccd2,#2a2d33,#888e98,#3a3d44,#b0b6be,#23262c);
+    -webkit-mask:radial-gradient(circle,transparent 0 60px,#000 60px 80px,transparent 80px);
+            mask:radial-gradient(circle,transparent 0 60px,#000 60px 80px,transparent 80px);
+    filter:drop-shadow(0 0 4px rgba(0,0,0,.7)); animation:tl-spin 40s linear infinite;}
+  .chronos .ticks2{ width:130px;height:130px;
+    background:repeating-conic-gradient(from 0deg,#cfd3d9 0 .8deg,transparent .8deg 9deg);
+    -webkit-mask:radial-gradient(circle,transparent 0 58px,#000 58px 64px,transparent 64px);
+            mask:radial-gradient(circle,transparent 0 58px,#000 58px 64px,transparent 64px);
+    opacity:.55;}
+  .chronos .redacc{ width:120px;height:120px;
+    background:conic-gradient(from 30deg,var(--c2) 0 40deg,transparent 40deg 360deg);
+    -webkit-mask:radial-gradient(circle,transparent 0 54px,#000 54px 59px,transparent 59px);
+            mask:radial-gradient(circle,transparent 0 54px,#000 54px 59px,transparent 59px);
+    filter:drop-shadow(0 0 5px var(--c2)); animation:tl-spin 9s linear infinite reverse;}
+  .chronos .gauge{ position:absolute; width:34px;height:34px;border-radius:50%;
+    background:radial-gradient(circle at 40% 35%,#5a5f68,#15171b 70%);
+    border:1px solid #6a7079; box-shadow:inset 0 0 6px #000;}
+  .chronos .g1{ transform:translate(-30px,8px);} .chronos .g2{ transform:translate(30px,8px);}
+
+  /* ---------- IRIS (cyan aperture eye) ---------- */
+  .iris .grid{ position:absolute; inset:0;
+    background:repeating-linear-gradient(0deg,rgba(40,170,220,.06) 0 1px,transparent 1px 16px),
+               repeating-linear-gradient(90deg,rgba(40,170,220,.06) 0 1px,transparent 1px 16px);}
+  .iris .blades{ width:150px;height:150px;
+    background:conic-gradient(from 0deg,#0e5572 0 26deg,#0a4258 26deg 52deg,#0e5572 52deg 78deg,#0a4258 78deg 104deg,#0e5572 104deg 130deg,#0a4258 130deg 156deg,#0e5572 156deg 182deg,#0a4258 182deg 208deg,#0e5572 208deg 234deg,#0a4258 234deg 260deg,#0e5572 260deg 286deg,#0a4258 286deg 312deg,#0e5572 312deg 338deg,#0a4258 338deg 360deg);
+    -webkit-mask:radial-gradient(circle,transparent 0 28px,#000 30px 72px,transparent 74px);
+            mask:radial-gradient(circle,transparent 0 28px,#000 30px 72px,transparent 74px);
+    filter:drop-shadow(0 0 6px var(--c1)); animation:tl-spin 30s linear infinite;}
+  .iris .rim{ width:150px;height:150px;border:2px solid var(--c1);
+    box-shadow:0 0 14px var(--c1),inset 0 0 14px rgba(40,210,255,.5);}
+  .iris .rim2{ width:120px;height:120px;border:1px dashed rgba(40,210,255,.6); animation:tl-spin 22s linear infinite;}
+  .iris .pupil{ width:54px;height:54px;
+    background:radial-gradient(circle,#7fe9ff 0%,#0a4258 30%,#02141f 70%);
+    box-shadow:0 0 18px var(--c1),inset 0 0 12px #02141f;}
+
+  /* ---------- RECON (teal radar) ---------- */
+  .recon .rings{ width:158px;height:158px;border:1px solid rgba(60,230,200,.4);
+    background:repeating-radial-gradient(circle,transparent 0 18px,rgba(60,230,200,.18) 18px 19px);}
+  .recon .sweep{ width:158px;height:158px;
+    background:conic-gradient(from 0deg,rgba(60,230,200,.55) 0deg,rgba(60,230,200,.05) 40deg,transparent 70deg 360deg);
+    animation:tl-spin 4s linear infinite;}
+  .recon .cross{ position:absolute; background:rgba(60,230,200,.35);}
+  .recon .cx{ width:158px;height:1px;} .recon .cy{ width:1px;height:158px;}
+  .recon .blip{ position:absolute; width:6px;height:6px;border-radius:50%;
+    background:var(--c1); box-shadow:0 0 8px var(--c1);}
+  .recon .b1{ transform:translate(34px,-22px);} .recon .b2{ transform:translate(-40px,18px);}
+  .recon .b3{ transform:translate(12px,44px); background:var(--c2); box-shadow:0 0 8px var(--c2);}
+  .recon .yacc{ position:absolute; right:24px; width:4px;height:74px;border-radius:3px;
+    background:var(--c2); box-shadow:0 0 8px var(--c2);}
+</style>
+
+<h2>Zendaya Theme Library — starters from your videos</h2>
+<p class="subtitle">One HUD, many skins. The center 3D stage (orb → world map → any scene) stays; each theme re-dresses the chrome, palette, background and mood. Names are placeholders — rename freely. You said you have more theme ideas; this is where they'll live.</p>
+
+<div class="cards">
+  <div class="card">
+    <div class="card-image"><div class="tl-stage forge" style="--c1:#ff8a1e;--c2:#19d3a0;--bg1:#1a0d05;--bg2:#070302">
+      <div class="tl-ring ticks"></div><div class="tl-ring seg-o"></div><div class="tl-ring seg-i"></div><div class="tl-ring acc"></div>
+      <div class="tl-word">FORGE</div></div></div>
+    <div class="card-body"><h3>Forge</h3><p>Your F.R.I.D.A.Y. ring — warm amber arcs, teal accent sweep. Engineering power.</p></div>
+  </div>
+
+  <div class="card">
+    <div class="card-image"><div class="tl-stage chronos" style="--c1:#c8ccd2;--c2:#ff3b30;--bg1:#15171b;--bg2:#050608">
+      <div class="tl-ring metal"></div><div class="tl-ring ticks2"></div><div class="tl-ring redacc"></div>
+      <div class="gauge g1"></div><div class="gauge g2"></div>
+      <div class="tl-word">CHRONOS</div></div></div>
+    <div class="card-body"><h3>Chronos</h3><p>Video A — brushed-metal mechanical gauges, monochrome with a red accent. Heavy &amp; premium.</p></div>
+  </div>
+
+  <div class="card">
+    <div class="card-image"><div class="tl-stage iris" style="--c1:#2fd6ff;--c2:#ff4d4d;--bg1:#06182a;--bg2:#02060c">
+      <div class="grid"></div>
+      <div class="tl-ring blades"></div><div class="tl-ring rim"></div><div class="tl-ring rim2"></div><div class="tl-ring pupil"></div>
+      <div class="tl-word" style="position:absolute;bottom:14px;font-size:11px">IRIS</div></div></div>
+    <div class="card-body"><h3>Iris</h3><p>Video B — a living cyan aperture/eye on a circuit field. Feels like Zendaya is <em>watching</em>.</p></div>
+  </div>
+
+  <div class="card">
+    <div class="card-image"><div class="tl-stage recon" style="--c1:#3ee6c4;--c2:#ffd23e;--bg1:#03110d;--bg2:#000402">
+      <div class="tl-ring rings"></div><div class="tl-ring sweep"></div>
+      <div class="cross cx"></div><div class="cross cy"></div>
+      <div class="blip b1"></div><div class="blip b2"></div><div class="blip b3"></div>
+      <div class="yacc"></div>
+      <div class="tl-word" style="position:absolute;bottom:14px;font-size:11px">RECON</div></div></div>
+    <div class="card-body"><h3>Recon</h3><p>Video C — tactical teal radar sweep with blips &amp; a yellow gauge. Cold, precise, scanner.</p></div>
+  </div>
+</div>
+
+<p class="label">This is a reference board — answer the two quick questions in the terminal →</p>

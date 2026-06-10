@@ -1,0 +1,79 @@
+<h2>Current wiring vs. opportunity</h2>
+<p class="subtitle">Surprises from the second scout. We need to fix some things before/while we wire new ones.</p>
+
+<div class="section">
+  <h3>🚨 Already broken (fixes inside the channels spec)</h3>
+  <div class="mockup">
+    <div class="mockup-header">Bugs the scout found in current code</div>
+    <div class="mockup-body">
+      <ul>
+        <li><strong>Orb voice-reactivity is DEAD.</strong> Backend's <code>set_amplitude()</code> writes a shared dict but never broadcasts on WS. Frontend's hook handles <code>audio_level</code> field, but no message ever delivers it.</li>
+        <li><strong>4 AI states get silently dropped.</strong> Store defines <code>aware/searching/mapping/alert</code>; the WS hook's filter only allows <code>idle/listening/thinking/speaking/error</code>. Backend can emit them, frontend discards them.</li>
+        <li><strong>Music player transport is broken.</strong> Posts <code>{text}</code>; backend expects <code>{message}</code>. Returns <code>{accepted: false}</code>.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>📡 The unused channels (what we'd wire)</h3>
+  <div class="cards">
+    <div class="card" data-choice="ch-voice" onclick="toggleSelect(this)">
+      <div class="card-image"><div class="placeholder" style="display:flex;align-items:center;justify-content:center;font-size:48px">🎙️</div></div>
+      <div class="card-body">
+        <h3>Voice (mouth)</h3>
+        <p><strong>amplitude</strong> + <strong>visemes</strong> drive orb scale + mouth shader. Lip-sync.</p>
+        <div class="label" style="margin-top:8px">Biggest "wow" — orb reacts to your voice</div>
+      </div>
+    </div>
+    <div class="card" data-choice="ch-perception" onclick="toggleSelect(this)">
+      <div class="card-image"><div class="placeholder" style="display:flex;align-items:center;justify-content:center;font-size:48px">👁️</div></div>
+      <div class="card-body">
+        <h3>Perception</h3>
+        <p><strong>face presence</strong> + <strong>last gesture</strong> drive a small indicator + trigger effects.</p>
+        <div class="label" style="margin-top:8px">Useful: "she sees me"</div>
+      </div>
+    </div>
+    <div class="card" data-choice="ch-telemetry" onclick="toggleSelect(this)">
+      <div class="card-image"><div class="placeholder" style="display:flex;align-items:center;justify-content:center;font-size:48px">📊</div></div>
+      <div class="card-body">
+        <h3>System telemetry</h3>
+        <p><strong>CPU / mem / mood</strong> drive a small overlay + ambient color shift.</p>
+        <div class="label" style="margin-top:8px">Persistent ambient signal</div>
+      </div>
+    </div>
+    <div class="card" data-choice="ch-body" onclick="toggleSelect(this)">
+      <div class="card-image"><div class="placeholder" style="display:flex;align-items:center;justify-content:center;font-size:48px">🎭</div></div>
+      <div class="card-body">
+        <h3>Body action</h3>
+        <p><strong>nod / shake / wave / shrug</strong> drive orb pose transitions.</p>
+        <div class="label" style="margin-top:8px">Needs orb anim rig — more work</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>🔧 Plumbing decision (I'll bake into the design)</h3>
+  <div class="pros-cons">
+    <div class="pros">
+      <h4>Push everything via WS</h4>
+      <ul>
+        <li>Single connection, low latency</li>
+        <li>Amplitude/visemes need 20–30 Hz anyway</li>
+        <li>Frontend just listens — clean</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <h4>Keep HTTP polling</h4>
+      <ul>
+        <li>Simpler backend (already there)</li>
+        <li>5+ different rates = 5+ poll loops, lots of fetch overhead</li>
+        <li>Latency = poll interval, not real-time</li>
+      </ul>
+    </div>
+  </div>
+  <p class="subtitle">Recommendation: <strong>push via WS</strong>. Add a small backend tick (amplitude/visemes at 30 Hz, telemetry at 2 Hz, body+perception on-change). Frontend's existing reconnect handles drops.</p>
+</div>
+
+<p class="subtitle">👉 Tell me in the terminal which channels are priority for THIS spec, and which to defer.</p>

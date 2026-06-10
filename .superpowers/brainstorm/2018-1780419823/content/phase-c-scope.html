@@ -1,0 +1,56 @@
+<h2>Phase C &mdash; what&rsquo;s in scope for this pass?</h2>
+<p class="subtitle">These are the six pieces the design doc parks in Phase C. Click every one you want in <em>this</em> pass &mdash; we can defer the rest to a later phase. (Multi-select: click to toggle.)</p>
+
+<div class="options" data-multiselect>
+
+  <div class="option" data-choice="weather" onclick="toggleSelect(this)">
+    <div class="letter">1</div>
+    <div class="content">
+      <h3>WeatherScene &nbsp;<span style="font-size:11px;letter-spacing:.08em;opacity:.6;border:1px solid currentColor;border-radius:4px;padding:1px 6px;vertical-align:middle">NEW 3D SCENE &middot; large</span></h3>
+      <p>A hero scene that morphs in when you say &ldquo;what&rsquo;s the weather&rdquo; &mdash; a themed holographic sky: drifting cloud volume, sun/rain/storm states, lit in the active theme&rsquo;s colors. Same morph machinery as the orb&rarr;globe.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="clock" onclick="toggleSelect(this)">
+    <div class="letter">2</div>
+    <div class="content">
+      <h3>ClockScene &nbsp;<span style="font-size:11px;letter-spacing:.08em;opacity:.6;border:1px solid currentColor;border-radius:4px;padding:1px 6px;vertical-align:middle">NEW 3D SCENE &middot; medium</span></h3>
+      <p>A hero scene for time intents &mdash; concentric orbital rings (hours / minutes / seconds) rotating in 3D, the live time glowing at the centre. Reads colors from the theme.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="chrome" onclick="toggleSelect(this)">
+    <div class="letter">3</div>
+    <div class="content">
+      <h3>Chrome rings-sweep on scene change &nbsp;<span style="font-size:11px;letter-spacing:.08em;opacity:.6;border:1px solid currentColor;border-radius:4px;padding:1px 6px;vertical-align:middle">ANIMATION &middot; medium</span></h3>
+      <p>Right now the SVG ring/aperture chrome just spins. This makes it <em>react</em> to scene changes &mdash; a sweep / re-converge transition when you switch idle&rarr;globe&rarr;weather, so the frame feels alive and tied to what&rsquo;s happening.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="reskin" onclick="toggleSelect(this)">
+    <div class="letter">4</div>
+    <div class="content">
+      <h3>Module panel reskins &nbsp;<span style="font-size:11px;letter-spacing:.08em;opacity:.6;border:1px solid currentColor;border-radius:4px;padding:1px 6px;vertical-align:middle">POLISH &middot; small</span></h3>
+      <p>The music player / telemetry / perception panels still use hard-coded purple. Repoint them at the theme tokens so they recolor with Forge / Iris instead of clashing.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="audio" onclick="toggleSelect(this)">
+    <div class="letter">5</div>
+    <div class="content">
+      <h3>Per-theme ambient audio &nbsp;<span style="font-size:11px;letter-spacing:.08em;opacity:.6;border:1px solid currentColor;border-radius:4px;padding:1px 6px;vertical-align:middle">WIRING &middot; small</span></h3>
+      <p>Each theme already declares an <code>ambient</code> pad id. Wire it into the existing audio engine so a low ambient drone fades in/out with the theme. Needs actual audio files.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="prune" onclick="toggleSelect(this)">
+    <div class="letter">6</div>
+    <div class="content">
+      <h3>Prune dead code &nbsp;<span style="font-size:11px;letter-spacing:.08em;opacity:.6;border:1px solid currentColor;border-radius:4px;padding:1px 6px;vertical-align:middle">CLEANUP &middot; small</span></h3>
+      <p>Delete the old <code>animations/</code> directory and other leftovers from the pre-redesign HUD that nothing imports anymore.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:28px">My instinct: <strong>1, 3, 4, 6</strong> make the strongest, most cohesive pass (one signature new scene + the chrome that sells the &ldquo;hologram reacts&rdquo; feel + cleanup), and defer ClockScene + audio. But tell me what you actually want &mdash; select away.</p>

@@ -16,8 +16,9 @@ from typing import Callable, Optional
 
 import asyncio
 import json
+import base64
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -63,6 +64,42 @@ def _broadcast_state_async(payload: dict) -> None:
         asyncio.run_coroutine_threadsafe(_ws_broadcast(payload), loop)
     except Exception:
         pass
+
+
+def hud_client_count() -> int:
+    """How many HUD WebSocket clients are currently connected.
+
+    zendaya.py reads this once per utterance to decide whether the TTS voice
+    plays in the browser (>=1 client) or on the local speaker (0 clients).
+    """
+    try:
+        return len(_WS_CLIENTS)
+    except Exception:
+        return 0
+
+
+def audio_begin(rate: int, utt_id: int) -> None:
+    """Announce the start of a TTS utterance the HUD should play."""
+    _broadcast_state_async({"audio": {"event": "begin", "rate": int(rate), "id": int(utt_id)}})
+
+
+def push_audio_chunk(pcm_bytes: bytes, utt_id: int, seq: int) -> None:
+    """Tee one PCM int16 window to the HUD as base64."""
+    try:
+        b64 = base64.b64encode(pcm_bytes).decode("ascii")
+    except Exception:
+        return
+    _broadcast_state_async({"audio": {"event": "chunk", "id": int(utt_id), "seq": int(seq), "b64": b64}})
+
+
+def audio_end(utt_id: int) -> None:
+    """Signal that no further chunks will arrive for this utterance."""
+    _broadcast_state_async({"audio": {"event": "end", "id": int(utt_id)}})
+
+
+def audio_stop() -> None:
+    """Barge-in: tell the HUD to flush any queued/playing audio immediately."""
+    _broadcast_state_async({"audio": {"event": "stop"}})
 
 
 def set_panel(name: str) -> None:
@@ -289,6 +326,7 @@ _ON_WINDOW_CONTROL: Optional[Callable[[str, str], str]] = None
 # if absent, /window returns an empty snapshot and event list.
 _WINDOW_GET_SNAPSHOT: Optional[Callable[[], dict]] = None
 _WINDOW_POP_EVENTS: Optional[Callable[[], list]] = None
+_ON_QUIT: Optional[Callable[[], None]] = None  # set from start(on_quit=...); called by POST /quit
 
 
 class ChatIn(BaseModel):
@@ -298,6 +336,12 @@ class ChatIn(BaseModel):
 class WindowControlIn(BaseModel):
     action: str
     title: str = ""
+
+
+class NowPlayingIn(BaseModel):
+    track_id: Optional[str] = None
+    is_playing: bool = True
+    position_ms: int = 0
 
 
 @app.on_event("startup")
@@ -378,6 +422,14 @@ def health():
     return {"ok": True, "name": "Zendaya"}
 
 
+@app.post("/quit")
+def quit_zendaya():
+    """Ask the backend to shut down cleanly. Fires the injected on_quit callback."""
+    if _ON_QUIT:
+        _ON_QUIT()
+    return {"ok": True, "shutting_down": True}
+
+
 @app.get("/ai_status")
 def ai_status():
     return get_state()
@@ -406,6 +458,37 @@ def perception():
 @app.get("/telemetry")
 def telemetry():
     return get_telemetry()
+
+
+# ── Music (SP-3: in-HUD player) ────────────────────────
+@app.get("/music/list")
+def music_list():
+    """List the local music library as HUD queue entries."""
+    import zendaya_hud_music as hud_music
+    return hud_music.list_tracks()
+
+
+@app.get("/music/stream/{track_id}")
+def music_stream(track_id: str):
+    """Stream a local track's bytes (FileResponse provides HTTP Range → seeking)."""
+    import zendaya_hud_music as hud_music
+    path = hud_music.resolve(track_id)
+    if path is None:
+        raise HTTPException(status_code=404, detail="track not found")
+    return FileResponse(str(path))
+
+
+@app.post("/music/now")
+def music_now(payload: NowPlayingIn):
+    """Single-writer sync from the HUD: it owns playback, we mirror + rebroadcast."""
+    import zendaya_spotify as sp
+    if payload.track_id is None:
+        sp.clear_local_now()
+        set_now_playing(None)
+        return {"ok": True}
+    sp.set_local_now(payload.track_id, payload.is_playing, payload.position_ms)
+    set_now_playing(sp.now_playing_payload())
+    return {"ok": True}
 
 
 @app.post("/chat")
@@ -570,14 +653,17 @@ def start(
     on_window_control: Optional[Callable[[str, str], str]] = None,
     window_get_snapshot: Optional[Callable[[], dict]] = None,
     window_pop_events: Optional[Callable[[], list]] = None,
+    on_quit: Optional[Callable[[], None]] = None,
 ) -> threading.Thread:
     """Spawn uvicorn on a daemon thread and return the thread handle."""
     global _ON_CHAT, _ON_WINDOW_CONTROL
     global _WINDOW_GET_SNAPSHOT, _WINDOW_POP_EVENTS
+    global _ON_QUIT
     _ON_CHAT = on_chat
     _ON_WINDOW_CONTROL = on_window_control
     _WINDOW_GET_SNAPSHOT = window_get_snapshot
     _WINDOW_POP_EVENTS = window_pop_events
+    _ON_QUIT = on_quit
 
     config = uvicorn.Config(app, host=host, port=port, log_level="warning")
     server = uvicorn.Server(config)

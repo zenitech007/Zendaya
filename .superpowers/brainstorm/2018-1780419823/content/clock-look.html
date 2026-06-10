@@ -1,0 +1,116 @@
+<style>
+  .cs { position:relative; height:250px; border-radius:14px; overflow:hidden;
+    background:radial-gradient(ellipse at 50% 45%, #241206 0%, #090402 80%);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Share Tech Mono',monospace; perspective:600px; }
+  /* 1 — orbital rings */
+  .orb-wrap { position:relative; width:200px; height:200px;
+    transform-style:preserve-3d; transform:rotateX(62deg); }
+  .orb-ring { position:absolute; top:50%; left:50%; border-radius:50%;
+    border:1px solid rgba(255,138,60,.4); transform:translate(-50%,-50%); }
+  .orb-ring.h { width:200px; height:200px; border-color:rgba(255,138,60,.25); }
+  .orb-ring.m { width:140px; height:140px; border-color:rgba(255,170,90,.45); }
+  .orb-ring.s { width:84px; height:84px; border-style:dashed; border-color:rgba(255,200,150,.5); }
+  .orb-node { position:absolute; width:9px; height:9px; border-radius:50%;
+    background:#ffce9e; box-shadow:0 0 12px 3px rgba(255,170,90,.8); }
+  .cs-digits { position:absolute; z-index:3; color:#ffb060; letter-spacing:.18em;
+    text-shadow:0 0 16px rgba(255,138,60,.8); }
+  .cs-digits b { font-size:30px; }
+  .cs-digits span { font-size:13px; opacity:.65; }
+  .cs-date { position:absolute; bottom:16px; left:0; right:0; text-align:center;
+    font-size:10px; letter-spacing:.32em; color:#ffce9e; opacity:.55; }
+  /* 2 — particle digits */
+  .pd { font-size:52px; letter-spacing:.06em; color:#ffb060;
+    background-image:radial-gradient(circle, #ffd9a0 0.9px, transparent 1.4px);
+    background-size:6px 6px; -webkit-background-clip:text; background-clip:text;
+    -webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 0 14px rgba(255,138,60,.55)); }
+  .pd-arc { position:absolute; width:200px; height:200px; border-radius:50%;
+    border:2px solid transparent; border-top-color:#ffb060; border-right-color:rgba(255,138,60,.4);
+    transform:rotate(42deg); box-shadow:0 0 18px rgba(255,138,60,.3); }
+  /* 3 — analog holo face */
+  .af { width:170px; height:170px; border-radius:50%;
+    border:2px solid rgba(255,138,60,.35); position:relative;
+    box-shadow:0 0 30px rgba(255,138,60,.2), inset 0 0 30px rgba(255,138,60,.08);
+    transform:rotateX(18deg); }
+  .af-tick { position:absolute; left:50%; top:6px; width:2px; height:10px; background:rgba(255,170,90,.6);
+    transform-origin:50% 79px; }
+  .af-hand { position:absolute; left:50%; bottom:50%; transform-origin:50% 100%; background:#ffd9b8;
+    border-radius:2px; }
+  .af-hh { width:4px; height:46px; transform:translateX(-50%) rotate(40deg); }
+  .af-mm { width:3px; height:64px; transform:translateX(-50%) rotate(150deg); }
+  .af-ss { width:1.5px; height:70px; background:#ff8a3c; transform:translateX(-50%) rotate(220deg);
+    box-shadow:0 0 8px rgba(255,138,60,.7); }
+  .af-cap { position:absolute; left:50%; top:50%; width:8px; height:8px; border-radius:50%;
+    background:#ff8a3c; transform:translate(-50%,-50%); box-shadow:0 0 10px rgba(255,138,60,.8); }
+</style>
+
+<h2>ClockScene &mdash; what form does time take?</h2>
+<p class="subtitle">All three glow in the theme color and read the live <code>new Date()</code> &mdash; hours, minutes, seconds, date. Click one.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="orbital" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0">
+      <div class="cs">
+        <div class="orb-wrap">
+          <div class="orb-ring h"><div class="orb-node" style="top:-4px; left:calc(50% - 4px)"></div></div>
+          <div class="orb-ring m"><div class="orb-node" style="top:calc(50% - 4px); right:-4px"></div></div>
+          <div class="orb-ring s"><div class="orb-node" style="bottom:6px; left:14px"></div></div>
+        </div>
+        <div class="cs-digits"><b>13:47</b><span>:22</span></div>
+        <div class="cs-date">TUESDAY &middot; JUNE 2</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>1 &mdash; Orbital rings &nbsp;<span style="font-size:10px;opacity:.6">(recommended)</span></h3>
+      <p>Three tilted orbital rings (hours / minutes / seconds), each with a glowing node sweeping its track like an orrery; the live time glows upright at the centre. Particles trace the rings &mdash; same DNA as the weather morph.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="digits" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0">
+      <div class="cs">
+        <div class="pd-arc"></div>
+        <div style="text-align:center">
+          <div class="pd">13:47</div>
+          <div class="cs-date" style="position:static;margin-top:8px">TUESDAY &middot; JUNE 2</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>2 &mdash; Particle digit monolith</h3>
+      <p>Big floating <code>HH:MM</code> digits built from glowing particles, wrapped by a thin seconds arc that sweeps once a minute. Bold and instantly legible &mdash; less &ldquo;mechanism,&rdquo; more &ldquo;heads-up display.&rdquo;</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="analog" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0">
+      <div class="cs">
+        <div class="af">
+          <div class="af-tick" style="transform:rotate(0deg)"></div>
+          <div class="af-tick" style="transform:rotate(30deg)"></div>
+          <div class="af-tick" style="transform:rotate(60deg)"></div>
+          <div class="af-tick" style="transform:rotate(90deg)"></div>
+          <div class="af-tick" style="transform:rotate(120deg)"></div>
+          <div class="af-tick" style="transform:rotate(150deg)"></div>
+          <div class="af-tick" style="transform:rotate(180deg)"></div>
+          <div class="af-tick" style="transform:rotate(210deg)"></div>
+          <div class="af-tick" style="transform:rotate(240deg)"></div>
+          <div class="af-tick" style="transform:rotate(270deg)"></div>
+          <div class="af-tick" style="transform:rotate(300deg)"></div>
+          <div class="af-tick" style="transform:rotate(330deg)"></div>
+          <div class="af-hand af-hh"></div>
+          <div class="af-hand af-mm"></div>
+          <div class="af-hand af-ss"></div>
+          <div class="af-cap"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>3 &mdash; Holographic analog face</h3>
+      <p>The current analog face lifted into 3D &mdash; a tilted glowing dial with beam-like hands sweeping in space. Familiar and elegant, but the least &ldquo;sci-fi&rdquo; and closest to what already exists.</p>
+    </div>
+  </div>
+
+</div>

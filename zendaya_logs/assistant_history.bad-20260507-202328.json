@@ -1,0 +1,200 @@
+[
+  {
+    "timestamp": "2026-04-27 00:55:17",
+    "type": "greeting",
+    "message": "Greeted Ika mode=hybrid emotion=neutral",
+    "data": {
+      "offline": []
+    }
+  },
+  {
+    "timestamp": "2026-04-30 13:45:16",
+    "type": "startup",
+    "message": "Welcome back, Larry. My systems are online and ready. It's currently 30 degrees in Lagos with light drizzle.",
+    "data": {
+      "user": "Larry",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-04-30 13:53:11",
+    "type": "error",
+    "message": "Something went wrong handling that: bad escape \\U at position 3",
+    "data": {
+      "input": "write a simple html chat page in the file name it chatbot"
+    }
+  },
+  {
+    "timestamp": "2026-04-30 13:53:21",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-01 17:43:11",
+    "type": "startup",
+    "message": "Welcome back, Larry. My systems are online and ready.",
+    "data": {
+      "user": "Larry",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-01 17:52:00",
+    "type": "shutdown",
+    "message": "User exited",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-01 17:52:36",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-02 23:58:08",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 15 degrees in Piscataway with overcast.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-02 23:59:28",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-04 01:45:10",
+    "type": "startup",
+    "message": "Welcome back. My systems are online and ready. It's currently 13 degrees in Piscataway with clear skies.",
+    "data": {
+      "user": null,
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-04 11:23:52",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 31 degrees in Lagos with overcast.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-04 17:14:11",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 20 degrees in Piscataway with clear skies.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-04 17:33:51",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-04 17:35:51",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 20 degrees in Piscataway with clear skies.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-04 17:37:53",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-04 17:43:17",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 20 degrees in Piscataway with clear skies.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-04 17:51:18",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-04 18:11:01",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 21 degrees in Piscataway with clear skies.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-04 18:20:52",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-04 23:09:20",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-04 23:10:06",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 22 degrees in Piscataway with clear skies.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-04 23:19:55",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-04 23:24:55",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-04 23:29:55",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-04 23:39:55",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  }
+]
+]

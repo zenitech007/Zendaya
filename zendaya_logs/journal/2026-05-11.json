@@ -1,0 +1,656 @@
+[
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya_memory.json",
+    "meta": {},
+    "ts": 1778508248.5837781
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya_memory.json",
+    "meta": {},
+    "ts": 1778508278.7299087
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya_memory.json",
+    "meta": {},
+    "ts": 1778508308.9063551
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya_memory.json",
+    "meta": {},
+    "ts": 1778508785.115999
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya_memory.json",
+    "meta": {},
+    "ts": 1778508907.3995037
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya_memory.json",
+    "meta": {},
+    "ts": 1778508938.449352
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-pet\\src\\App.tsx",
+    "meta": {},
+    "ts": 1778544362.7242613
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-pet\\package.json",
+    "meta": {},
+    "ts": 1778544423.1795478
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-pet\\package-lock.json",
+    "meta": {},
+    "ts": 1778544453.8391113
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-pet\\package.json",
+    "meta": {},
+    "ts": 1778544454.0261781
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Desktop\\fixes.txt",
+    "meta": {},
+    "ts": 1778544575.0645697
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Desktop\\fixes.txt",
+    "meta": {},
+    "ts": 1778544605.2579365
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\backend\\zendaya_voice_listener.py",
+    "meta": {},
+    "ts": 1778544989.187681
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\backend\\zendaya_voice_listener.py",
+    "meta": {},
+    "ts": 1778545203.6157382
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya_memory.json",
+    "meta": {},
+    "ts": 1778545339.5294065
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya_memory.json",
+    "meta": {},
+    "ts": 1778545370.8584883
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya_memory.json",
+    "meta": {},
+    "ts": 1778545411.8649054
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya_memory.json",
+    "meta": {},
+    "ts": 1778545483.1999621
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya_memory.json",
+    "meta": {},
+    "ts": 1778548176.3135066
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya_memory.json",
+    "meta": {},
+    "ts": 1778548206.4613998
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya_memory.json",
+    "meta": {},
+    "ts": 1778548236.6062086
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya_memory.json",
+    "meta": {},
+    "ts": 1778548266.8146381
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya_memory.json",
+    "meta": {},
+    "ts": 1778548328.128661
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\App.js",
+    "meta": {},
+    "ts": 1778548448.590921
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\main.js",
+    "meta": {},
+    "ts": 1778548448.6024747
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\animations\\easing.js",
+    "meta": {},
+    "ts": 1778548448.6149354
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\animations\\index.js",
+    "meta": {},
+    "ts": 1778548448.6260664
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\animations\\timelines.js",
+    "meta": {},
+    "ts": 1778548448.637106
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\animations\\transitions.js",
+    "meta": {},
+    "ts": 1778548448.6484568
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\DockSystem\\DockSystem.js",
+    "meta": {},
+    "ts": 1778548448.6635828
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\HUD\\Hud.js",
+    "meta": {},
+    "ts": 1778548448.6759255
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\MapModule\\MapModule.js",
+    "meta": {},
+    "ts": 1778548448.6871371
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\Modules\\Calculator.js",
+    "meta": {},
+    "ts": 1778548448.6987617
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\Modules\\Clock.js",
+    "meta": {},
+    "ts": 1778548448.7104394
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\Modules\\ModuleHost.js",
+    "meta": {},
+    "ts": 1778548448.7218418
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\Modules\\ModulePanel.js",
+    "meta": {},
+    "ts": 1778548448.7334335
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\Modules\\Notes.js",
+    "meta": {},
+    "ts": 1778548448.74485
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\Modules\\Weather.js",
+    "meta": {},
+    "ts": 1778548448.7561917
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\Orb\\Orb.js",
+    "meta": {},
+    "ts": 1778548448.7676847
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\Particles\\Particles.js",
+    "meta": {},
+    "ts": 1778548448.7790756
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\VoiceVisualizer\\VoiceVisualizer.js",
+    "meta": {},
+    "ts": 1778548448.790538
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\hooks\\useAdaptiveQuality.js",
+    "meta": {},
+    "ts": 1778548448.8019345
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\hooks\\useAudioEngine.js",
+    "meta": {},
+    "ts": 1778548448.8133445
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\hooks\\useOrbAudio.js",
+    "meta": {},
+    "ts": 1778548448.8249655
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\hooks\\useSpatialAudio.js",
+    "meta": {},
+    "ts": 1778548448.8362956
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\hooks\\useVoiceFX.js",
+    "meta": {},
+    "ts": 1778548448.8476841
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\hooks\\useVoiceState.js",
+    "meta": {},
+    "ts": 1778548448.8595047
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\hooks\\useWebSocket.js",
+    "meta": {},
+    "ts": 1778548448.8710237
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\scenes\\MainScene.js",
+    "meta": {},
+    "ts": 1778548448.8825421
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\shaders\\glowShader.js",
+    "meta": {},
+    "ts": 1778548448.894109
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\shaders\\hologramShader.js",
+    "meta": {},
+    "ts": 1778548448.905665
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\shaders\\index.js",
+    "meta": {},
+    "ts": 1778548448.9174047
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\shaders\\particleShader.js",
+    "meta": {},
+    "ts": 1778548448.9290957
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\store\\zendayaStore.js",
+    "meta": {},
+    "ts": 1778548448.940891
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\systems\\AdaptiveAudioController.js",
+    "meta": {},
+    "ts": 1778548448.9525185
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\systems\\AmbientEngine.js",
+    "meta": {},
+    "ts": 1778548448.964002
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\systems\\AudioManager.js",
+    "meta": {},
+    "ts": 1778548448.9756925
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\systems\\SpatialAudioEngine.js",
+    "meta": {},
+    "ts": 1778548448.9882307
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\systems\\StateAudioRouter.js",
+    "meta": {},
+    "ts": 1778548449.0004473
+  },
+  {
+    "kind": "file_created",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\systems\\SynthEngine.js",
+    "meta": {},
+    "ts": 1778548449.0123127
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Desktop\\fixes.txt",
+    "meta": {},
+    "ts": 1778548479.0425158
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\hooks\\useAudioEngine.ts",
+    "meta": {},
+    "ts": 1778548690.6731594
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\hooks\\useOrbAudio.ts",
+    "meta": {},
+    "ts": 1778548690.6817956
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\hooks\\useVoiceFX.ts",
+    "meta": {},
+    "ts": 1778548690.704319
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\systems\\AdaptiveAudioController.ts",
+    "meta": {},
+    "ts": 1778548690.729767
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\systems\\AmbientEngine.ts",
+    "meta": {},
+    "ts": 1778548690.7641373
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\systems\\AudioManager.ts",
+    "meta": {},
+    "ts": 1778548690.794604
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\systems\\StateAudioRouter.ts",
+    "meta": {},
+    "ts": 1778548721.0388758
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\systems\\SynthEngine.ts",
+    "meta": {},
+    "ts": 1778548721.0644855
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\App.js",
+    "meta": {},
+    "ts": 1778548751.3025553
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\main.js",
+    "meta": {},
+    "ts": 1778548751.3704634
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\animations\\easing.js",
+    "meta": {},
+    "ts": 1778548751.3955572
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\animations\\index.js",
+    "meta": {},
+    "ts": 1778548751.4192455
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\animations\\timelines.js",
+    "meta": {},
+    "ts": 1778548751.4428637
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\animations\\transitions.js",
+    "meta": {},
+    "ts": 1778548751.4647462
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\DockSystem\\DockSystem.js",
+    "meta": {},
+    "ts": 1778548751.4890416
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\HUD\\Hud.js",
+    "meta": {},
+    "ts": 1778548751.5169642
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\MapModule\\MapModule.js",
+    "meta": {},
+    "ts": 1778548751.537065
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\Modules\\Calculator.js",
+    "meta": {},
+    "ts": 1778548751.5648766
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\Modules\\Clock.js",
+    "meta": {},
+    "ts": 1778548751.5850737
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\Modules\\ModuleHost.js",
+    "meta": {},
+    "ts": 1778548751.6064699
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\Modules\\ModulePanel.js",
+    "meta": {},
+    "ts": 1778548751.6285582
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\Modules\\Notes.js",
+    "meta": {},
+    "ts": 1778548751.650035
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\Modules\\Weather.js",
+    "meta": {},
+    "ts": 1778548751.6707785
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\Orb\\Orb.js",
+    "meta": {},
+    "ts": 1778548751.701822
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\Particles\\Particles.js",
+    "meta": {},
+    "ts": 1778548751.725863
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\components\\VoiceVisualizer\\VoiceVisualizer.js",
+    "meta": {},
+    "ts": 1778548751.7501938
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\hooks\\useAdaptiveQuality.js",
+    "meta": {},
+    "ts": 1778548751.7742395
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\hooks\\useAudioEngine.js",
+    "meta": {},
+    "ts": 1778548751.797604
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\hooks\\useOrbAudio.js",
+    "meta": {},
+    "ts": 1778548751.821524
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\hooks\\useSpatialAudio.js",
+    "meta": {},
+    "ts": 1778548751.8443644
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\hooks\\useVoiceFX.js",
+    "meta": {},
+    "ts": 1778548751.8646054
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\hooks\\useVoiceState.js",
+    "meta": {},
+    "ts": 1778548751.8884387
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\hooks\\useWebSocket.js",
+    "meta": {},
+    "ts": 1778548751.9100962
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\scenes\\MainScene.js",
+    "meta": {},
+    "ts": 1778548751.930639
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\shaders\\glowShader.js",
+    "meta": {},
+    "ts": 1778548751.9513655
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\shaders\\hologramShader.js",
+    "meta": {},
+    "ts": 1778548751.9731867
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\shaders\\index.js",
+    "meta": {},
+    "ts": 1778548751.9931817
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\shaders\\particleShader.js",
+    "meta": {},
+    "ts": 1778548752.0105708
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\store\\zendayaStore.js",
+    "meta": {},
+    "ts": 1778548752.0310783
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\systems\\AdaptiveAudioController.js",
+    "meta": {},
+    "ts": 1778548752.0497365
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\systems\\AmbientEngine.js",
+    "meta": {},
+    "ts": 1778548752.0709527
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\systems\\AudioManager.js",
+    "meta": {},
+    "ts": 1778548752.0969336
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\systems\\SpatialAudioEngine.js",
+    "meta": {},
+    "ts": 1778548752.1157236
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\systems\\StateAudioRouter.js",
+    "meta": {},
+    "ts": 1778548752.1372042
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya-hud-react\\src\\systems\\SynthEngine.js",
+    "meta": {},
+    "ts": 1778548752.1567767
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya_memory.json",
+    "meta": {},
+    "ts": 1778551009.0472014
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Desktop\\fixes.txt",
+    "meta": {},
+    "ts": 1778551099.4223802
+  },
+  {
+    "kind": "file_modified",
+    "text": "C:\\Users\\IKA\\Zendaya\\zendaya_memory.json",
+    "meta": {},
+    "ts": 1778554561.0562587
+  }
+]

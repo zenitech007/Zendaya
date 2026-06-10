@@ -1,0 +1,148 @@
+<style>
+  .hx-stage {
+    width: 100%; height: 190px; border-radius: 10px;
+    background: radial-gradient(ellipse at 50% 55%, #0a1420 0%, #050a12 70%, #02040a 100%);
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  /* ---- A: JARVIS warm-gold ---- */
+  .hx-jarvis .ring {
+    position: absolute; border-radius: 50%;
+    border: 1px solid rgba(255,182,72,0.55);
+    box-shadow: 0 0 12px rgba(255,170,60,0.35);
+  }
+  .hx-jarvis .r1 { width: 130px; height: 130px; animation: hx-spin 9s linear infinite; border-style: dashed; }
+  .hx-jarvis .r2 { width: 92px; height: 92px; border-color: rgba(255,200,110,0.7); animation: hx-spin 6s linear infinite reverse; }
+  .hx-jarvis .r3 { width: 56px; height: 56px; border-color: rgba(255,150,40,0.9); }
+  .hx-jarvis .core {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: radial-gradient(circle, #ffd89b 0%, #ff8a1e 60%, rgba(255,120,20,0) 100%);
+    box-shadow: 0 0 26px rgba(255,150,40,0.9);
+  }
+  .hx-jarvis .tick { position:absolute; width:130px; height:130px; }
+  .hx-jarvis .tick span {
+    position:absolute; left:50%; top:0; width:2px; height:9px; margin-left:-1px;
+    background: rgba(255,190,90,0.8); transform-origin: 1px 65px;
+  }
+  /* ---- B: Minority Report cool glass ---- */
+  .hx-mr .panel {
+    position: absolute; border-radius: 8px;
+    background: linear-gradient(135deg, rgba(80,200,255,0.16), rgba(40,120,200,0.05));
+    border: 1px solid rgba(120,220,255,0.5);
+    box-shadow: 0 0 18px rgba(60,180,255,0.25), inset 0 0 18px rgba(120,220,255,0.08);
+  }
+  .hx-mr .p1 { width:120px; height:74px; transform: translate(-26px,-14px) perspective(300px) rotateY(20deg); }
+  .hx-mr .p2 { width:96px; height:58px; transform: translate(34px,24px) perspective(300px) rotateY(-18deg);
+    background: linear-gradient(135deg, rgba(120,235,255,0.22), rgba(40,120,200,0.05)); }
+  .hx-mr .bar { position:absolute; height:4px; border-radius:3px; background: rgba(150,235,255,0.85); box-shadow:0 0 8px rgba(120,220,255,0.8); }
+  .hx-mr .b1 { width:60px; transform: translate(-30px,-26px); }
+  .hx-mr .b2 { width:34px; transform: translate(-43px,-14px); opacity:.6; }
+  /* ---- C: Star Wars projection ---- */
+  .hx-sw .beam {
+    position:absolute; bottom:0; left:50%; margin-left:-70px;
+    width:140px; height:170px;
+    background: linear-gradient(to top, rgba(80,200,255,0.30), rgba(80,200,255,0.02) 75%, transparent);
+    clip-path: polygon(38% 100%, 62% 100%, 88% 0, 12% 0);
+    animation: hx-flick 2.6s steps(8) infinite;
+  }
+  .hx-sw .figure {
+    width:50px; height:90px; border-radius:40% 40% 30% 30%;
+    background: radial-gradient(ellipse at 50% 30%, rgba(170,235,255,0.85), rgba(70,180,255,0.35) 60%, rgba(70,180,255,0) 100%);
+    box-shadow: 0 0 24px rgba(90,200,255,0.7);
+    margin-bottom: 20px; animation: hx-flick 2.6s steps(8) infinite;
+  }
+  .hx-sw .scan {
+    position:absolute; inset:0;
+    background: repeating-linear-gradient(0deg, rgba(120,220,255,0.10) 0 2px, transparent 2px 5px);
+    mix-blend-mode: screen; pointer-events:none;
+  }
+  /* ---- D: Avatar / Oblivion clean ---- */
+  .hx-clean .globe {
+    width:118px; height:118px; border-radius:50%;
+    border: 1px solid rgba(180,240,255,0.85);
+    box-shadow: 0 0 16px rgba(150,230,255,0.45), inset 0 0 22px rgba(120,220,255,0.18);
+    position: relative; animation: hx-spin 16s linear infinite;
+  }
+  .hx-clean .globe::before, .hx-clean .globe::after {
+    content:""; position:absolute; inset:0; border-radius:50%;
+    border:1px solid rgba(150,230,255,0.4);
+  }
+  .hx-clean .globe::before { transform: scaleX(0.45); }
+  .hx-clean .globe::after  { transform: scaleY(0.45); }
+  .hx-clean .merid { position:absolute; left:50%; top:0; width:1px; height:118px; background:rgba(150,230,255,0.35); }
+  .hx-clean .dot {
+    position:absolute; width:6px; height:6px; border-radius:50%;
+    background:#9fe9ff; box-shadow:0 0 10px rgba(150,230,255,0.9);
+    left:30px; top:44px;
+  }
+  @keyframes hx-spin { to { transform: rotate(360deg); } }
+  @keyframes hx-flick {
+    0%,100% { opacity:.92 } 12% { opacity:.6 } 24% { opacity:.95 }
+    50% { opacity:.7 } 62% { opacity:1 } 78% { opacity:.55 }
+  }
+  .hx-cap { font-size:10px; letter-spacing:.18em; text-transform:uppercase; opacity:.6; margin-top:6px; }
+</style>
+
+<h2>Which hologram aesthetic should Zendaya wear?</h2>
+<p class="subtitle">These are look-and-feel directions for the whole HUD — the orb, the world-map transform, every scene. Pick the one that feels right (or mix-and-match in the terminal).</p>
+
+<div class="cards">
+  <div class="card" data-choice="jarvis" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="hx-stage hx-jarvis">
+        <div class="ring r1"></div>
+        <div class="ring r2"></div>
+        <div class="ring r3"></div>
+        <div class="tick"><span style="transform:rotate(0deg)"></span><span style="transform:rotate(60deg)"></span><span style="transform:rotate(120deg)"></span><span style="transform:rotate(180deg)"></span><span style="transform:rotate(240deg)"></span><span style="transform:rotate(300deg)"></span></div>
+        <div class="core"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A · JARVIS / Iron Man</h3>
+      <p>Warm gold-amber wireframe. Dense concentric rings, rotating HUD arcs, technical readouts. Reads as <em>powerful engineering tech</em>.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="minority" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="hx-stage hx-mr">
+        <div class="panel p1"></div>
+        <div class="panel p2"></div>
+        <div class="bar b1"></div>
+        <div class="bar b2"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B · Minority Report</h3>
+      <p>Cool cyan glass panels floating in space. Frosted, sleek, gesture-driven. Reads as <em>clean and futuristic</em>.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="starwars" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="hx-stage hx-sw">
+        <div class="figure"></div>
+        <div class="beam"></div>
+        <div class="scan"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C · Star Wars Projection</h3>
+      <p>Flickering blue volumetric beam, scanlines, ghosted edges. Reads as <em>"being projected" — alive and atmospheric</em>.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="clean" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="hx-stage hx-clean">
+        <div class="globe"><span class="merid"></span><span class="dot"></span></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>D · Avatar / Oblivion Glass</h3>
+      <p>Bright white-cyan, ultra-minimal. Crisp thin lines, lots of black space, elegant restraint. Reads as <em>premium and calm</em>.</p>
+    </div>
+  </div>
+</div>
+
+<p class="label">Click a card to choose — then tell me in the terminal →</p>

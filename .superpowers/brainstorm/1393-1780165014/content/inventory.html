@@ -1,0 +1,89 @@
+<h2>Zendaya HUD — current inventory</h2>
+<p class="subtitle">What exists today, before we decide what to build</p>
+
+<div class="section">
+  <h3>🎯 zendaya-hud-react/ — the canonical HUD</h3>
+  <p>Vite + React 18 + Three.js (R3F) + GSAP + Zustand + Tauri 2. Has a <strong>shipped <code>dist/</code></strong>, frameless 1280×800 Tauri window.</p>
+  <div class="mockup">
+    <div class="mockup-header">Components present (src/)</div>
+    <div class="mockup-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div>
+          <strong>Scenes &amp; Visual core</strong>
+          <ul style="margin-top:6px">
+            <li>Orb/ — main 3D orb</li>
+            <li>Particles/ — particle field</li>
+            <li>shaders/ glow + hologram + particle GLSL</li>
+            <li>animations/ GSAP timelines + easing</li>
+            <li>scenes/MainScene</li>
+          </ul>
+        </div>
+        <div>
+          <strong>UI surfaces</strong>
+          <ul style="margin-top:6px">
+            <li>HUD/Hud + MusicPlayer</li>
+            <li>DockSystem/</li>
+            <li>VoiceVisualizer/</li>
+            <li>Modules/{Calculator, Clock, Notes, Weather, ModuleHost, ModulePanel}</li>
+            <li>MapModule/</li>
+          </ul>
+        </div>
+        <div>
+          <strong>Audio engine</strong>
+          <ul style="margin-top:6px">
+            <li>SpatialAudioEngine</li>
+            <li>SynthEngine (Tone.js)</li>
+            <li>AmbientEngine / AudioManager</li>
+            <li>StateAudioRouter / AdaptiveAudio</li>
+          </ul>
+        </div>
+        <div>
+          <strong>State / data</strong>
+          <ul style="margin-top:6px">
+            <li>store/zendayaStore (Zustand)</li>
+            <li>hooks/useWebSocket → ws://127.0.0.1:7475/ws</li>
+            <li>useVoiceState, useOrbAudio, useAdaptiveQuality, useVoiceFX</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>📡 Backend already exposes (zendaya_state_server, FastAPI :7475)</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Consumed today</div>
+      <div class="mockup-body">
+        <ul>
+          <li>WebSocket /ws → useWebSocket hook</li>
+          <li>now-playing → MusicPlayer</li>
+        </ul>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Available but NOT wired</div>
+      <div class="mockup-body">
+        <ul>
+          <li>set_telemetry_provider → CPU / mem / mic level / mood</li>
+          <li>set_perception_providers → face presence + last gesture</li>
+          <li>set_visemes → mouth weights</li>
+          <li>set_body_action → orb body action</li>
+          <li>set_action → arbitrary scene actions</li>
+          <li>/ai_status, /face_mode, /window endpoints</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>🐾 Adjacent projects (NOT today's focus)</h3>
+  <ul>
+    <li><code>zendaya-pet/</code> — separate Tauri desktop pet w/ VRM avatar. Different product surface.</li>
+    <li><code>zendaya-hud-template/</code> — empty scaffold superseded by <code>zendaya-hud-react/</code>. Can be ignored.</li>
+  </ul>
+</div>
+
+<p class="subtitle">👉 Tell me in the terminal what direction you want to take.</p>

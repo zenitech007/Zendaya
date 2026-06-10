@@ -1,0 +1,878 @@
+[
+  {
+    "timestamp": "2026-04-27 00:55:17",
+    "type": "greeting",
+    "message": "Greeted Ika mode=hybrid emotion=neutral",
+    "data": {
+      "offline": []
+    }
+  },
+  {
+    "timestamp": "2026-04-30 13:45:16",
+    "type": "startup",
+    "message": "Welcome back, Larry. My systems are online and ready. It's currently 30 degrees in Lagos with light drizzle.",
+    "data": {
+      "user": "Larry",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-04-30 13:53:11",
+    "type": "error",
+    "message": "Something went wrong handling that: bad escape \\U at position 3",
+    "data": {
+      "input": "write a simple html chat page in the file name it chatbot"
+    }
+  },
+  {
+    "timestamp": "2026-04-30 13:53:21",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-01 17:43:11",
+    "type": "startup",
+    "message": "Welcome back, Larry. My systems are online and ready.",
+    "data": {
+      "user": "Larry",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-01 17:52:00",
+    "type": "shutdown",
+    "message": "User exited",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-01 17:52:36",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-02 23:58:08",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 15 degrees in Piscataway with overcast.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-02 23:59:28",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-04 01:45:10",
+    "type": "startup",
+    "message": "Welcome back. My systems are online and ready. It's currently 13 degrees in Piscataway with clear skies.",
+    "data": {
+      "user": null,
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-04 11:23:52",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 31 degrees in Lagos with overcast.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-04 17:14:11",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 20 degrees in Piscataway with clear skies.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-04 17:33:51",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-04 17:35:51",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 20 degrees in Piscataway with clear skies.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-04 17:37:53",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-04 17:43:17",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 20 degrees in Piscataway with clear skies.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-04 17:51:18",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-04 18:11:01",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 21 degrees in Piscataway with clear skies.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-04 18:20:52",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-04 23:09:20",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-04 23:10:06",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 22 degrees in Piscataway with clear skies.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-04 23:19:55",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-04 23:24:55",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-04 23:29:55",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-04 23:39:55",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-07 20:23:28",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 14 degrees in Minneapolis with clear skies.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-07 20:33:21",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-07 20:38:21",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-07 20:38:26",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-08 08:59:52",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 29 degrees in Lagos with heavy drizzle.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-08 09:00:20",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-08 09:14:26",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 28 degrees in Lagos with heavy drizzle.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-08 09:14:45",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-08 15:06:50",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 28 degrees in Lagos with overcast. Heads up — I'm offline right now, so search and AI features will be limited.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-08 15:07:15",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-08 15:46:53",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 28 degrees in Lagos with overcast. Heads up — I'm offline right now, so search and AI features will be limited.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-08 15:47:32",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-08 15:55:17",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 28 degrees in Lagos with overcast.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-08 15:55:40",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-08 15:57:28",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 28 degrees in Lagos with overcast.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-08 15:57:39",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-08 16:03:57",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-08 16:04:03",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-08 16:08:56",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 28 degrees in Lagos with overcast.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-08 16:09:16",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-08 17:13:05",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 27 degrees in Lagos with overcast.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-08 18:37:16",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 27 degrees in Lagos with overcast.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-08 18:47:12",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-08 18:52:12",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-08 18:57:12",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-08 19:07:12",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-08 19:17:12",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-08 19:22:12",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-08 19:27:12",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-08 19:34:58",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-08 19:42:34",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-08 19:52:20",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-08 19:57:20",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-08 19:57:58",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-09 04:22:36",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 28 degrees in Lagos with overcast.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-09 04:25:10",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-09 11:48:52",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-09 11:53:02",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-09 11:54:08",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. Heads up — I'm offline right now, so search and AI features will be limited.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-09 11:54:25",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-09 11:55:13",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 28 degrees in Lagos with overcast.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-09 11:58:34",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-10 04:15:05",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 29 degrees in Lagos with light drizzle.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-10 04:25:00",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-10 04:30:00",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-10 04:35:00",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-10 04:45:00",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-10 04:45:58",
+    "type": "shutdown",
+    "message": "User exited",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-10 07:44:30",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 30 degrees in Lagos with mostly clear.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-10 07:54:25",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-10 07:59:25",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-10 08:00:54",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-10 08:01:39",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 29 degrees in Lagos with partly cloudy.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-10 08:11:33",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-10 08:16:33",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-10 08:21:33",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-10 08:31:33",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-10 08:41:33",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-10 08:42:06",
+    "type": "shutdown",
+    "message": "User exited",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-10 20:07:33",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 28 degrees in Lagos with overcast.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-10 20:17:19",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-10 20:22:19",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-10 20:27:19",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-10 20:37:19",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-10 20:44:05",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-11 10:02:13",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 30 degrees in Lagos with overcast.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-11 10:17:07",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-11 10:17:29",
+    "type": "shutdown",
+    "message": "User exited",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-11 19:35:06",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 28 degrees in Lagos with mostly clear.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-11 20:00:09",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-11 20:09:58",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-11 20:14:58",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-11 20:19:57",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-11 20:20:48",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-11 20:21:24",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 28 degrees in Lagos with clear skies.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-11 20:25:10",
+    "type": "shutdown",
+    "message": "Keyboard interrupt",
+    "data": {}
+  },
+  {
+    "timestamp": "2026-05-11 21:08:40",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 17 degrees in Minneapolis with mostly clear.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-11 21:18:36",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-11 21:23:35",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-11 21:28:35",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-11 21:38:35",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-11 21:48:35",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-11 21:55:53",
+    "type": "startup",
+    "message": "Welcome back, Your. My systems are online and ready. It's currently 28 degrees in Lagos with clear skies.",
+    "data": {
+      "user": "Your",
+      "online": true
+    }
+  },
+  {
+    "timestamp": "2026-05-11 22:05:47",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-11 22:10:47",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  },
+  {
+    "timestamp": "2026-05-11 22:15:47",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "calendar"
+    }
+  },
+  {
+    "timestamp": "2026-05-11 22:25:47",
+    "type": "google_auth",
+    "message": "credentials.json missing",
+    "data": {
+      "api": "gmail"
+    }
+  }
+]
+]

@@ -341,6 +341,12 @@ ExportedObj/
 *.opendb
 *.VC.db
 
+# Rust/Tauri build files
+src-tauri/target/
+
+# Bundled WebView2 fixed-version runtime (redistributable; ~650 MB, do not commit)
+zendaya-hud-react/src-tauri/webview2-runtime/
+
 # Unity3D generated meta files
 *.pidb.meta
 *.pdb.meta
@@ -423,5 +429,5 @@ zendaya_backend/zendaya_logs/
 # Graphify knowledge graph (regenerable)
 graphify-out/
 
-# Voice wake model (binary, regenerable from upstream)
-backend/voice/zendaya_wake.onnx
+# Spotify OAuth token cache — contains live access/refresh tokens, never commit
+zendaya_data/.spotify_token_cache
