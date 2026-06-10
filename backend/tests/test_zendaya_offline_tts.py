@@ -71,3 +71,56 @@ def test_pcm_bytes_response_chunks_exactly():
     chunks = list(r.iter_content(chunk_size=4))
     assert chunks == [bytes(range(0, 4)), bytes(range(4, 8)), bytes(range(8, 10))]
     assert b"".join(chunks) == data
+
+
+class _FakeSynth:
+    output_sample_rate = 22050
+
+
+class _FakeModel:
+    def __init__(self, wav):
+        self.synthesizer = _FakeSynth()
+        self._wav = wav
+
+    def tts(self, text, speaker=None):
+        return self._wav
+
+
+def test_synth_to_pcm_returns_int16_pcm(monkeypatch):
+    import zendaya_offline_tts as ot
+    wav = np.linspace(-1.0, 1.0, num=2205, dtype=np.float32)  # 0.1s @ 22050
+    monkeypatch.setattr(ot, "_get_model", lambda: _FakeModel(wav))
+    pcm = ot.synth_to_pcm("One sentence.")
+    arr = np.frombuffer(pcm, dtype="<i2")
+    assert arr.dtype == np.int16
+    assert len(arr) == 2205
+
+
+def test_synth_to_pcm_concats_sentences(monkeypatch):
+    import zendaya_offline_tts as ot
+    monkeypatch.setattr(ot, "_get_model", lambda: _FakeModel(np.zeros(100, dtype=np.float32)))
+    pcm = ot.synth_to_pcm("First. Second. Third.")
+    arr = np.frombuffer(pcm, dtype="<i2")
+    assert len(arr) == 300
+
+
+def test_synth_to_pcm_empty_text_does_not_load_model(monkeypatch):
+    import zendaya_offline_tts as ot
+
+    def _boom():
+        raise AssertionError("model should not load for empty text")
+
+    monkeypatch.setattr(ot, "_get_model", _boom)
+    assert ot.synth_to_pcm("   ") == b""
+
+
+def test_synth_to_pcm_wraps_model_error(monkeypatch):
+    import zendaya_offline_tts as ot
+
+    class _Broken(_FakeModel):
+        def tts(self, text, speaker=None):
+            raise RuntimeError("boom")
+
+    monkeypatch.setattr(ot, "_get_model", lambda: _Broken(np.zeros(1, dtype=np.float32)))
+    with pytest.raises(ot.OfflineTTSError):
+        ot.synth_to_pcm("Hello.")

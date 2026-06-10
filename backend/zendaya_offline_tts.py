@@ -95,3 +95,71 @@ class PcmBytesResponse:
         size = chunk_size or self._chunk
         for i in range(0, len(self._data), size):
             yield self._data[i:i + size]
+
+
+# ── lazy Coqui model singleton ──────────────────────────────────────────────
+_model = None
+_model_lock = threading.Lock()
+
+
+def _install_transformers_shim() -> None:
+    """transformers 5.x removed isin_mps_friendly; coqui-tts 0.27.5 still imports
+    it. Re-inject a torch.isin-based equivalent before importing TTS, so we don't
+    have to downgrade the shared transformers (used by airllm/optimum)."""
+    try:
+        import torch
+        import transformers.pytorch_utils as ptu
+        if not hasattr(ptu, "isin_mps_friendly"):
+            def isin_mps_friendly(elements, test_elements):
+                return torch.isin(elements, test_elements)
+            ptu.isin_mps_friendly = isin_mps_friendly
+    except Exception:
+        pass
+
+
+def _get_model():
+    global _model
+    if _model is not None:
+        return _model
+    with _model_lock:
+        if _model is not None:
+            return _model
+        _install_transformers_shim()
+        try:
+            from TTS.api import TTS as _TTSApi
+        except Exception as e:
+            raise OfflineTTSError(f"Coqui TTS import failed: {e}") from e
+        try:
+            _model = _TTSApi(model_name=MODEL_NAME, progress_bar=False, gpu=False)
+        except Exception as e:
+            raise OfflineTTSError(f"Coqui model load failed: {e}") from e
+    return _model
+
+
+def is_ready() -> bool:
+    return _model is not None
+
+
+def warmup() -> bool:
+    try:
+        _get_model()
+        return True
+    except OfflineTTSError:
+        return False
+
+
+def synth_to_pcm(text: str, target_sr: int = TARGET_SR, speaker: Optional[str] = None) -> bytes:
+    sentences = _split_sentences(text)
+    if not sentences:
+        return b""
+    model = _get_model()
+    spk = speaker or DEFAULT_SPEAKER
+    out = bytearray()
+    for sentence in sentences:
+        try:
+            wav = model.tts(text=sentence, speaker=spk)
+        except Exception as e:
+            raise OfflineTTSError(f"Coqui synth failed: {e}") from e
+        sr = getattr(getattr(model, "synthesizer", None), "output_sample_rate", TARGET_SR) or TARGET_SR
+        out += _wave_to_pcm16(np.asarray(wav, dtype=np.float32), sr, target_sr)
+    return bytes(out)
