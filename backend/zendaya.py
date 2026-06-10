@@ -407,8 +407,52 @@ def _stream_pcm_playback(response, samplerate: int = _TTS_PCM_RATE):
         except Exception:
             pass
 
+def _speak_offline_async(text: str):
+    """Synthesize with the offline Coqui engine and play through the shared
+    PCM/viseme pipeline (same path as ElevenLabs). Falls back to system TTS."""
+    import zendaya_offline_tts as _offline_tts
+
+    def _run():
+        _TTS_STOP.clear()
+        _set_tts_gate(True)
+        try:
+            import zendaya_visemes as _viz
+            _viz.PLAYER.start(_viz.build_schedule(text))
+            try:
+                _viz.ANALYZER.reset()
+            except Exception:
+                pass
+        except Exception:
+            pass
+        try:
+            pcm = _offline_tts.synth_to_pcm(text, target_sr=_TTS_PCM_RATE)
+            if not pcm:
+                speak_system_fallback(text)
+            elif not _TTS_STOP.is_set():
+                _stream_pcm_playback(
+                    _offline_tts.PcmBytesResponse(pcm), samplerate=_TTS_PCM_RATE
+                )
+        except Exception as e:
+            print(f"(Offline TTS failed: {e})")
+            speak_system_fallback(text)
+        finally:
+            _set_tts_gate(False)
+
+    threading.Thread(target=_run, daemon=True).start()
+
 def speak_async(text: str, voice_id: str):
     """Streams ElevenLabs TTS and plays as bytes arrive (low-latency)."""
+    # Offline-first hybrid: unless the user selected ElevenLabs, speak offline.
+    try:
+        import zendaya_offline_tts as _offline_tts
+        _engine_pref = _offline_tts.get_voice_engine()
+    except Exception:
+        _offline_tts = None
+        _engine_pref = "elevenlabs"
+    if _offline_tts is not None and _engine_pref == "offline":
+        _speak_offline_async(text)
+        return
+
     # Per-language voice override: if the active language has its own voice ID,
     # use it; otherwise fall back to Zendaya's default voice.
     _lang_voice = None
@@ -427,7 +471,11 @@ def speak_async(text: str, voice_id: str):
     }
 
     if not _ELEVENLABS_READY or 'sd' not in globals() or not is_connected():
-        speak_system_fallback(text)
+        # Offline-first: prefer the offline engine over robotic system TTS.
+        if _offline_tts is not None:
+            _speak_offline_async(text)
+        else:
+            speak_system_fallback(text)
         return
 
     # Pick TTS model: turbo_v2_5 is fast English-only; multilingual_v2 covers
@@ -2882,6 +2930,19 @@ def handle_user_command(user_text: str):
             except Exception:
                 pass
         msg = _vis["reply"]
+        send_response(msg)
+        add_to_memory(PERSONA_NAME, msg)
+        return
+
+    # --- Voice engine switch: "/voice offline", "use my elevenlabs voice", "/voice status" ---
+    try:
+        import zendaya_offline_tts as _offline_tts
+        _vcmd = _offline_tts.parse_voice_command(user_text)
+    except Exception:
+        _offline_tts = None
+        _vcmd = None
+    if _vcmd:
+        msg = _offline_tts.handle_voice_command(_vcmd)
         send_response(msg)
         add_to_memory(PERSONA_NAME, msg)
         return
