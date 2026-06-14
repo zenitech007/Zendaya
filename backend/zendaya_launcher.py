@@ -1,9 +1,8 @@
-"""zendaya_launcher.py — supervises the Zendaya backend + launches the Tauri HUD.
+"""zendaya_launcher.py — supervises the Zendaya backend.
 
 Run by launch-zendaya.ps1 (hidden). Spawns the backend headless, waits for the
-state server's /health, opens the HUD, and restarts the backend if it crashes.
-A second launch re-attaches a HUD to the already-running backend. `--quit` shuts
-everything down cleanly. Console is hidden, so all diagnostics go to
+state server's /health, and restarts the backend if it crashes. `--quit` shuts
+it down cleanly. Console is hidden, so all diagnostics go to
 zendaya_logs/launcher.log.
 """
 from __future__ import annotations
@@ -27,8 +26,6 @@ PID_FILE = LOG_DIR / "launcher.pid"
 LAUNCHER_LOG = LOG_DIR / "launcher.log"
 BACKEND_LOG = LOG_DIR / "backend.log"
 VENV_PYTHONW = REPO_ROOT / "venv" / "Scripts" / "pythonw.exe"
-RELEASE_DIR = REPO_ROOT / "zendaya-hud-react" / "src-tauri" / "target" / "release"
-HUD_EXE_NAME = "Zendaya HUD.exe"
 
 HEALTH_URL = "http://127.0.0.1:7475/health"
 QUIT_URL = "http://127.0.0.1:7475/quit"
@@ -119,30 +116,6 @@ def wait_for_health(timeout: float = HEALTH_TIMEOUT, interval: float = HEALTH_IN
     return False
 
 
-# ── Tauri HUD ──
-def find_hud_exe() -> Path | None:
-    """Locate the built Tauri HUD .exe; prefer the productName, else any top-level .exe."""
-    preferred = RELEASE_DIR / HUD_EXE_NAME
-    if preferred.exists():
-        return preferred
-    if RELEASE_DIR.is_dir():
-        exes = sorted(RELEASE_DIR.glob("*.exe"))
-        if exes:
-            return exes[0]
-    return None
-
-
-def launch_hud() -> bool:
-    """Open the Tauri HUD window. Returns False (and logs) if the build is missing."""
-    exe = find_hud_exe()
-    if exe is None:
-        log.error("HUD executable not found in %s — run setup-zendaya.ps1 first.", RELEASE_DIR)
-        return False
-    subprocess.Popen([str(exe)], cwd=str(exe.parent))
-    log.info("Launched HUD: %s", exe)
-    return True
-
-
 # ── Supervision (crash → restart with capped backoff) ──
 RESTART_BACKOFF = [1, 2, 4, 8, 16]  # seconds; index clamps to last
 MAX_RESTARTS = 5                     # crashes before giving up (avoids hot-loop)
@@ -200,10 +173,9 @@ def main(argv: list[str] | None = None) -> int:
         print("Zendaya backend:", "running" if backend_is_ours() else "not running")
         return 0
 
-    # Default: launch. If a healthy Zendaya is already up, just attach a HUD.
+    # Default: launch. If a healthy Zendaya is already up, there's nothing to do.
     if backend_is_ours():
-        log.info("Backend already running — attaching a new HUD.")
-        launch_hud()
+        log.info("Backend already running — nothing to launch.")
         return 0
 
     write_pid()
@@ -212,7 +184,6 @@ def main(argv: list[str] | None = None) -> int:
         log.error("Backend did not become healthy within %ss — aborting.", HEALTH_TIMEOUT)
         remove_pid()
         return 1
-    launch_hud()
     return supervise(proc)
 
 

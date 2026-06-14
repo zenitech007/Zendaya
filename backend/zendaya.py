@@ -148,14 +148,6 @@ except Exception as _e:
     _HOTKEY_READY = False
 
 try:
-    import zendaya_face_modes as _faces
-    _FACES_READY = True
-except Exception as _e:
-    print(f"[zendaya] face modes module unavailable: {_e}")
-    _faces = None
-    _FACES_READY = False
-
-try:
     import zendaya_memory_facts as _facts
     _FACTS_READY = True
 except Exception as _e:
@@ -2946,15 +2938,6 @@ def handle_user_command(user_text: str):
         send_response(msg)
         add_to_memory(PERSONA_NAME, msg)
         return
-
-    # --- Face-mode switching: "switch to anime", "minimize", "what face are you in" ---
-    if _FACES_READY:
-        f = _faces.parse_face_command(user_text)
-        if f:
-            msg = _faces.handle_face_command(f)
-            send_response(msg)
-            add_to_memory(PERSONA_NAME, msg)
-            return
 
     # --- Screen awareness toggle / "what am I doing" ---
     if _SCREEN_READY:

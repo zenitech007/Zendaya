@@ -399,24 +399,6 @@ async def ws_endpoint(ws: WebSocket):
         _WS_CLIENTS.discard(ws)
 
 
-@app.get("/ui")
-def ui():
-    """Serve the HUD HTML directly so the user can hit http://127.0.0.1:7475/ui ."""
-    import os
-    here = os.path.dirname(os.path.abspath(__file__))
-    return FileResponse(os.path.join(here, "zendaya_ui.html"))
-
-
-@app.get("/face_mode")
-def face_mode():
-    """Return the active frontend mode. Polled by pet/HUD to self-hide if needed."""
-    try:
-        import zendaya_face_modes as _fm
-        return {"mode": _fm.current()}
-    except Exception:
-        return {"mode": "pet"}
-
-
 @app.get("/health")
 def health():
     return {"ok": True, "name": "Zendaya"}
