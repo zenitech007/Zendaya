@@ -1,6 +1,0 @@
-node_modules
-dist
-src/index.html
-src-tauri/target
-src-tauri/Cargo.lock
-.DS_Store

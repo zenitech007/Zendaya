@@ -44,6 +44,8 @@ flake8
 langchain-google-genai>=0.0.5
 langchain>=0.1.0
 
+dateparser>=1.2.0  # natural-language one-shot alarm/timer time parsing (zendaya_assistant_features)
+
 slowapi>=0.1.9
 
 setuptools<81
