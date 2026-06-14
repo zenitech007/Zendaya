@@ -1,0 +1,62 @@
+# Zendaya backend — Python dependencies (pinned to the working venv).
+# Generated from the backend's actual imports. Voice extras are also listed in
+# requirements-offline-voice.txt; install eSpeak-NG (system) for offline TTS.
+
+# --- Web / IPC (state server) ---
+fastapi==0.136.1
+uvicorn==0.46.0
+pydantic==2.13.3
+requests==2.33.1
+python-dotenv==1.2.2
+
+# --- LLM / Google APIs ---
+google-genai==2.0.0
+google-api-python-client==2.194.0
+google-api-core==2.30.3
+google-auth==2.49.2
+google-auth-oauthlib==1.3.1
+googleapis-common-protos==1.74.0
+protobuf==7.34.1
+
+# --- Voice: TTS / STT / wake / audio ---
+coqui-tts==0.27.5
+torch==2.11.0
+transformers==5.8.0
+openai-whisper==20250625
+openwakeword==0.6.0
+silero-vad==6.2.1
+webrtcvad-wheels==2.0.14
+SpeechRecognition==3.16.1
+pyttsx3==2.99
+sounddevice==0.5.5
+soundfile==0.13.1
+noisereduce==3.0.3
+numpy==2.4.4
+scipy==1.17.1
+
+# --- Perception / vision / automation ---
+mediapipe==0.10.35
+opencv-python==4.13.0.92
+opencv-contrib-python==4.13.0.92
+pillow==12.2.0
+mss==10.2.0
+PyAutoGUI==0.9.54
+PyGetWindow==0.0.9
+keyboard==0.13.5
+pyperclip==1.11.0
+
+# --- Integrations / system ---
+spotipy==2.26.0
+APScheduler==3.11.2
+dateparser==1.4.0
+psutil==7.2.2
+pywin32==311
+win10toast==0.9
+
+# --- Optional (imported defensively; enable extra features) ---
+# chromadb            # vector memory (falls back to JSON facts if absent)
+# faster-whisper      # faster STT backend (falls back to openai-whisper)
+# deepfilternet       # DNN denoise (unavailable on Py 3.14; uses noisereduce)
+# mutagen             # audio tag reading for the local music library
+# playwright          # browser automation skill
+# pyannote.audio      # speaker diarization
