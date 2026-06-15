@@ -97,6 +97,30 @@ def test_push_respects_zen_higher_threshold(monkeypatch):
     assert eng.last_fired_model is None
 
 
+def test_push_barge_in_uses_stricter_threshold(monkeypatch):
+    # zendaya smoothed 0.6 >= normal 0.5 but < barge 0.72
+    eng, fake = _engine_with_fake(monkeypatch, ["m/zendaya.onnx"],
+                                  [{"zendaya": 0.6}] * wake.SMOOTH_WINDOW)
+    frame = np.zeros(wake.WAKE_CHUNK_SAMPLES * wake.SMOOTH_WINDOW, dtype=np.int16)
+    assert eng.push(frame, barge_in=True) is False
+
+
+def test_push_cooldown_blocks_second_fire(monkeypatch):
+    eng, fake = _engine_with_fake(monkeypatch, ["m/zendaya.onnx"], [{"zendaya": 0.9}])
+    frame = np.zeros(wake.WAKE_CHUNK_SAMPLES, dtype=np.int16)
+    assert eng.push(frame) is True            # first fire
+    fake.set_scores({"zendaya": 0.9})
+    assert eng.push(frame) is False           # within COOLDOWN_S -> blocked
+
+
+def test_push_second_model_fires_and_is_recorded(monkeypatch):
+    eng, fake = _engine_with_fake(monkeypatch, ["m/zendaya.onnx", "m/zen.onnx"],
+                                  [{"zendaya": 0.0, "zen": 0.9}])
+    frame = np.zeros(wake.WAKE_CHUNK_SAMPLES, dtype=np.int16)
+    assert eng.push(frame) is True
+    assert eng.last_fired_model == "zen"
+
+
 import os
 
 

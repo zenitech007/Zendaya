@@ -36,6 +36,7 @@ _DEFAULT_THRESHOLDS = {"zendaya": 0.5, "zen": 0.7, "hey_jarvis": 0.5}
 
 def _model_key(entry: str) -> str:
     """openWakeWord keys a model by its file basename (no ext); builtins by name."""
+    # Only `.onnx` file paths and builtin model names are supported here.
     if entry.endswith(".onnx") or "/" in entry or "\\" in entry:
         return os.path.splitext(os.path.basename(entry))[0]
     return entry
@@ -142,7 +143,8 @@ class WakeEngine:
 
     def push(self, frame_int16: np.ndarray, barge_in: bool = False) -> bool:
         """Push a frame; return True iff any model's smoothed score crosses its
-        threshold (records `last_fired_model`/`last_score`)."""
+        threshold. Records `last_fired_model` and `last_score` (the *smoothed*
+        score at fire time, not a raw single-frame score)."""
         if self._model is None:
             return False
         self._accum = np.concatenate([self._accum, frame_int16])
@@ -151,9 +153,13 @@ class WakeEngine:
             chunk = self._accum[:WAKE_CHUNK_SAMPLES]
             self._accum = self._accum[WAKE_CHUNK_SAMPLES:]
             scores = self._predict(chunk)
+            # Append this chunk's score for EVERY model before evaluating fires,
+            # so an earlier model firing (which clears the deques) can't rob a
+            # later model of this chunk's sample (order-independent smoothing).
+            for key in self.model_keys:
+                self._scores[key].append(float(scores.get(key, 0.0)))
             for key in self.model_keys:
                 dq = self._scores[key]
-                dq.append(float(scores.get(key, 0.0)))
                 smoothed = sum(dq) / len(dq)
                 thresh = self.barge_threshold if barge_in else self.thresholds.get(key, 0.5)
                 if smoothed >= thresh and time.time() - self._last_fire_ts > COOLDOWN_S:
