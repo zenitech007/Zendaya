@@ -23,6 +23,11 @@ because the assistant runs with `backend/` on `sys.path` (cwd = `backend/`; test
 The default voice is offline Coqui TTS; switch at runtime with `/voice offline | elevenlabs`.
 Offline TTS needs eSpeak-NG installed (`winget install --id eSpeak-NG.eSpeak-NG -e`).
 
+Wake words are custom openWakeWord models (`zendaya.onnx`/`zen.onnx` in
+`backend/voice/models/`, trained via `docs/superpowers/guides/wake-training-colab.md`);
+the engine falls back to `hey_jarvis` if they're absent. Tune via `ZENDAYA_WAKE_MODEL` /
+`ZENDAYA_WAKE_THRESHOLD`.
+
 ## Graphify (preferred for codebase questions)
 
 This repo is indexed by [Graphify](https://github.com/safishamsi/graphify). When you need to understand the codebase — how modules relate, where a function is defined, what calls what — prefer the `/graphify` skill over raw `Read`/`Grep`. Graph queries are bounded (default 2000-token budget) and far cheaper than reading whole files.

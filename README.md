@@ -14,7 +14,9 @@ it talks back.
 ## Features
 
 - **Brain** — Google Gemini (via `google-genai`) for conversation and reasoning.
-- **Voice in** — wake word (openWakeWord) → VAD (Silero) + denoise → Whisper STT.
+- **Voice in** — custom **"Zendaya"/"Zen"** wake words (openWakeWord, trained via the
+  free Colab guide in `docs/superpowers/guides/wake-training-colab.md`) → VAD (Silero) +
+  denoise → Whisper STT. Falls back to `hey_jarvis` until the models are trained.
 - **Voice out** — **offline-first**: Coqui TTS (VITS) is the default voice; ElevenLabs
   is available on demand; `pyttsx3` is the last-resort fallback. Switch at runtime
   with `/voice offline | elevenlabs`.
