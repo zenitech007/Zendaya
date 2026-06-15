@@ -1,329 +1,114 @@
-# 🤖 Zendaya AI Assistant - JARVIS Architecture
+# Zendaya — Offline-First Desktop Voice Assistant
 
-<div align="center">
+Zendaya is a local **Windows desktop voice assistant** with a Google Gemini brain,
+offline-capable speech, persistent memory, and a set of skills for controlling the
+machine and a few external services. It runs **headless** (no GUI) — you talk to it,
+it talks back.
 
-![Zendaya AI](https://img.shields.io/badge/Zendaya-AI%20Assistant-blue?style=for-the-badge&logo=robot)
-![Python](https://img.shields.io/badge/Python-3.9+-green?style=for-the-badge&logo=python)
-![FastAPI](https://img.shields.io/badge/FastAPI-Backend-red?style=for-the-badge&logo=fastapi)
-![Flutter](https://img.shields.io/badge/Flutter-Mobile-blue?style=for-the-badge&logo=flutter)
-![Unity](https://img.shields.io/badge/Unity-AR%20Client-black?style=for-the-badge&logo=unity)
-![React](https://img.shields.io/badge/React-Dashboard-cyan?style=for-the-badge&logo=react)
-
-**A distributed AI assistant system inspired by JARVIS from Iron Man and Griot from Black Panther**
-
-[Features](#-features) • [Architecture](#-architecture) • [Setup](#-setup) • [Usage](#-usage) • [API](#-api-documentation) • [Contributing](#-contributing)
-
-</div>
+> This repo is **backend-only**. Earlier HUD/pet/Unity/Flutter frontends and an
+> alternate FastAPI+Supabase backend were removed; everything here is the live
+> Python assistant under `backend/`.
 
 ---
 
-## 🌟 Features
+## Features
 
-### 🧠 Core Intelligence
-- **Advanced AI**: Powered by Google Gemini 1.5 Pro with enhanced reasoning
-- **Voice Recognition**: Biometric voice and face recognition for family members
-- **Offline Intelligence**: Local knowledge base for autonomous operation
-- **Error Understanding**: Advanced speech correction and clarification system
-
-### 🏠 Universal Device Control
-- **Cross-Platform Agents**: Control any device on your network (Windows, macOS, Linux, Android, iOS)
-- **Smart Home Integration**: Philips Hue, TP-Link Kasa, Roku, Chromecast, Nest, Ring, and more
-- **Network Discovery**: Automatic device scanning and capability detection
-- **Secure Communication**: mTLS encryption for all device commands
-
-### 🎙️ Advanced Voice Processing
-- **Noise Cancellation**: Crystal-clear audio processing with librosa and noisereduce
-- **ElevenLabs TTS**: Premium voice synthesis with emotional intelligence
-- **Real-time Streaming**: Live audio streaming for immediate responses
-- **Context Awareness**: Understands speech errors and provides intelligent corrections
-
-### 🔄 Multi-Platform Clients
-- **Flutter Mobile**: Cross-platform mobile and desktop client
-- **Unity AR**: HoloLens 2 augmented reality interface with spatial anchors
-- **React Dashboard**: Real-time system monitoring and control interface
-- **Python CLI**: Command-line interface for direct system interaction
-
-### 🛡️ Production-Ready Security
-- **Supabase Auth**: Built-in authentication with JWT tokens
-- **Supabase PostgreSQL**: Scalable cloud database with Row Level Security
-- **Encrypted Communication**: All device communication secured with mTLS
-- **Row Level Security**: Automatic data isolation per user
-- **Comprehensive Testing**: Full test suite with CI/CD pipeline
+- **Brain** — Google Gemini (via `google-genai`) for conversation and reasoning.
+- **Voice in** — wake word (openWakeWord) → VAD (Silero) + denoise → Whisper STT.
+- **Voice out** — **offline-first**: Coqui TTS (VITS) is the default voice; ElevenLabs
+  is available on demand; `pyttsx3` is the last-resort fallback. Switch at runtime
+  with `/voice offline | elevenlabs`.
+- **Memory** — JSON fact store + conversation history (optional Chroma vector memory).
+- **Skills** — coder, browser automation, journal, scheduler, alarms/timers/lists,
+  proactive alerts, plus integrations for Spotify, Home Assistant, phone (KDE Connect),
+  and GitHub.
+- **Perception** — webcam face/gesture awareness, screen/window awareness, and
+  on-screen UI vision control (screenshot + Gemini vision + pyautogui).
+- **Local API** — a FastAPI "state server" on `127.0.0.1:7475` exposes `/health`,
+  `/chat`, `/quit`, and the audio/viseme stream (used by the supervisor; no GUI needed).
 
 ---
 
-## 🏗️ Architecture
+## Project structure
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Zendaya AI System                        │
-├─────────────────────────────────────────────────────────────┤
-│  Frontend Clients                                           │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
-│  │ Flutter Mobile  │  │ Unity AR Client │  │ React Web   │ │
-│  │ (Cross-platform)│  │ (HoloLens 2)    │  │ (Dashboard) │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────┘ │
-├─────────────────────────────────────────────────────────────┤
-│  Backend Services (FastAPI)                                 │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
-│  │   AI Core       │  │ Device Control  │  │   Agent     │ │
-│  │ (Gemini Pro)    │  │ (Orchestrator)  │  │ (LangChain) │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────┘ │
-├─────────────────────────────────────────────────────────────┤
-│  Device Network                                             │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
-│  │ Smart Home      │  │ Mobile Devices  │  │ Computers   │ │
-│  │ (IoT Devices)   │  │ (iOS/Android)   │  │ (Win/Mac)   │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────┘ │
-└─────────────────────────────────────────────────────────────┘
+backend/
+├── zendaya.py            # main assistant loop (entrypoint, run by the launcher)
+├── zendaya_launcher.py   # process supervisor (spawn, health-check, restart, --quit)
+├── requirements.txt              # backend deps (pinned)
+├── requirements-offline-voice.txt# offline-TTS extras (torchcodec; eSpeak-NG is a system dep)
+├── voice/         # wake, vad_silero, denoise, agc, listener, listener_v2, visemes, offline_tts
+├── server/        # state_server (FastAPI bridge), hud_music (local music routes)
+├── memory/        # facts, vector, data_store
+├── perception/    # camera, screen, vision, uivision, windows
+├── skills/        # coder, browser, journal, scheduler, jobs, proactive, alerts,
+│                  # assistant_features, capabilities, triggers, agent, emotion, languages
+├── integrations/  # google_apis, spotify, home_assistant, phone, github
+├── system/        # access, installer, hotkey
+└── tests/         # pytest suite
+launch-zendaya.ps1   quit-zendaya.ps1   setup-zendaya.ps1
 ```
 
 ---
 
-## 🚀 Quick Setup
+## Setup (Windows)
 
-### Prerequisites
-- Python 3.9+
-- Node.js 16+
-- Flutter 3.10+
-- Unity 2022.3+ (for AR client)
-- Supabase account (free tier available)
+Prerequisites: **Python 3.14** and a `venv` at `./venv`.
 
-### 1. Backend Setup
+```powershell
+# 1. Create the virtual environment (once)
+python -m venv venv
 
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/zendaya-ai-assistant.git
-cd zendaya-ai-assistant
+# 2. Install dependencies + create desktop shortcuts
+./setup-zendaya.ps1
+#    (installs backend/requirements.txt + requirements-offline-voice.txt)
 
-# Install Python dependencies with Poetry
-cd zendaya-backend
-pip install poetry
-poetry install
-
-# Setup environment variables
-cp .env.example .env
-# Edit .env with your Supabase credentials and API keys
-
-# Dev: run the backend directly (interactive console REPL)
-cd backend
-python zendaya.py
+# 3. Offline TTS phonemizer (required for the offline voice)
+winget install --id eSpeak-NG.eSpeak-NG -e
 ```
 
-> **Production launch (Windows):** run `setup-zendaya.ps1` once (builds the HUD
-> and creates desktop shortcuts), then start everything with the **Zendaya**
-> desktop shortcut — it runs the backend hidden in the background and opens the
-> HUD. Quit with the **Quit Zendaya** shortcut or by typing `/quit` in the HUD.
-
-### 2. Web Dashboard
-
-```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-```
-
-### 3. Flutter Client
-
-```bash
-cd zendaya-flutter-client
-flutter pub get
-flutter run
-```
-
-### 4. Unity AR Client
-
-1. Open Unity Hub
-2. Open the `zendaya-unity-ar-client` project
-3. Import MRTK 2.8+
-4. Configure for HoloLens 2
-5. Build and deploy
-
----
-
-## 🔧 Configuration
-
-### Supabase Setup
-
-1. **Create Supabase Project** at https://supabase.com
-2. **Get your credentials** from Project Settings → API:
-   - Project URL
-   - `anon` public key
-   - `service_role` secret key
-3. **Get database password** from Project Settings → Database
-4. **Database is ready** - Tables already created via migrations
-
-### Required Environment Variables
-
-Create a `.env` file in the root directory:
+Create a `.env` in the repo root (see `.env.example`). The only required key is the
+Gemini API key; the rest enable optional features:
 
 ```env
-# Supabase Configuration
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-SUPABASE_DB_URL=postgresql+asyncpg://postgres:YOUR_PASSWORD@db.your-project.supabase.co:5432/postgres
-
-# Application Security
-SECRET_KEY=generate-with-openssl-rand-hex-32
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-
-# AI Services (optional but recommended)
-# Core AI Services
-GEMINI_API_KEY=your_gemini_api_key_here
-ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
-
-# Knowledge & Search
-PINECONE_API_KEY=your_pinecone_api_key_here
-TAVILY_API_KEY=your_tavily_api_key_here
-
-# Database
-DATABASE_URL=postgresql://user:password@localhost/zendaya
-# Or use SQLite: sqlite:///./zendaya.db
-
-# Security
-SECRET_KEY=your-super-secret-key-change-this-in-production
+GEMINI_API_KEY=...            # required (the brain)
+ELEVENLABS_API_KEY=...        # optional — enables the on-demand ElevenLabs voice
+SPOTIFY_CLIENT_ID=...         # optional — Spotify skill
+SPOTIFY_CLIENT_SECRET=...
+HF_TOKEN=...                  # optional — pyannote (speaker features)
 ```
 
-### Device Control Setup
-
-1. **Smart Home Devices**: Ensure devices are on the same network
-2. **Mobile Devices**: Install the Flutter client
-3. **Computers**: Run the Python CLI client
-4. **Network Security**: Configure firewall rules for device communication
+> Secrets live in `.env` (gitignored). Do **not** hardcode tokens in source.
 
 ---
 
-## 📱 Usage Examples
+## Running
 
-### Voice Commands
-```
-"Zendaya, turn on the living room lights"
-"Zendaya, what's the weather like today?"
-"Zendaya, send a message to my wife saying I'm coming home"
-"Zendaya, show my calendar on the wall" (AR client)
-```
+- **Start:** the **Zendaya** desktop shortcut, or `./launch-zendaya.ps1` — runs the
+  backend hidden via the supervisor (restarts on crash).
+- **Quit:** the **Quit Zendaya** shortcut, `./quit-zendaya.ps1`, or say/type `/quit`.
+- **Dev (interactive console):**
+  ```powershell
+  $env:PYTHONIOENCODING = "utf-8"
+  Push-Location backend
+  & ../venv/Scripts/python.exe zendaya.py
+  Pop-Location
+  ```
 
-### Complex Workflows
-```
-"Zendaya, turn on the living room TV then text my wife on WhatsApp 
-when she is coming home, after checking available restaurants for 
-dinner reservation tonight"
-```
+Useful runtime commands: `/voice offline`, `/voice elevenlabs`, `/voice status`, `/quit`.
 
-### Device Control
-```
-"Zendaya, power off my phone"
-"Zendaya, send this file to my laptop"
-"Zendaya, take a screenshot of my tablet"
+---
+
+## Tests
+
+```powershell
+& ./venv/Scripts/python.exe -m pytest backend/tests -q -m "not slow"
+# the slow real-synthesis test (downloads/loads the Coqui model):
+& ./venv/Scripts/python.exe -m pytest backend/tests -m slow -q
 ```
 
 ---
 
-## 📡 API Documentation
+## License
 
-The FastAPI backend provides comprehensive API documentation:
-
-- **Interactive Docs**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
-- **OpenAPI Schema**: `http://localhost:8000/openapi.json`
-
-### Key Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/auth/login` | POST | User authentication |
-| `/chat` | POST | Main conversation endpoint |
-| `/devices/discover` | POST | Discover network devices |
-| `/devices/control` | POST | Control specific device |
-| `/biometric/register` | POST | Register family member |
-| `/workflow/execute` | POST | Execute complex workflow |
-
----
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-poetry run pytest
-
-# Run with coverage
-poetry run pytest --cov=zendaya_backend
-
-# Run specific test file
-poetry run pytest tests/test_main.py -v
-```
-
-### Test Coverage
-- Unit tests for core services
-- Integration tests for API endpoints
-- Mock external services
-- Authentication and security tests
-
----
-
-## 🔄 CI/CD Pipeline
-
-The project includes a comprehensive GitHub Actions workflow:
-
-- **Code Quality**: Linting, formatting, type checking
-- **Testing**: Unit and integration tests
-- **Security**: Dependency scanning with Trivy
-- **Multi-Platform**: Tests across Python, Flutter, and TypeScript
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### Development Setup
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
-
-### Code Style
-
-- Python: Black formatting, isort imports, flake8 linting
-- TypeScript: ESLint with Prettier
-- Flutter: Dart formatting with flutter format
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- **Inspiration**: JARVIS (Iron Man) and Griot (Black Panther)
-- **AI Services**: Google Gemini, ElevenLabs, Pinecone
-- **Frameworks**: FastAPI, Flutter, Unity MRTK, React
-- **Community**: Open source contributors and testers
-
----
-
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/yourusername/zendaya-ai-assistant/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/zendaya-ai-assistant/discussions)
-- **Documentation**: [Wiki](https://github.com/yourusername/zendaya-ai-assistant/wiki)
-
----
-
-<div align="center">
-
-**Built with ❤️ by the Zendaya AI Team**
-
-*"My tech is always at your service."* - Zendaya
-
-</div>
+MIT — see [LICENSE](LICENSE).
