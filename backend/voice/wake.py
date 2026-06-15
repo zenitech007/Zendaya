@@ -42,6 +42,7 @@ VERIFY_RE_HEY_JARVIS = re.compile(
     f"{_JARVIS_TOKENS}|{_ZENDAYA_TOKENS}", re.IGNORECASE
 )
 VERIFY_RE_ZENDAYA = re.compile(_ZENDAYA_TOKENS, re.IGNORECASE)
+VERIFY_RE_ZEN = re.compile(r"\bzen\b", re.IGNORECASE)
 VERIFY_RE = VERIFY_RE_HEY_JARVIS  # kept for back-compat with any external import
 
 VERIFIER_SKIP_THRESHOLD = 0.85  # Wakes scoring >= this skip Stage-2 verifier.
@@ -53,16 +54,19 @@ def verifier_passes(transcript: str) -> bool:
 
 
 def verifier_passes_for_model(model_name: str, transcript: str) -> bool:
-    """Model-aware verifier. Returns True if the pre-roll transcript
-    contains the wake word the active model is listening for.
+    """Model-aware Stage-2 verifier. Returns True if the pre-roll transcript
+    contains the wake word the fired model listens for.
 
-    - hey_jarvis: accepts jarvis OR zendaya (Whisper often mishears either)
-    - zendaya:    accepts zendaya only (jarvis not relevant)
+    Order matters: "zen" is a substring of "zendaya", so check zendaya first.
+    `\\bzen\\b` accepts a bare "zen" but rejects "zenith"/"frozen"/"present".
     """
     if not transcript:
         return False
-    if "zendaya" in (model_name or "").lower():
+    name = (model_name or "").lower()
+    if "zendaya" in name:
         return VERIFY_RE_ZENDAYA.search(transcript) is not None
+    if "zen" in name:
+        return VERIFY_RE_ZEN.search(transcript) is not None
     return VERIFY_RE_HEY_JARVIS.search(transcript) is not None
 
 
