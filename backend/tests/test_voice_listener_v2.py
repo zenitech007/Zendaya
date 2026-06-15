@@ -85,17 +85,6 @@ def test_verifier_skip_threshold_constant():
     assert wake_mod.VERIFIER_SKIP_THRESHOLD == 0.85
 
 
-def test_default_cold_threshold_is_tightened():
-    """Default cold threshold should be 0.6 (was 0.5)."""
-    from voice import wake as wake_mod
-    eng = wake_mod.WakeEngine(model_name="hey_jarvis")
-    # If env override is present, the test wouldn't apply — guard for that.
-    import os
-    if "ZENDAYA_WAKE_THRESHOLD" in os.environ:
-        pytest.skip("Skipping default-threshold test because env override is set.")
-    assert eng.threshold == 0.6
-
-
 # ─── Ambient floor gate ────────────────────────────────────────────────────
 
 

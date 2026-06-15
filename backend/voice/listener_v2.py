@@ -603,7 +603,7 @@ def _run_listener_session() -> None:
     # Lazy init heavy components on this thread
     _DENOISER = Denoiser(enabled=True)
     _VAD = SileroVAD(threshold=0.5)
-    _WAKE = WakeEngine(model_name="hey_jarvis", threshold=0.5, barge_threshold=0.72)
+    _WAKE = WakeEngine(barge_threshold=0.72)  # default models: zendaya.onnx + zen.onnx (fallback hey_jarvis)
     ambient_gate = _AmbientGate(sample_rate=SAMPLE_RATE)
 
     print("[voice v2] " + _DENOISER.diagnostics())
@@ -709,7 +709,7 @@ def _run_listener_session() -> None:
                     pre_roll_audio = np.concatenate(pre_roll_list) if pre_roll_list else np.zeros(0, dtype=np.int16)
                     if pre_roll_audio.size >= int(SAMPLE_RATE * 0.4):
                         pre_text, _lp, _nsp = _whisper_decode(pre_roll_audio)
-                        model_name = _WAKE.model_name if _WAKE is not None else "hey_jarvis"
+                        model_name = (_WAKE.last_fired_model if _WAKE is not None else None) or "zendaya"
                         if pre_text and not verifier_passes_for_model(model_name, pre_text):
                             print(f"[voice v2] wake VERIFIER rejected: {pre_text!r}")
                             _set_state("idle")
