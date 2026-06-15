@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-# Make the backend/ directory importable for `import zendaya_assistant_features` etc.
+# Make the backend/ directory importable for `import skills.assistant_features` etc.
 _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
@@ -14,10 +14,10 @@ if str(_BACKEND) not in sys.path:
 
 @pytest.fixture()
 def tmp_data_dir(tmp_path, monkeypatch):
-    """Point zendaya_data_store at a fresh tmp directory for this test only."""
-    import zendaya_data_store
+    """Point memory.data_store at a fresh tmp directory for this test only."""
+    import memory.data_store
 
-    monkeypatch.setattr(zendaya_data_store, "DATA_DIR", tmp_path)
+    monkeypatch.setattr(memory.data_store, "DATA_DIR", tmp_path)
     return tmp_path
 
 

@@ -27,8 +27,8 @@ def test_make_denoiser_returns_deepfilter_when_dfn_available(monkeypatch):
     monkeypatch.setitem(sys.modules, "df", fake_df)
     monkeypatch.setitem(sys.modules, "df.enhance", fake_df)
     # Force re-import of denoise so it sees the stubbed df.
-    if "zendaya_assistant_features" in sys.modules:
-        del sys.modules["zendaya_assistant_features"]
+    if "skills.assistant_features" in sys.modules:
+        del sys.modules["skills.assistant_features"]
     from voice import denoise as denoise_mod  # noqa
     importlib.reload(denoise_mod)
     d = denoise_mod.make_denoiser()
@@ -101,7 +101,7 @@ def test_default_cold_threshold_is_tightened():
 
 def test_ambient_gate_suppresses_wake_below_floor():
     """When room RMS is below floor and TTS isn't speaking, wake is skipped."""
-    from zendaya_voice_listener_v2 import _AmbientGate
+    from voice.listener_v2 import _AmbientGate
 
     gate = _AmbientGate(floor=0.005, window_s=0.5, sample_rate=16000)
     # Feed 1 second of silence (very low RMS).
@@ -113,7 +113,7 @@ def test_ambient_gate_suppresses_wake_below_floor():
 
 
 def test_ambient_gate_opens_when_speech_present():
-    from zendaya_voice_listener_v2 import _AmbientGate
+    from voice.listener_v2 import _AmbientGate
 
     gate = _AmbientGate(floor=0.005, window_s=0.5, sample_rate=16000)
     # 1 second of speech-level frames.
@@ -126,7 +126,7 @@ def test_ambient_gate_opens_when_speech_present():
 
 def test_ambient_gate_floor_from_env(monkeypatch):
     monkeypatch.setenv("ZENDAYA_AMBIENT_FLOOR", "0.02")
-    from zendaya_voice_listener_v2 import _AmbientGate
+    from voice.listener_v2 import _AmbientGate
 
     gate = _AmbientGate()  # picks up env default
     assert gate.floor == 0.02
@@ -134,7 +134,7 @@ def test_ambient_gate_floor_from_env(monkeypatch):
 
 def test_ambient_gate_invalid_env_uses_default(monkeypatch):
     monkeypatch.setenv("ZENDAYA_AMBIENT_FLOOR", "not-a-number")
-    from zendaya_voice_listener_v2 import _AmbientGate
+    from voice.listener_v2 import _AmbientGate
 
     gate = _AmbientGate()
     assert gate.floor == 0.005  # default
@@ -145,7 +145,7 @@ def test_ambient_gate_invalid_env_uses_default(monkeypatch):
 
 def test_dispatch_queue_bounded_drops_oldest():
     """When more than cap items are enqueued, oldest are dropped."""
-    from zendaya_voice_listener_v2 import _DispatchQueue
+    from voice.listener_v2 import _DispatchQueue
 
     q = _DispatchQueue(maxsize=2)
     q.put(("cmd one", 1.0))
@@ -160,7 +160,7 @@ def test_dispatch_queue_bounded_drops_oldest():
 
 def test_worker_calls_handler_per_command():
     """Worker thread pulls from queue and invokes the provided handler."""
-    from zendaya_voice_listener_v2 import _start_dispatch_worker, _DispatchQueue
+    from voice.listener_v2 import _start_dispatch_worker, _DispatchQueue
 
     q = _DispatchQueue(maxsize=4)
     seen = []
@@ -186,7 +186,7 @@ def test_worker_calls_handler_per_command():
 
 def test_worker_waits_for_tts_event_to_clear():
     """When TTS is speaking, worker holds the command until event clears."""
-    from zendaya_voice_listener_v2 import _start_dispatch_worker, _DispatchQueue
+    from voice.listener_v2 import _start_dispatch_worker, _DispatchQueue
 
     q = _DispatchQueue(maxsize=4)
     seen = []
@@ -216,7 +216,7 @@ def test_worker_waits_for_tts_event_to_clear():
 
 
 def test_worker_survives_handler_exception():
-    from zendaya_voice_listener_v2 import _start_dispatch_worker, _DispatchQueue
+    from voice.listener_v2 import _start_dispatch_worker, _DispatchQueue
 
     q = _DispatchQueue(maxsize=4)
     seen = []
@@ -251,7 +251,7 @@ def test_listener_dispatches_on_wake_and_command(monkeypatch):
     Mocks Whisper + wake engine to keep the test deterministic.
     Asserts a dispatched command flows from wake-detect to handler invocation.
     """
-    import zendaya_voice_listener_v2 as v2
+    import voice.listener_v2 as v2
 
     received = []
     done = threading.Event()

@@ -9,11 +9,11 @@ from fastapi.testclient import TestClient
 def client(tmp_path, monkeypatch):
     track = tmp_path / "Route Song.mp3"
     track.write_bytes(b"ID3audio-bytes-xyz")
-    import zendaya_spotify as sp
+    import integrations.spotify as sp
     monkeypatch.setattr(sp, "_music_dirs", lambda: [tmp_path])
     monkeypatch.setattr(sp, "spotify_available", lambda: False)
     sp.clear_local_now()
-    import zendaya_state_server as ss
+    import server.state_server as ss
     return TestClient(ss.app), track
 
 
@@ -44,8 +44,8 @@ def test_music_stream_unknown_id_404(client):
 
 def test_music_now_updates_and_clears(client):
     c, track = client
-    import zendaya_hud_music as hm
-    import zendaya_spotify as sp
+    import server.hud_music as hm
+    import integrations.spotify as sp
     tid = hm.track_id(track)
     res = c.post("/music/now", json={"track_id": tid, "is_playing": True, "position_ms": 5000})
     assert res.status_code == 200

@@ -1,6 +1,6 @@
 """SP-4 — clean-quit path: state-server /quit route + on_quit wiring,
 and zendaya.request_shutdown(). Left UNCOMMITTED (tests uncommitted backend edits)."""
-import zendaya_state_server as ss
+import server.state_server as ss
 
 
 def test_quit_route_invokes_callback(monkeypatch):

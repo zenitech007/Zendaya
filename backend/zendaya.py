@@ -50,17 +50,17 @@ import requests
 from pathlib import Path
 from dotenv import load_dotenv
 from google import genai
-from zendaya_system_access import *
-from zendaya_home_assistant import ha_command as _ha_command, ha_available as _ha_available
-from zendaya_phone import kdec_command as _kdec_command
-from zendaya_spotify import spotify_command as _spotify_command
-from zendaya_vision import (
+from system.access import *
+from integrations.home_assistant import ha_command as _ha_command, ha_available as _ha_available
+from integrations.phone import kdec_command as _kdec_command
+from integrations.spotify import spotify_command as _spotify_command
+from perception.vision import (
     analyze_screen as _vision_analyze_screen,
     analyze_webcam as _vision_analyze_webcam,
     parse_vision_request as _parse_vision_request,
 )
 try:
-    from zendaya_vector_memory import (
+    from memory.vector import (
         add_turn as _vmem_add,
         retrieve_relevant as _vmem_retrieve,
         format_for_prompt as _vmem_format,
@@ -76,51 +76,51 @@ if __name__ == "__main__":
     import sys as _sys_reg
     _sys_reg.modules.setdefault("zendaya", _sys_reg.modules["__main__"])
 
-from zendaya_emotion import analyze_system_emotion
+from skills.emotion import analyze_system_emotion
 
 # Coder / agent / facts (graceful degrade — same pattern as the vector memory block above)
 try:
-    import zendaya_coder
+    import skills.coder
     _CODER_READY = True
 except Exception as _e:
     print(f"[zendaya] coder module unavailable: {_e}")
-    zendaya_coder = None
+    skills.coder = None
     _CODER_READY = False
 
 try:
-    import zendaya_agent
+    import skills.agent
     _AGENT_READY = True
 except Exception as _e:
     print(f"[zendaya] agent module unavailable: {_e}")
-    zendaya_agent = None
+    skills.agent = None
     _AGENT_READY = False
 
 try:
-    import zendaya_jobs
+    import skills.jobs
     _JOBS_READY = True
 except Exception as _e:
     print(f"[zendaya] jobs module unavailable: {_e}")
-    zendaya_jobs = None
+    skills.jobs = None
     _JOBS_READY = False
 
 try:
-    import zendaya_skills
+    import skills.triggers
     _SKILLS_READY = True
 except Exception as _e:
     print(f"[zendaya] skills module unavailable: {_e}")
-    zendaya_skills = None
+    skills.triggers = None
     _SKILLS_READY = False
 
 try:
-    import zendaya_journal
+    import skills.journal
     _JOURNAL_READY = True
 except Exception as _e:
     print(f"[zendaya] journal module unavailable: {_e}")
-    zendaya_journal = None
+    skills.journal = None
     _JOURNAL_READY = False
 
 try:
-    import zendaya_screen_awareness as _screen
+    import perception.screen as _screen
     _SCREEN_READY = True
 except Exception as _e:
     print(f"[zendaya] screen awareness module unavailable: {_e}")
@@ -128,7 +128,7 @@ except Exception as _e:
     _SCREEN_READY = False
 
 try:
-    import zendaya_hotkey as _hotkey
+    import system.hotkey as _hotkey
     _HOTKEY_READY = True
 except Exception as _e:
     print(f"[zendaya] hotkey module unavailable: {_e}")
@@ -136,7 +136,7 @@ except Exception as _e:
     _HOTKEY_READY = False
 
 try:
-    import zendaya_memory_facts as _facts
+    import memory.facts as _facts
     _FACTS_READY = True
 except Exception as _e:
     print(f"[zendaya] facts module unavailable: {_e}")
@@ -144,43 +144,43 @@ except Exception as _e:
     _FACTS_READY = False
 
 try:
-    import zendaya_installer
+    import system.installer
     _INSTALLER_READY = True
 except Exception as _e:
     print(f"[zendaya] installer module unavailable: {_e}")
-    zendaya_installer = None
+    system.installer = None
     _INSTALLER_READY = False
 
 try:
-    import zendaya_browser
+    import skills.browser
     _BROWSER_READY = True
 except Exception as _e:
     print(f"[zendaya] browser module unavailable: {_e}")
-    zendaya_browser = None
+    skills.browser = None
     _BROWSER_READY = False
 
 try:
-    import zendaya_github
+    import integrations.github
     _GITHUB_READY = True
 except Exception as _e:
     print(f"[zendaya] github module unavailable: {_e}")
-    zendaya_github = None
+    integrations.github = None
     _GITHUB_READY = False
 
 try:
-    import zendaya_uivision
+    import perception.uivision
     _UIVISION_READY = True
 except Exception as _e:
     print(f"[zendaya] uivision module unavailable: {_e}")
-    zendaya_uivision = None
+    perception.uivision = None
     _UIVISION_READY = False
 
 try:
-    import zendaya_scheduler
+    import skills.scheduler
     _SCHEDULER_READY = True
 except Exception as _e:
     print(f"[zendaya] scheduler module unavailable: {_e}")
-    zendaya_scheduler = None
+    skills.scheduler = None
     _SCHEDULER_READY = False
 
 # For Windows specific window handling
@@ -256,7 +256,7 @@ _TTS_ENGINE = None
 
 def _set_tts_gate(speaking: bool):
     """Tell the voice listener(s) to ignore the mic while we're speaking."""
-    for mod_name in ("zendaya_voice_live", "zendaya_voice_listener", "zendaya_voice_listener_v2"):
+    for mod_name in ("zendaya_voice_live", "voice.listener", "voice.listener_v2"):
         try:
             mod = sys.modules.get(mod_name)
             if mod is not None and hasattr(mod, "set_tts_speaking"):
@@ -345,7 +345,7 @@ def _stream_pcm_playback(response, samplerate: int = _TTS_PCM_RATE):
                         level = min(1.0, rms * 4.0)
                         _state_server.set_amplitude(level)
                         try:
-                            import zendaya_visemes as _viz
+                            import voice.visemes as _viz
                             # Real formant-based weights derived from the PCM window.
                             # Falls back to the char-schedule player if analysis errors.
                             try:
@@ -378,7 +378,7 @@ def _stream_pcm_playback(response, samplerate: int = _TTS_PCM_RATE):
             except Exception:
                 pass
         try:
-            import zendaya_visemes as _viz
+            import voice.visemes as _viz
             _viz.PLAYER.stop()
             try:
                 _viz.ANALYZER.reset()
@@ -390,13 +390,13 @@ def _stream_pcm_playback(response, samplerate: int = _TTS_PCM_RATE):
 def _speak_offline_async(text: str):
     """Synthesize with the offline Coqui engine and play through the shared
     PCM/viseme pipeline (same path as ElevenLabs). Falls back to system TTS."""
-    import zendaya_offline_tts as _offline_tts
+    import voice.offline_tts as _offline_tts
 
     def _run():
         _TTS_STOP.clear()
         _set_tts_gate(True)
         try:
-            import zendaya_visemes as _viz
+            import voice.visemes as _viz
             _viz.PLAYER.start(_viz.build_schedule(text))
             try:
                 _viz.ANALYZER.reset()
@@ -424,7 +424,7 @@ def speak_async(text: str, voice_id: str):
     """Streams ElevenLabs TTS and plays as bytes arrive (low-latency)."""
     # Offline-first hybrid: unless the user selected ElevenLabs, speak offline.
     try:
-        import zendaya_offline_tts as _offline_tts
+        import voice.offline_tts as _offline_tts
         _engine_pref = _offline_tts.get_voice_engine()
     except Exception:
         _offline_tts = None
@@ -486,7 +486,7 @@ def speak_async(text: str, voice_id: str):
         _TTS_STOP.clear()
         _set_tts_gate(True)
         try:
-            import zendaya_visemes as _viz
+            import voice.visemes as _viz
             _viz.PLAYER.start(_viz.build_schedule(text))
             try:
                 _viz.ANALYZER.reset()
@@ -613,7 +613,7 @@ MEM = load_memory()
 
 # Sync language module with persisted preference
 try:
-    import zendaya_languages as _lang
+    import skills.languages as _lang
     _lang.set_current(MEM.get("language", "english"))
 except Exception:
     _lang = None
@@ -670,7 +670,7 @@ def stream_print(text: str, delay: float = 0.01):
     print()
 
 try:
-    import zendaya_state_server as _state_server
+    import server.state_server as _state_server
 except Exception:
     _state_server = None  # FastAPI/uvicorn missing — run headless without Godot bridge
 
@@ -1146,7 +1146,7 @@ def gemini_reply(user_text: str, search_context: Optional[str]) -> str:
         except Exception:
             pass
 
-    # Durable structured facts (zendaya_memory_facts).
+    # Durable structured facts (memory.facts).
     if _FACTS_READY:
         try:
             facts_hits = _facts.recall(user_text, k=4)
@@ -1157,7 +1157,7 @@ def gemini_reply(user_text: str, search_context: Optional[str]) -> str:
 
     parts = [SYSTEM_PROMPT]
     try:
-        from zendaya_capabilities import render_for_llm
+        from skills.capabilities import render_for_llm
         parts.append(render_for_llm())
     except Exception:
         pass
@@ -1934,9 +1934,9 @@ def parse_shutdown_intent(user_text: str) -> Optional[str]:
     return None
 
 def describe_capabilities() -> str:
-    """Honest, grounded answer to 'what can you do' — sourced from zendaya_capabilities registry."""
+    """Honest, grounded answer to 'what can you do' — sourced from skills.capabilities registry."""
     try:
-        from zendaya_capabilities import render_for_user
+        from skills.capabilities import render_for_user
         return render_for_user()
     except Exception as e:
         return f"I can list what I do, but my capability registry hit a snag: {e}"
@@ -2390,31 +2390,31 @@ def confirm_dangerous(user_text: str) -> Optional[str]:
             action_type = "delete_file"
             confirmed = True
 
-    # Pending edit from zendaya_coder.edit_file_smart (preview path).
+    # Pending edit from skills.coder.edit_file_smart (preview path).
     elif isinstance(pending_action, dict) and pending_action.get("action") == "apply_edit":
         if "edit" in lt or "yes" in lt or "confirm" in lt:
             action_type = "apply_edit"
             confirmed = True
 
-    # Pending agent run from zendaya_agent.request_run_with_confirmation.
+    # Pending agent run from skills.agent.request_run_with_confirmation.
     elif isinstance(pending_action, dict) and pending_action.get("action") == "agent_plan":
         if "agent" in lt or "yes" in lt or "confirm" in lt:
             action_type = "agent_plan"
             confirmed = True
 
-    # Pending package install from zendaya_installer.install_package.
+    # Pending package install from system.installer.install_package.
     elif isinstance(pending_action, dict) and pending_action.get("action") == "install_package":
         if "install" in lt or "yes" in lt or "confirm" in lt:
             action_type = "install_package"
             confirmed = True
 
-    # Pending installer execution from zendaya_installer.run_installer.
+    # Pending installer execution from system.installer.run_installer.
     elif isinstance(pending_action, dict) and pending_action.get("action") == "run_installer":
         if "install" in lt or "run" in lt or "yes" in lt or "confirm" in lt:
             action_type = "run_installer"
             confirmed = True
 
-    # Pending self-edit from zendaya_agent.stage_self_edit.
+    # Pending self-edit from skills.agent.stage_self_edit.
     elif isinstance(pending_action, dict) and pending_action.get("action") == "self_edit":
         if "edit" in lt or "yes" in lt or "confirm" in lt:
             action_type = "self_edit"
@@ -2426,13 +2426,13 @@ def confirm_dangerous(user_text: str) -> Optional[str]:
             action_type = "gh_pr_create"
             confirmed = True
 
-    # Pending UI click from zendaya_uivision.click_target.
+    # Pending UI click from perception.uivision.click_target.
     elif isinstance(pending_action, dict) and pending_action.get("action") == "ui_click":
         if "click" in lt or "yes" in lt or "confirm" in lt:
             action_type = "ui_click"
             confirmed = True
 
-    # Pending UI text input from zendaya_uivision.type_text.
+    # Pending UI text input from perception.uivision.type_text.
     elif isinstance(pending_action, dict) and pending_action.get("action") == "ui_type":
         if "type" in lt or "yes" in lt or "confirm" in lt:
             action_type = "ui_type"
@@ -2491,7 +2491,7 @@ def confirm_dangerous(user_text: str) -> Optional[str]:
         if action_type == "apply_edit":
             if not _CODER_READY:
                 return "Coder module is offline — can't apply the pending edit."
-            return zendaya_coder.apply_pending_edit(pending_action)
+            return skills.coder.apply_pending_edit(pending_action)
         if action_type == "agent_plan":
             goal = (pending_action.get("goal") or "").strip()
             if not _AGENT_READY:
@@ -2499,45 +2499,45 @@ def confirm_dangerous(user_text: str) -> Optional[str]:
             if not goal:
                 return "No goal was attached to the pending plan."
             if _JOBS_READY:
-                job_id = zendaya_jobs.submit(goal)
+                job_id = skills.jobs.submit(goal)
                 return (
                     f"Agent job [{job_id}] started in the background. "
                     f"Say 'agent status' to check, or 'cancel agent {job_id}' to stop. "
                     f"I'll ping you when it finishes."
                 )
-            return zendaya_agent.run_agent(goal)
+            return skills.agent.run_agent(goal)
         if action_type == "install_package":
             if not _INSTALLER_READY:
                 return "Installer module is offline."
-            return zendaya_installer.confirm_install(pending_action)
+            return system.installer.confirm_install(pending_action)
         if action_type == "run_installer":
             if not _INSTALLER_READY:
                 return "Installer module is offline."
-            return zendaya_installer.confirm_run_installer(pending_action)
+            return system.installer.confirm_run_installer(pending_action)
         if action_type == "self_edit":
             if not _AGENT_READY:
                 return "Agent module is offline — can't apply the self-edit."
-            return zendaya_agent.confirm_self_edit(pending_action)
+            return skills.agent.confirm_self_edit(pending_action)
         if action_type == "gh_pr_create":
             if not _GITHUB_READY:
                 return "GitHub module is offline."
-            return zendaya_github.confirm_pr_create(pending_action)
+            return integrations.github.confirm_pr_create(pending_action)
         if action_type == "ui_click":
             if not _UIVISION_READY:
                 return "UI vision module is offline."
-            return zendaya_uivision.confirm_ui_click(pending_action)
+            return perception.uivision.confirm_ui_click(pending_action)
         if action_type == "ui_type":
             if not _UIVISION_READY:
                 return "UI vision module is offline."
-            return zendaya_uivision.confirm_ui_type(pending_action)
+            return perception.uivision.confirm_ui_type(pending_action)
         if action_type == "schedule_task":
             if not _SCHEDULER_READY:
                 return "Scheduler module is offline."
-            return zendaya_scheduler.confirm_schedule(pending_action)
+            return skills.scheduler.confirm_schedule(pending_action)
         if action_type == "schedule_delete":
             if not _SCHEDULER_READY:
                 return "Scheduler module is offline."
-            return zendaya_scheduler.confirm_delete(pending_action)
+            return skills.scheduler.confirm_delete(pending_action)
             
     except Exception as e:
         return f"I tried but the system returned an error: {e}"
@@ -2585,7 +2585,7 @@ def summarize_memory():
 # -----------------------
 def _load_user_routines() -> Dict[str, List[str]]:
     try:
-        from zendaya_data_store import load as ds_load
+        from memory.data_store import load as ds_load
         data = ds_load("routines", default={}) or {}
         return {k.lower(): v for k, v in data.items() if isinstance(v, list)}
     except Exception:
@@ -2594,7 +2594,7 @@ def _load_user_routines() -> Dict[str, List[str]]:
 
 def _save_user_routine(name: str, steps: List[str]):
     try:
-        from zendaya_data_store import load as ds_load, save as ds_save
+        from memory.data_store import load as ds_load, save as ds_save
         data = ds_load("routines", default={}) or {}
         data[name.lower()] = steps
         ds_save("routines", data)
@@ -2605,7 +2605,7 @@ def _save_user_routine(name: str, steps: List[str]):
 
 def _delete_user_routine(name: str) -> bool:
     try:
-        from zendaya_data_store import load as ds_load, save as ds_save
+        from memory.data_store import load as ds_load, save as ds_save
         data = ds_load("routines", default={}) or {}
         if name.lower() in data:
             data.pop(name.lower())
@@ -2689,7 +2689,7 @@ def handle_user_command(user_text: str):
     """
     # Reset the proactive idle clock on every input.
     try:
-        import zendaya_proactive as _pro
+        import skills.proactive as _pro
         _pro.note_user_activity()
     except Exception:
         pass
@@ -2862,7 +2862,7 @@ def handle_user_command(user_text: str):
         if thing in {"vision", "webcam", "camera", "eye", "eyes"}:
             MEM["vision_enabled"] = on
             try:
-                import zendaya_perception as _per
+                import perception.camera as _per
                 _per.set_enabled(face=on)
                 if on and not _per.is_active().get("started"):
                     _per.start()
@@ -2875,7 +2875,7 @@ def handle_user_command(user_text: str):
         else:
             MEM["gestures_enabled"] = on
             try:
-                import zendaya_perception as _per
+                import perception.camera as _per
                 _per.set_enabled(gestures=on)
                 if on and not _per.is_active().get("started"):
                     _per.start()
@@ -2916,7 +2916,7 @@ def handle_user_command(user_text: str):
 
     # --- Voice engine switch: "/voice offline", "use my elevenlabs voice", "/voice status" ---
     try:
-        import zendaya_offline_tts as _offline_tts
+        import voice.offline_tts as _offline_tts
         _vcmd = _offline_tts.parse_voice_command(user_text)
     except Exception:
         _offline_tts = None
@@ -2944,9 +2944,9 @@ def handle_user_command(user_text: str):
 
     # --- Project journal: "what did I do today", "summarize my day" ---
     if _JOURNAL_READY:
-        j = zendaya_journal.parse_journal_command(user_text)
+        j = skills.journal.parse_journal_command(user_text)
         if j:
-            msg = zendaya_journal.handle_journal_command(j)
+            msg = skills.journal.handle_journal_command(j)
             send_response(msg)
             add_to_memory(PERSONA_NAME, msg)
             return
@@ -3237,17 +3237,17 @@ def handle_user_command(user_text: str):
             bt = b["type"]
             if bt == "browser_open":
                 send_response(f"Opening {b['url']}...")
-                result = zendaya_browser.open_url(b["url"])
+                result = skills.browser.open_url(b["url"])
             elif bt == "browser_screenshot":
-                result = zendaya_browser.screenshot(b.get("name"))
+                result = skills.browser.screenshot(b.get("name"))
             elif bt == "browser_extract":
-                result = zendaya_browser.extract_text(b.get("selector"))
+                result = skills.browser.extract_text(b.get("selector"))
             elif bt == "browser_click":
-                result = zendaya_browser.click(b["selector"])
+                result = skills.browser.click(b["selector"])
             elif bt == "browser_fill":
-                result = zendaya_browser.fill_field(b["selector"], b["text"])
+                result = skills.browser.fill_field(b["selector"], b["text"])
             elif bt == "browser_close":
-                result = zendaya_browser.close_browser()
+                result = skills.browser.close_browser()
             else:
                 result = "Unknown browser action."
             send_response(result)
@@ -3260,24 +3260,24 @@ def handle_user_command(user_text: str):
         if g:
             gt = g["type"]
             if gt == "gh_auth_status":
-                result = zendaya_github.auth_status()
+                result = integrations.github.auth_status()
             elif gt == "gh_clone":
                 send_response(f"Cloning {g['url']}...")
-                result = zendaya_github.repo_clone(g["url"])
+                result = integrations.github.repo_clone(g["url"])
             elif gt == "gh_repos":
-                result = zendaya_github.repo_list(g.get("owner"))
+                result = integrations.github.repo_list(g.get("owner"))
             elif gt == "gh_issues":
-                result = zendaya_github.issue_list(g.get("repo"))
+                result = integrations.github.issue_list(g.get("repo"))
             elif gt == "gh_issue_view":
-                result = zendaya_github.issue_view(g["number"], g.get("repo"))
+                result = integrations.github.issue_view(g["number"], g.get("repo"))
             elif gt == "gh_prs":
-                result = zendaya_github.pr_list(g.get("repo"))
+                result = integrations.github.pr_list(g.get("repo"))
             elif gt == "gh_pr_view":
-                result = zendaya_github.pr_view(g["number"], g.get("repo"))
+                result = integrations.github.pr_view(g["number"], g.get("repo"))
             elif gt == "gh_pr_diff":
-                result = zendaya_github.pr_diff(g["number"], g.get("repo"))
+                result = integrations.github.pr_diff(g["number"], g.get("repo"))
             elif gt == "gh_pr_create":
-                result = zendaya_github.pr_create(g["title"], g.get("body", ""))
+                result = integrations.github.pr_create(g["title"], g.get("body", ""))
             else:
                 result = "Unknown github action."
             send_response(result)
@@ -3291,17 +3291,17 @@ def handle_user_command(user_text: str):
             ut = u["type"]
             if ut == "uiv_describe":
                 send_response("Looking at the screen...")
-                result = zendaya_uivision.describe_screen(u["question"])
+                result = perception.uivision.describe_screen(u["question"])
             elif ut == "uiv_locate":
-                located = zendaya_uivision.locate_on_screen(u["target"])
+                located = perception.uivision.locate_on_screen(u["target"])
                 if isinstance(located, dict):
                     result = f"Found '{located['label']}' at ({located['x']}, {located['y']})."
                 else:
                     result = located
             elif ut == "uiv_click":
-                result = zendaya_uivision.click_target(u["target"])
+                result = perception.uivision.click_target(u["target"])
             elif ut == "uiv_type":
-                result = zendaya_uivision.type_text(u["text"])
+                result = perception.uivision.type_text(u["text"])
             else:
                 result = "Unknown UI vision action."
             send_response(result)
@@ -3314,13 +3314,13 @@ def handle_user_command(user_text: str):
         if s:
             st = s["type"]
             if st == "sched_list":
-                result = zendaya_scheduler.list_tasks()
+                result = skills.scheduler.list_tasks()
             elif st == "sched_delete":
-                result = zendaya_scheduler.delete_task(s["name"])
+                result = skills.scheduler.delete_task(s["name"])
             elif st == "sched_run_now":
-                result = zendaya_scheduler.run_task_now(s["name"])
+                result = skills.scheduler.run_task_now(s["name"])
             elif st == "sched_create":
-                result = zendaya_scheduler.schedule_command(s["name"], s["command"], s["when"])
+                result = skills.scheduler.schedule_command(s["name"], s["command"], s["when"])
             else:
                 result = "Unknown schedule action."
             send_response(result)
@@ -3335,29 +3335,29 @@ def handle_user_command(user_text: str):
             if not _INSTALLER_READY:
                 result = "Installer module isn't loaded — can't install packages right now."
             else:
-                result = zendaya_installer.install_package(install_cmd["name"], install_cmd.get("manager"))
+                result = system.installer.install_package(install_cmd["name"], install_cmd.get("manager"))
         elif itype == "download_file":
             if not _INSTALLER_READY:
                 result = "Installer module isn't loaded — can't download right now."
             else:
                 send_response(f"Downloading {install_cmd['url']}...")
-                result = zendaya_installer.download_file(install_cmd["url"])
+                result = system.installer.download_file(install_cmd["url"])
         elif itype == "run_installer":
             if not _INSTALLER_READY:
                 result = "Installer module isn't loaded."
             else:
-                result = zendaya_installer.run_installer(install_cmd["path"])
+                result = system.installer.run_installer(install_cmd["path"])
         elif itype == "run_with_autofix":
             if not _CODER_READY:
                 result = "Coder module isn't loaded — can't auto-fix."
             else:
                 send_response(f"Running with auto-fix: {install_cmd['path']}...")
-                result = zendaya_coder.run_with_autofix(install_cmd["path"])
+                result = skills.coder.run_with_autofix(install_cmd["path"])
         elif itype == "self_edit":
             if not _AGENT_READY:
                 result = "Agent module isn't loaded — can't self-edit."
             else:
-                result = zendaya_agent.stage_self_edit(install_cmd["module"], install_cmd["change"])
+                result = skills.agent.stage_self_edit(install_cmd["module"], install_cmd["change"])
         else:
             result = "Unknown install action."
         send_response(result)
@@ -3371,13 +3371,13 @@ def handle_user_command(user_text: str):
             ctype = coder_cmd["type"]
             if ctype == "generate_project":
                 send_response(f"Building project at {coder_cmd['root_dir']}...")
-                result = zendaya_coder.generate_project(coder_cmd["spec"], coder_cmd["root_dir"])
+                result = skills.coder.generate_project(coder_cmd["spec"], coder_cmd["root_dir"])
             elif ctype == "edit_in_project":
                 send_response(f"Editing project at {coder_cmd['root_dir']}...")
-                result = zendaya_coder.edit_in_project(coder_cmd["root_dir"], coder_cmd["change"])
+                result = skills.coder.edit_in_project(coder_cmd["root_dir"], coder_cmd["change"])
             elif ctype == "run_code":
                 send_response(f"Running {coder_cmd['path']}...")
-                result = zendaya_coder.run_code(coder_cmd["path"])
+                result = skills.coder.run_code(coder_cmd["path"])
             else:
                 result = "Unknown coder action."
             send_response(result)
@@ -3386,9 +3386,9 @@ def handle_user_command(user_text: str):
 
     # --- Skill registry: teach / list / remove triggers ---
     if _SKILLS_READY:
-        skill_cmd = zendaya_skills.parse_skill_command(user_text)
+        skill_cmd = skills.triggers.parse_skill_command(user_text)
         if skill_cmd:
-            msg = zendaya_skills.handle_skill_command(skill_cmd)
+            msg = skills.triggers.handle_skill_command(skill_cmd)
             send_response(msg)
             add_to_memory(PERSONA_NAME, msg)
             return
@@ -3397,13 +3397,13 @@ def handle_user_command(user_text: str):
     if _JOBS_READY:
         lt_jobs = user_text.lower().strip()
         if re.match(r"^(?:agent\s+(?:status|jobs|list)|list\s+agents|jobs)\s*$", lt_jobs):
-            msg = zendaya_jobs.render_status()
+            msg = skills.jobs.render_status()
             send_response(msg)
             add_to_memory(PERSONA_NAME, msg)
             return
         m_cancel = re.match(r"^(?:cancel|stop|kill)\s+(?:agent\s+)?([a-f0-9]{8})\s*$", lt_jobs)
         if m_cancel:
-            msg = zendaya_jobs.cancel(m_cancel.group(1))
+            msg = skills.jobs.cancel(m_cancel.group(1))
             send_response(msg)
             add_to_memory(PERSONA_NAME, msg)
             return
@@ -3412,7 +3412,7 @@ def handle_user_command(user_text: str):
     if _AGENT_READY:
         agent_goal = parse_agent_request(user_text)
         if agent_goal:
-            confirm_prompt = zendaya_agent.request_run_with_confirmation(agent_goal)
+            confirm_prompt = skills.agent.request_run_with_confirmation(agent_goal)
             send_response(confirm_prompt)
             add_to_memory(PERSONA_NAME, confirm_prompt)
             return
@@ -3454,7 +3454,7 @@ def handle_user_command(user_text: str):
         send_response(spotify_msg)
         add_to_memory(PERSONA_NAME, spotify_msg)
         try:
-            from zendaya_spotify import now_playing_payload
+            from integrations.spotify import now_playing_payload
             np = now_playing_payload()
             _state_server.set_now_playing(np)
             if np:
@@ -3746,17 +3746,17 @@ def main():
         print("System shutdown complete.")
 
 if __name__ == "__main__":
-    from zendaya_voice_listener_v2 import start_voice_listener, diagnostics
+    from voice.listener_v2 import start_voice_listener, diagnostics
     print(diagnostics())
     start_voice_listener()
 
-    from zendaya_alerts import start_alerts
+    from skills.alerts import start_alerts
     start_alerts()
     print("Proactive alerts active.")
 
     try:
-        import zendaya_proactive
-        zendaya_proactive.start(
+        import skills.proactive
+        skills.proactive.start(
             send_response,
             lambda: analyze_system_emotion(
                 {"gemini": _GEMINI_READY, "tts": _TTS_ENGINE is not None}
@@ -3774,7 +3774,7 @@ if __name__ == "__main__":
         print("👁️  Perception standby (vision + gestures off — say 'turn on vision' to enable).")
     else:
         try:
-            import zendaya_perception as _perception
+            import perception.camera as _perception
 
             def _on_gesture(name: str):
                 try:
@@ -3796,7 +3796,7 @@ if __name__ == "__main__":
                         send_response("Cancelled.")
                 elif name == "Victory":
                     try:
-                        from zendaya_vision import describe_screen
+                        from perception.vision import describe_screen
                         send_response(describe_screen("What's on screen right now?"))
                     except Exception as _e:
                         send_response(f"Couldn't read the screen: {_e}")
@@ -3840,7 +3840,7 @@ if __name__ == "__main__":
                 gestures_active = False
                 last_gesture = {"name": "none", "ts": 0.0}
                 try:
-                    import zendaya_perception as _per
+                    import perception.camera as _per
                     state = _per.is_active()
                     vision_active = bool(state.get("face")) and MEM.get("vision_enabled", True)
                     gestures_active = bool(state.get("gestures")) and MEM.get("gestures_enabled", True)
@@ -3875,7 +3875,7 @@ if __name__ == "__main__":
 
         # ── Now-playing poll loop — pushes Spotify/local music state to the HUD.
         def _now_playing_loop():
-            from zendaya_spotify import now_playing_payload
+            from integrations.spotify import now_playing_payload
             last_state = None
             last_track = None
             while True:
@@ -3910,12 +3910,12 @@ if __name__ == "__main__":
 
         # Window watcher + window-control dispatcher for the Godot side.
         try:
-            import zendaya_window_watcher as _wwatcher
+            import perception.windows as _wwatcher
         except Exception as _ww_err:
             print(f"(Window watcher unavailable: {_ww_err})")
             _wwatcher = None
 
-        from zendaya_system_access import (
+        from system.access import (
             focus_window as _focus_window,
             minimize_window as _minimize_window,
             maximize_window as _maximize_window,
@@ -3956,15 +3956,15 @@ if __name__ == "__main__":
 
     if _SKILLS_READY:
         try:
-            zendaya_skills.start()
-            n = len(zendaya_skills.list_skills())
+            skills.triggers.start()
+            n = len(skills.triggers.list_skills())
             print(f"🎯 Skills active ({n} loaded).")
         except Exception as _sk_err:
             print(f"(Skills watcher failed to start: {_sk_err})")
 
     if _JOURNAL_READY:
         try:
-            zendaya_journal.start()
+            skills.journal.start()
             print("📓 Project journal active.")
         except Exception as _jr_err:
             print(f"(Journal failed to start: {_jr_err})")

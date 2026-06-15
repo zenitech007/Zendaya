@@ -1,4 +1,4 @@
-"""Unit tests for the broadcast loop and decimation logic in zendaya_state_server."""
+"""Unit tests for the broadcast loop and decimation logic in server.state_server."""
 from __future__ import annotations
 
 import time
@@ -9,7 +9,7 @@ import pytest
 @pytest.fixture(autouse=True)
 def _reset_state_server():
     """Reset module-level state between tests."""
-    import zendaya_state_server as ss
+    import server.state_server as ss
 
     ss._MOUTH = {"level": 0.0, "ts": 0.0}
     ss._VISEMES = {"weights": {"aa": 0, "ih": 0, "ee": 0, "oh": 0, "ou": 0}, "ts": 0.0}
@@ -20,7 +20,7 @@ def _reset_state_server():
 
 
 def test_collect_tick_includes_amplitude_when_changed():
-    import zendaya_state_server as ss
+    import server.state_server as ss
 
     ss.set_amplitude(0.42)
     tick = ss._collect_tick()
@@ -30,7 +30,7 @@ def test_collect_tick_includes_amplitude_when_changed():
 
 
 def test_collect_tick_decimates_unchanged_amplitude():
-    import zendaya_state_server as ss
+    import server.state_server as ss
 
     ss.set_amplitude(0.5)
     _ = ss._collect_tick()  # marks 0.5 as sent
@@ -40,7 +40,7 @@ def test_collect_tick_decimates_unchanged_amplitude():
 
 
 def test_collect_tick_includes_visemes_when_changed():
-    import zendaya_state_server as ss
+    import server.state_server as ss
 
     ss.set_visemes({"aa": 0.5, "ih": 0, "ee": 0, "oh": 0, "ou": 0})
     tick = ss._collect_tick()
@@ -50,7 +50,7 @@ def test_collect_tick_includes_visemes_when_changed():
 
 
 def test_collect_tick_decimates_unchanged_visemes():
-    import zendaya_state_server as ss
+    import server.state_server as ss
 
     ss.set_visemes({"aa": 0.5, "ih": 0, "ee": 0, "oh": 0, "ou": 0})
     _ = ss._collect_tick()
@@ -60,7 +60,7 @@ def test_collect_tick_decimates_unchanged_visemes():
 
 
 def test_collect_tick_includes_telemetry_with_provider():
-    import zendaya_state_server as ss
+    import server.state_server as ss
 
     fake = {"cpu": 21.4, "mem": 58.2, "mic_level": 0.0, "mood": "neutral",
             "vision_active": False, "gestures_active": False,
@@ -76,7 +76,7 @@ def test_collect_tick_includes_telemetry_with_provider():
 
 
 def test_collect_tick_telemetry_null_on_provider_exception():
-    import zendaya_state_server as ss
+    import server.state_server as ss
 
     def boom():
         raise RuntimeError("intentional")
@@ -88,7 +88,7 @@ def test_collect_tick_telemetry_null_on_provider_exception():
 
 
 def test_set_body_action_valid_value_broadcasts_then_resets():
-    import zendaya_state_server as ss
+    import server.state_server as ss
 
     ss.set_body_action("nod")
     tick = ss._collect_tick()
@@ -100,7 +100,7 @@ def test_set_body_action_valid_value_broadcasts_then_resets():
 
 
 def test_set_body_action_unknown_becomes_empty():
-    import zendaya_state_server as ss
+    import server.state_server as ss
 
     ss.set_body_action("garbage")
     assert ss._BODY["action"] == ""
@@ -110,7 +110,7 @@ def test_set_body_action_unknown_becomes_empty():
 
 def test_collect_tick_handles_provider_value_then_recovers():
     """After a provider exception, subsequent successful ticks resume normally."""
-    import zendaya_state_server as ss
+    import server.state_server as ss
 
     state = {"raise": True}
 
@@ -135,7 +135,7 @@ def test_collect_tick_handles_provider_value_then_recovers():
 
 def test_collect_tick_skips_telemetry_provider_when_not_included():
     """include_telemetry=False must not invoke the (expensive) provider at all."""
-    import zendaya_state_server as ss
+    import server.state_server as ss
 
     calls = {"n": 0}
 

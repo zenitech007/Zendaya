@@ -3,7 +3,7 @@ import base64
 import sys
 import types
 
-import zendaya_state_server as ss
+import server.state_server as ss
 
 
 def _capture(monkeypatch):

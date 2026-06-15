@@ -1,4 +1,4 @@
-"""Unit tests for zendaya_assistant_features."""
+"""Unit tests for skills.assistant_features."""
 from __future__ import annotations
 
 import json
@@ -12,7 +12,7 @@ import pytest
 
 
 def test_module_imports_and_exposes_public_api(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
 
     assert callable(aaf.set_notifier)
     assert callable(aaf.start)
@@ -21,7 +21,7 @@ def test_module_imports_and_exposes_public_api(tmp_data_dir):
 
 
 def test_try_handle_returns_none_for_unrelated_input(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
 
     assert aaf.try_handle("what time is it") is None
     assert aaf.try_handle("") is None
@@ -31,7 +31,7 @@ def test_try_handle_returns_none_for_unrelated_input(tmp_data_dir):
 
 
 def test_state_round_trip(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
 
     state = aaf._load_state()
     assert state == {"alarms": [], "timers": [], "lists": {}, "next_alarm_id": 1, "next_timer_id": 1}
@@ -47,7 +47,7 @@ def test_state_round_trip(tmp_data_dir):
 
 
 def test_corrupt_state_file_is_renamed_and_default_returned(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
 
     (tmp_data_dir / "aaf_state.json").write_text("{not valid json", encoding="utf-8")
 
@@ -69,7 +69,7 @@ def test_corrupt_state_file_is_renamed_and_default_returned(tmp_data_dir):
     ("timer 1 hr", 3600),
 ])
 def test_parse_timer_command_positive(utterance, expected_seconds, tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
 
     action, payload = aaf.parse_timer_command(utterance)
     assert action == "create"
@@ -83,12 +83,12 @@ def test_parse_timer_command_positive(utterance, expected_seconds, tmp_data_dir)
     "",
 ])
 def test_parse_timer_command_negative(utterance, tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     assert aaf.parse_timer_command(utterance) is None
 
 
 def test_create_timer_persists_record(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
 
     reply = aaf._handle_timer("create", {"duration_seconds": 60, "label": "1-minute timer"})
     assert "timer" in reply.lower()
@@ -102,13 +102,13 @@ def test_create_timer_persists_record(tmp_data_dir):
 
 
 def test_list_timers_with_no_timers(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     reply = aaf._handle_timer("list", {})
     assert "no" in reply.lower() and "timer" in reply.lower()
 
 
 def test_cancel_timer_by_index(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
 
     aaf._handle_timer("create", {"duration_seconds": 60, "label": "1-min"})
     aaf._handle_timer("create", {"duration_seconds": 120, "label": "2-min"})
@@ -123,7 +123,7 @@ def test_cancel_timer_by_index(tmp_data_dir):
 
 
 def test_cancel_timer_out_of_range(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     reply = aaf._handle_timer("cancel", {"index": 5})
     assert "only" in reply.lower() or "no" in reply.lower()
 
@@ -132,7 +132,7 @@ def test_cancel_timer_out_of_range(tmp_data_dir):
 
 
 def test_parse_alarm_one_shot_simple(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     result = aaf.parse_alarm_command("set an alarm for 7am tomorrow")
     assert result is not None
     action, payload = result
@@ -151,7 +151,7 @@ def test_parse_alarm_one_shot_simple(tmp_data_dir):
     ("alarm every monday at 8:30am",      "30 8 * * 1"),
 ])
 def test_parse_alarm_cron_table(utterance, expected_cron, tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     result = aaf.parse_alarm_command(utterance)
     assert result is not None, f"expected match for {utterance!r}"
     action, payload = result
@@ -161,7 +161,7 @@ def test_parse_alarm_cron_table(utterance, expected_cron, tmp_data_dir):
 
 
 def test_parse_alarm_unrecognised_returns_help(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     result = aaf.parse_alarm_command("set an alarm on the next blue moon")
     assert result is not None
     action, payload = result
@@ -176,12 +176,12 @@ def test_parse_alarm_unrecognised_returns_help(tmp_data_dir):
     "",
 ])
 def test_parse_alarm_negative(utterance, tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     assert aaf.parse_alarm_command(utterance) is None
 
 
 def test_create_one_shot_alarm_persists(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     future = (datetime.now() + timedelta(hours=1)).isoformat()
     reply = aaf._handle_alarm("create", {"kind": "one_shot", "trigger": future, "label": "alarm in 1h"})
     assert "alarm" in reply.lower()
@@ -191,7 +191,7 @@ def test_create_one_shot_alarm_persists(tmp_data_dir):
 
 
 def test_create_cron_alarm_persists(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     reply = aaf._handle_alarm("create", {"kind": "cron", "trigger": "0 7 * * 1-5", "label": "weekday 7am"})
     assert "alarm" in reply.lower()
     state = aaf._load_state()
@@ -200,7 +200,7 @@ def test_create_cron_alarm_persists(tmp_data_dir):
 
 
 def test_list_alarms_includes_both_kinds(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     future = (datetime.now() + timedelta(hours=1)).isoformat()
     aaf._handle_alarm("create", {"kind": "one_shot", "trigger": future, "label": "one-shot"})
     aaf._handle_alarm("create", {"kind": "cron", "trigger": "0 7 * * 1-5", "label": "weekday 7am"})
@@ -209,7 +209,7 @@ def test_list_alarms_includes_both_kinds(tmp_data_dir):
 
 
 def test_cancel_alarm_by_index(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     future = (datetime.now() + timedelta(hours=1)).isoformat()
     aaf._handle_alarm("create", {"kind": "one_shot", "trigger": future, "label": "one-shot"})
     aaf._handle_alarm("create", {"kind": "cron", "trigger": "0 7 * * 1-5", "label": "weekday"})
@@ -229,7 +229,7 @@ def test_cancel_alarm_by_index(tmp_data_dir):
     ("add finish the report to my todo list", "todo", "finish the report"),
 ])
 def test_parse_list_add_explicit(utterance, expected_list, expected_item, tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     result = aaf.parse_list_command(utterance)
     assert result is not None
     action, payload = result
@@ -245,7 +245,7 @@ def test_parse_list_add_explicit(utterance, expected_list, expected_item, tmp_da
     ("add call mom",            "todo"),
 ])
 def test_parse_list_add_default(utterance, expected_list, tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     action, payload = aaf.parse_list_command(utterance)
     assert action == "add"
     assert payload["list_name"] == expected_list
@@ -257,14 +257,14 @@ def test_parse_list_add_default(utterance, expected_list, tmp_data_dir):
     ("show me my packing list",    "packing"),
 ])
 def test_parse_list_read(utterance, expected_list, tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     action, payload = aaf.parse_list_command(utterance)
     assert action == "read"
     assert payload["list_name"] == expected_list
 
 
 def test_parse_list_remove(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     action, payload = aaf.parse_list_command("remove milk from shopping list")
     assert action == "remove"
     assert payload["list_name"] == "shopping"
@@ -272,7 +272,7 @@ def test_parse_list_remove(tmp_data_dir):
 
 
 def test_parse_list_mark_done(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     action, payload = aaf.parse_list_command("mark milk done on shopping list")
     assert action == "mark_done"
     assert payload["list_name"] == "shopping"
@@ -280,14 +280,14 @@ def test_parse_list_mark_done(tmp_data_dir):
 
 
 def test_parse_list_negative(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     assert aaf.parse_list_command("set alarm 7am") is None
     assert aaf.parse_list_command("what time is it") is None
     assert aaf.parse_list_command("") is None
 
 
 def test_list_handler_round_trip(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     aaf._handle_list("add", {"list_name": "shopping", "item": "milk"})
     aaf._handle_list("add", {"list_name": "shopping", "item": "eggs"})
 
@@ -307,14 +307,14 @@ def test_list_handler_round_trip(tmp_data_dir):
 
 
 def test_list_remove_nonexistent_item_is_friendly(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     aaf._handle_list("add", {"list_name": "shopping", "item": "milk"})
     reply = aaf._handle_list("remove", {"list_name": "shopping", "item": "spaghetti"})
     assert "couldn't find" in reply.lower() or "not on" in reply.lower()
 
 
 def test_list_read_empty_list_is_friendly(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     reply = aaf._handle_list("read", {"list_name": "nonexistent"})
     assert "empty" in reply.lower() or "no items" in reply.lower()
 
@@ -323,7 +323,7 @@ def test_list_read_empty_list_is_friendly(tmp_data_dir):
 
 
 def test_start_prunes_expired_one_shots(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     state = aaf._load_state()
     past = (datetime.now() - timedelta(hours=1)).isoformat()
     state["alarms"].append({
@@ -340,7 +340,7 @@ def test_start_prunes_expired_one_shots(tmp_data_dir):
 
 
 def test_start_keeps_active_cron_alarms(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     state = aaf._load_state()
     state["alarms"].append({
         "id": 1, "kind": "cron", "trigger": "0 7 * * 1-5",
@@ -356,7 +356,7 @@ def test_start_keeps_active_cron_alarms(tmp_data_dir):
 
 
 def test_fire_alarm_calls_notifier_and_deactivates_one_shot(tmp_data_dir, fake_notifier):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     speak, toast, calls = fake_notifier
     aaf.set_notifier(speak, toast)
 
@@ -377,7 +377,7 @@ def test_fire_alarm_calls_notifier_and_deactivates_one_shot(tmp_data_dir, fake_n
 
 
 def test_fire_cron_alarm_keeps_active(tmp_data_dir, fake_notifier):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     speak, toast, calls = fake_notifier
     aaf.set_notifier(speak, toast)
 
@@ -395,7 +395,7 @@ def test_fire_cron_alarm_keeps_active(tmp_data_dir, fake_notifier):
 
 
 def test_fire_timer_deactivates(tmp_data_dir, fake_notifier):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     speak, toast, calls = fake_notifier
     aaf.set_notifier(speak, toast)
 
@@ -416,7 +416,7 @@ def test_fire_timer_deactivates(tmp_data_dir, fake_notifier):
 
 def test_fire_handles_missing_record_silently(tmp_data_dir, fake_notifier):
     """If a record was cancelled mid-flight, the fire callback must not crash."""
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     speak, toast, _ = fake_notifier
     aaf.set_notifier(speak, toast)
     # No record with id=999 — should be a no-op, not an exception.
@@ -425,7 +425,7 @@ def test_fire_handles_missing_record_silently(tmp_data_dir, fake_notifier):
 
 
 def test_pruning_drops_old_completed_list_items(tmp_data_dir):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     old_ts = time.time() - (31 * 24 * 3600)
     state = aaf._load_state()
     state["lists"]["shopping"] = [
@@ -443,7 +443,7 @@ def test_pruning_drops_old_completed_list_items(tmp_data_dir):
 
 
 def test_try_handle_routes_to_correct_family(tmp_data_dir, fake_notifier):
-    import zendaya_assistant_features as aaf
+    import skills.assistant_features as aaf
     speak, toast, _ = fake_notifier
     aaf.set_notifier(speak, toast)
 
