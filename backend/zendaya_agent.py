@@ -678,7 +678,6 @@ def request_run_with_confirmation(goal: str) -> str:
 # ---------------------------------------------------------------------------
 
 import importlib
-import os
 import re
 import shutil
 import subprocess

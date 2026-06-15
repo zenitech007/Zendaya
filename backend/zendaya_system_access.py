@@ -27,7 +27,6 @@ For Gmail sending: set these in your .env file:
 
 import os
 import re
-import shutil
 import platform
 import subprocess
 import smtplib
@@ -39,7 +38,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional
 
 import socket
 

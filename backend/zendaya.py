@@ -25,7 +25,6 @@ import subprocess
 import webbrowser
 import threading # Added for async audio playback
 from typing import Optional, Dict, Any, List
-from collections import Counter
 from datetime import datetime, timezone
 
 # --- Google API & Auth Imports ---
@@ -52,20 +51,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 from google import genai
 from zendaya_system_access import *
-from zendaya_home_assistant import (
-    ha_command as _ha_command,
-    ha_available as _ha_available,
-    ha_unavailable_message as _ha_unavailable_message,
-)
-from zendaya_phone import (
-    kdec_command as _kdec_command,
-    kdec_available as _kdec_available,
-    kdec_installed as _kdec_installed,
-)
-from zendaya_spotify import (
-    spotify_command as _spotify_command,
-    spotify_available as _spotify_available,
-)
+from zendaya_home_assistant import ha_command as _ha_command, ha_available as _ha_available
+from zendaya_phone import kdec_command as _kdec_command
+from zendaya_spotify import spotify_command as _spotify_command
 from zendaya_vision import (
     analyze_screen as _vision_analyze_screen,
     analyze_webcam as _vision_analyze_webcam,

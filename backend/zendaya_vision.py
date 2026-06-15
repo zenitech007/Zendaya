@@ -6,7 +6,6 @@ with the user's question, returns the model's text answer.
 """
 
 import io
-import os
 import time
 from typing import Optional
 

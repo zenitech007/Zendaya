@@ -32,7 +32,7 @@ import re
 import shutil
 import subprocess
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Optional, Tuple
 
 _TASK_PREFIX = r"\Zendaya"

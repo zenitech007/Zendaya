@@ -19,7 +19,7 @@ import os
 import re
 import time
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any
 
 from dotenv import load_dotenv
 
