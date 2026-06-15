@@ -29,6 +29,29 @@ WAKE_CHUNK_SAMPLES = 1280              # 80 ms at 16 kHz — openWakeWord native
 SMOOTH_WINDOW = 5                      # ~400 ms of scores
 COOLDOWN_S = 1.5                       # don't fire twice within this window
 
+_MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
+_BUNDLED = ("zendaya", "zen")                       # expected custom model basenames
+_DEFAULT_THRESHOLDS = {"zendaya": 0.5, "zen": 0.7, "hey_jarvis": 0.5}
+
+
+def _model_key(entry: str) -> str:
+    """openWakeWord keys a model by its file basename (no ext); builtins by name."""
+    if entry.endswith(".onnx") or "/" in entry or "\\" in entry:
+        return os.path.splitext(os.path.basename(entry))[0]
+    return entry
+
+
+def _resolve_model_entries() -> list:
+    """Resolve the Stage-1 model list: ZENDAYA_WAKE_MODEL (comma-separated paths or
+    builtin names) → bundled custom models present on disk → ['hey_jarvis'] fallback
+    (so wake still works before the custom models are trained)."""
+    env = os.environ.get("ZENDAYA_WAKE_MODEL", "").strip()
+    if env:
+        return [e.strip() for e in env.split(",") if e.strip()]
+    bundled = [os.path.join(_MODELS_DIR, f"{n}.onnx") for n in _BUNDLED]
+    present = [p for p in bundled if os.path.isfile(p)]
+    return present if present else ["hey_jarvis"]
+
 # Verifier — model-aware word-boundary regex. Replaces the prior loose
 # substring matcher that fired on "frozen" / "zenith" / etc.
 # Tolerant of common Whisper mishears of "zendaya".
@@ -71,29 +94,36 @@ def verifier_passes_for_model(model_name: str, transcript: str) -> bool:
 
 
 class WakeEngine:
-    def __init__(
-        self,
-        model_name: str = "hey_jarvis",
-        threshold: float = 0.6,
-        barge_threshold: float = 0.72,
-    ) -> None:
-        self.model_name = os.environ.get("ZENDAYA_WAKE_MODEL", model_name)
-        self.threshold = float(os.environ.get("ZENDAYA_WAKE_THRESHOLD", str(threshold)))
+    def __init__(self, models=None, threshold=None, barge_threshold: float = 0.72) -> None:
+        entries = _resolve_model_entries() if models is None else models
+        if isinstance(entries, str):
+            entries = [entries]
+        self.entries = list(entries)
+        self.model_keys = [_model_key(e) for e in self.entries]
+        self.model_name = ",".join(self.model_keys)  # back-compat / diagnostics
         self.barge_threshold = float(barge_threshold)
-        self._model = None
+        env_thr = os.environ.get("ZENDAYA_WAKE_THRESHOLD")
+        self.thresholds = {}
+        for k in self.model_keys:
+            if threshold is not None:
+                self.thresholds[k] = float(threshold)
+            elif env_thr:
+                self.thresholds[k] = float(env_thr)
+            else:
+                self.thresholds[k] = _DEFAULT_THRESHOLDS.get(k, 0.5)
+        self._scores = {k: deque(maxlen=SMOOTH_WINDOW) for k in self.model_keys}
         self._accum = np.zeros(0, dtype=np.int16)
-        self._scores: deque = deque(maxlen=SMOOTH_WINDOW)
         self._last_fire_ts = 0.0
-        self.err = ""
+        self.last_fired_model = None
         self.last_score = 0.0
+        self.err = ""
+        self._model = None
         if not _OWW_AVAILABLE:
             self.err = f"openwakeword not installed: {_OWW_ERR}"
             return
         try:
-            self._model = _OWWModel(
-                wakeword_models=[self.model_name],
-                inference_framework="onnx",
-            )
+            self._model = _OWWModel(wakeword_models=list(self.entries),
+                                    inference_framework="onnx")
         except Exception as e:
             self.err = f"openwakeword init failed: {e}"
             self._model = None
@@ -102,23 +132,17 @@ class WakeEngine:
     def ready(self) -> bool:
         return self._model is not None
 
-    def _predict(self, chunk_int16: np.ndarray) -> float:
+    def _predict(self, chunk_int16: np.ndarray) -> dict:
         if self._model is None:
-            return 0.0
+            return {}
         try:
-            scores = self._model.predict(chunk_int16)
+            return dict(self._model.predict(chunk_int16))
         except Exception:
-            return 0.0
-        if not scores:
-            return 0.0
-        return float(max(scores.values()))
+            return {}
 
     def push(self, frame_int16: np.ndarray, barge_in: bool = False) -> bool:
-        """Push a frame; return True iff (smoothed) wake fires above threshold.
-
-        barge_in=True uses the stricter `barge_threshold` (for use while TTS
-        is playing, where TTS audio can bleed into the mic).
-        """
+        """Push a frame; return True iff any model's smoothed score crosses its
+        threshold (records `last_fired_model`/`last_score`)."""
         if self._model is None:
             return False
         self._accum = np.concatenate([self._accum, frame_int16])
@@ -126,28 +150,31 @@ class WakeEngine:
         while self._accum.size >= WAKE_CHUNK_SAMPLES:
             chunk = self._accum[:WAKE_CHUNK_SAMPLES]
             self._accum = self._accum[WAKE_CHUNK_SAMPLES:]
-            score = self._predict(chunk)
-            self.last_score = score
-            self._scores.append(score)
-            smoothed = sum(self._scores) / len(self._scores)
-            thresh = self.barge_threshold if barge_in else self.threshold
-            if (
-                smoothed >= thresh
-                and time.time() - self._last_fire_ts > COOLDOWN_S
-            ):
-                self._last_fire_ts = time.time()
-                self._scores.clear()
-                fired = True
+            scores = self._predict(chunk)
+            for key in self.model_keys:
+                dq = self._scores[key]
+                dq.append(float(scores.get(key, 0.0)))
+                smoothed = sum(dq) / len(dq)
+                thresh = self.barge_threshold if barge_in else self.thresholds.get(key, 0.5)
+                if smoothed >= thresh and time.time() - self._last_fire_ts > COOLDOWN_S:
+                    self._last_fire_ts = time.time()
+                    self.last_fired_model = key
+                    self.last_score = smoothed
+                    for d in self._scores.values():
+                        d.clear()
+                    fired = True
+                    break
+            if fired:
+                break
         return fired
 
     def reset(self) -> None:
         self._accum = np.zeros(0, dtype=np.int16)
-        self._scores.clear()
+        for d in self._scores.values():
+            d.clear()
 
     def diagnostics(self) -> str:
         if self._model is not None:
-            return (
-                f"wake: openWakeWord ready — model={self.model_name!r} "
-                f"thr={self.threshold} barge_thr={self.barge_threshold}"
-            )
+            return (f"wake: openWakeWord ready — models={self.model_keys} "
+                    f"thresholds={self.thresholds} barge_thr={self.barge_threshold}")
         return f"wake: OFF — {self.err}"
