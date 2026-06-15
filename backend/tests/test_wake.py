@@ -95,3 +95,34 @@ def test_push_respects_zen_higher_threshold(monkeypatch):
     frame = np.zeros(wake.WAKE_CHUNK_SAMPLES * wake.SMOOTH_WINDOW, dtype=np.int16)
     assert eng.push(frame) is False
     assert eng.last_fired_model is None
+
+
+import os
+
+
+@pytest.mark.slow
+def test_zendaya_model_fires_on_synth_clip():
+    """Mic-free end-to-end check: synthesize 'Zendaya' with Coqui, resample to
+    16 kHz, feed it through the real WakeEngine loaded with zendaya.onnx, and
+    assert it fires. Self-skips until the trained model is present."""
+    model = os.path.join(wake._MODELS_DIR, "zendaya.onnx")
+    if not os.path.isfile(model):
+        pytest.skip("zendaya.onnx not trained/present yet")
+    try:
+        from voice import offline_tts
+        pcm = offline_tts.synth_to_pcm("Zendaya", target_sr=16000)
+    except Exception as e:
+        pytest.skip(f"offline TTS unavailable: {e}")
+    if not pcm:
+        pytest.skip("offline TTS produced no audio")
+    samples = np.frombuffer(pcm, dtype="<i2")
+    eng = wake.WakeEngine(models=[model])
+    if not eng.ready:
+        pytest.skip(f"wake engine not ready: {eng.err}")
+    fired = False
+    for i in range(0, len(samples), wake.WAKE_CHUNK_SAMPLES):
+        if eng.push(samples[i:i + wake.WAKE_CHUNK_SAMPLES]):
+            fired = True
+            break
+    assert fired, "trained zendaya.onnx did not fire on a synthesized 'Zendaya' clip"
+    assert eng.last_fired_model == "zendaya"
