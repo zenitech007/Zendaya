@@ -124,6 +124,11 @@ def _maybe_backchannel() -> None:
         return
     _play_backchannel_clip()
 
+
+def _barge_mode() -> str:
+    m = os.environ.get("ZENDAYA_BARGE_MODE", "acoustic").strip().lower()
+    return m if m in ("acoustic", "wake", "off") else "acoustic"
+
 # Hallucination stack-filter — Whisper internals + static set
 WHISPER_NO_SPEECH_MAX = 0.6
 WHISPER_AVG_LOGPROB_MIN = -1.0
@@ -691,6 +696,8 @@ def _run_listener_session() -> None:
     _DENOISER = Denoiser(enabled=True)
     _VAD = SileroVAD(threshold=0.5)
     _WAKE = WakeEngine(barge_threshold=0.72)  # default models: zendaya.onnx + zen.onnx (fallback hey_jarvis)
+    _BARGE = _BargeDetector(_VAD)
+    _barge_prev_tts = False
     ambient_gate = _AmbientGate(sample_rate=SAMPLE_RATE)
 
     print("[voice v2] " + _DENOISER.diagnostics())
@@ -723,26 +730,33 @@ def _run_listener_session() -> None:
                 continue
 
             tts_on = _TTS_SPEAKING.is_set()
+            if tts_on and not _barge_prev_tts:
+                _BARGE.reset()
+            _barge_prev_tts = tts_on
 
-            # While TTS plays: only the wake engine listens, with stricter thresh.
+            # While TTS plays: wake/stop-word barge always works; acoustic mode
+            # also lets sustained over-talk interrupt (echo-guarded).
             if tts_on:
-                if _WAKE and _WAKE.ready:
-                    if _WAKE.push(frame, barge_in=True):
-                        barge_fired = True
-                        print(f"[voice v2] BARGE-IN — score={_WAKE.last_score:.2f}")
-                        _stop_tts()
-                        # Wait briefly for TTS gate to clear, then proceed
-                        deadline = time.time() + 1.5
-                        while _TTS_SPEAKING.is_set() and time.time() < deadline:
-                            time.sleep(0.03)
-                        _drain_queue(keep_last_n=0)
-                        rolling.clear()
-                        consecutive_speech = 0
-                        _set_state("listening")
-                        # Drop into record path below
-                        wake_fired = True
-                        break
-                # ignore everything else while TTS speaks
+                mode = _barge_mode()
+                did_barge = False
+                reason = ""
+                if mode != "off" and _WAKE and _WAKE.ready and _WAKE.push(frame, barge_in=True):
+                    did_barge, reason = True, f"wake score={_WAKE.last_score:.2f}"
+                elif mode == "acoustic" and _BARGE.observe(frame):
+                    did_barge, reason = True, "acoustic over-talk"
+                if did_barge:
+                    barge_fired = True
+                    print(f"[voice v2] BARGE-IN — {reason}")
+                    _stop_tts()
+                    deadline = time.time() + 1.5
+                    while _TTS_SPEAKING.is_set() and time.time() < deadline:
+                        time.sleep(0.03)
+                    _drain_queue(keep_last_n=0)
+                    rolling.clear()
+                    consecutive_speech = 0
+                    _set_state("listening")
+                    wake_fired = True
+                    break
                 continue
 
             rolling.append(frame)
