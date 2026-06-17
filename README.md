@@ -17,6 +17,10 @@ it talks back.
 - **Voice in** — custom **"Zendaya"/"Zen"** wake words (openWakeWord, trained via the
   free Colab guide in `docs/superpowers/guides/wake-training-colab.md`) → VAD (Silero) +
   denoise → Whisper STT. Falls back to `hey_jarvis` until the models are trained.
+- **Conversation flow** — talk over her to interrupt (`ZENDAYA_BARGE_MODE=acoustic|wake|off`,
+  `ZENDAYA_BARGE_MARGIN`), a follow-up window so you can chain turns without re-waking
+  (`ZENDAYA_FOLLOWUP_S`, default 10s; cue via `ZENDAYA_FOLLOWUP_CUE`), and backchannels on
+  long tasks (`ZENDAYA_BACKCHANNEL`).
 - **Voice out** — **offline-first**: Coqui TTS (VITS) is the default voice; ElevenLabs
   is available on demand; `pyttsx3` is the last-resort fallback. Switch at runtime
   with `/voice offline | elevenlabs`.

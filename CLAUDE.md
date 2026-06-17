@@ -28,6 +28,10 @@ Wake words are custom openWakeWord models (`zendaya.onnx`/`zen.onnx` in
 the engine falls back to `hey_jarvis` if they're absent. Tune via `ZENDAYA_WAKE_MODEL` /
 `ZENDAYA_WAKE_THRESHOLD`.
 
+Conversation-flow knobs (`voice/listener_v2` + `voice/cue`): `ZENDAYA_BARGE_MODE`
+(acoustic|wake|off), `ZENDAYA_BARGE_MARGIN`, `ZENDAYA_FOLLOWUP_S`, `ZENDAYA_FOLLOWUP_CUE`,
+`ZENDAYA_BACKCHANNEL`, `ZENDAYA_BACKCHANNEL_AFTER`.
+
 ## Graphify (preferred for codebase questions)
 
 This repo is indexed by [Graphify](https://github.com/safishamsi/graphify). When you need to understand the codebase — how modules relate, where a function is defined, what calls what — prefer the `/graphify` skill over raw `Read`/`Grep`. Graph queries are bounded (default 2000-token budget) and far cheaper than reading whole files.
