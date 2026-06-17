@@ -39,3 +39,21 @@ def test_followup_seconds_env(monkeypatch):
     monkeypatch.delenv("ZENDAYA_FOLLOWUP_S", raising=False)
     importlib.reload(listener_v2)
     assert listener_v2._followup_seconds() == 10.0
+
+
+def test_backchannel_plays_a_clip(monkeypatch):
+    from voice import listener_v2
+    calls = []
+    monkeypatch.setattr(listener_v2, "_play_backchannel_clip", lambda: calls.append(1))
+    monkeypatch.setenv("ZENDAYA_BACKCHANNEL", "on")
+    listener_v2._maybe_backchannel()
+    assert calls == [1]
+
+
+def test_backchannel_off_is_noop(monkeypatch):
+    from voice import listener_v2
+    calls = []
+    monkeypatch.setattr(listener_v2, "_play_backchannel_clip", lambda: calls.append(1))
+    monkeypatch.setenv("ZENDAYA_BACKCHANNEL", "off")
+    listener_v2._maybe_backchannel()
+    assert calls == []

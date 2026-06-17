@@ -101,6 +101,29 @@ def _followup_seconds() -> float:
 MIN_UTTERANCE_S = 0.5
 VAD_TRIGGER_FRAMES = 4              # ~120 ms of speech to confirm
 
+BACKCHANNEL_AFTER_S = 3.0
+_BACKCHANNEL_TEXTS = ("one sec", "still on it", "mm-hm")
+_backchannel_idx = 0
+
+
+def _play_backchannel_clip() -> None:
+    """Synthesize (cached) and play one short backchannel via the cue path."""
+    global _backchannel_idx
+    try:
+        from voice import cue, offline_tts
+        text = _BACKCHANNEL_TEXTS[_backchannel_idx % len(_BACKCHANNEL_TEXTS)]
+        _backchannel_idx += 1
+        pcm = offline_tts.synth_to_pcm(text, target_sr=cue.SAMPLE_RATE)
+        cue.play_pcm(pcm, samplerate=cue.SAMPLE_RATE)
+    except Exception as e:
+        print(f"(backchannel failed: {e})")
+
+
+def _maybe_backchannel() -> None:
+    if os.environ.get("ZENDAYA_BACKCHANNEL", "on").lower() == "off":
+        return
+    _play_backchannel_clip()
+
 # Hallucination stack-filter — Whisper internals + static set
 WHISPER_NO_SPEECH_MAX = 0.6
 WHISPER_AVG_LOGPROB_MIN = -1.0
@@ -252,12 +275,17 @@ def _start_dispatch_worker(
                     waited += step
                 if tts_event.is_set():
                     print(f"[voice v2] dispatch waited {waited:.1f}s for TTS, proceeding anyway")
+            timer = threading.Timer(BACKCHANNEL_AFTER_S, _maybe_backchannel)
+            timer.daemon = True
+            timer.start()
             try:
                 handler(text)
             except Exception as e:
                 import traceback
                 print(f"[voice v2] dispatch handler crashed: {e}")
                 traceback.print_exc()
+            finally:
+                timer.cancel()
 
     t = threading.Thread(target=_run, name="zendaya-voice-dispatch", daemon=True)
     t.start()
