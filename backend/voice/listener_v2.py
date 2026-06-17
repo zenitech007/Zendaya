@@ -210,6 +210,58 @@ class _AmbientGate:
         return f"ambient_gate: floor={self.floor}"
 
 
+# ─── Acoustic barge-in detector ────────────────────────────────────────────
+
+BARGE_TRIGGER_FRAMES = 5            # ~150 ms of over-talk to confirm
+
+
+class _BargeDetector:
+    """During TTS, decides 'is the user talking over her?' Self-calibrates an
+    echo/ambient baseline (so speakers don't self-trigger) and requires sustained
+    VAD speech whose energy exceeds that baseline by a margin."""
+
+    def __init__(self, vad, margin: float | None = None, trigger_frames: int | None = None):
+        try:
+            self.margin = float(os.environ.get("ZENDAYA_BARGE_MARGIN",
+                                                margin if margin is not None else 1.6))
+        except (TypeError, ValueError):
+            self.margin = 1.6
+        self.trigger_frames = int(trigger_frames if trigger_frames is not None
+                                  else BARGE_TRIGGER_FRAMES)
+        self._vad = vad
+        self._baseline = None
+        self._consec = 0
+        self._alpha = 0.1            # baseline EMA rate (slow)
+
+    def reset(self) -> None:
+        self._baseline = None
+        self._consec = 0
+
+    @staticmethod
+    def _rms(frame_int16: np.ndarray) -> float:
+        f = frame_int16.astype(np.float32) / 32768.0
+        return float(np.sqrt(np.mean(f * f))) if f.size else 0.0
+
+    def observe(self, frame_int16: np.ndarray) -> bool:
+        rms = self._rms(frame_int16)
+        if self._baseline is None:
+            self._baseline = rms
+        try:
+            is_speech = bool(self._vad and self._vad.is_speech(frame_int16))
+        except Exception:
+            is_speech = False
+        candidate = is_speech and rms > self._baseline * self.margin
+        if candidate:
+            self._consec += 1
+            if self._consec >= self.trigger_frames:
+                self._consec = 0
+                return True
+        else:
+            self._consec = 0
+            self._baseline = (1 - self._alpha) * self._baseline + self._alpha * rms
+        return False
+
+
 # ─── Async command dispatch ────────────────────────────────────────────────
 
 import queue as _queue_mod

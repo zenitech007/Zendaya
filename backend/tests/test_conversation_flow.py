@@ -57,3 +57,44 @@ def test_backchannel_off_is_noop(monkeypatch):
     monkeypatch.setenv("ZENDAYA_BACKCHANNEL", "off")
     listener_v2._maybe_backchannel()
     assert calls == []
+
+
+class _StubVAD:
+    def __init__(self, speech=True):
+        self._speech = speech
+    def is_speech(self, frame):
+        return self._speech
+
+
+def _frame(rms, n=512):
+    # build an int16 frame with the target normalized RMS
+    val = int(rms * 32768)
+    return np.full(n, val, dtype=np.int16)
+
+
+def test_barge_fires_on_sustained_overtalk(monkeypatch):
+    from voice import listener_v2
+    monkeypatch.delenv("ZENDAYA_BARGE_MARGIN", raising=False)
+    det = listener_v2._BargeDetector(_StubVAD(speech=True), trigger_frames=3)
+    # establish a low echo/ambient baseline with non-speech-energy frames
+    det._baseline = 0.02
+    fired = [det.observe(_frame(0.20)) for _ in range(3)]   # loud over-talk
+    assert fired[-1] is True
+
+
+def test_barge_ignores_echo_level_energy(monkeypatch):
+    from voice import listener_v2
+    det = listener_v2._BargeDetector(_StubVAD(speech=True), trigger_frames=3)
+    det._baseline = 0.20            # speakers: baseline already at her echo level
+    fired = [det.observe(_frame(0.20)) for _ in range(6)]   # only echo-level energy
+    assert not any(fired)
+
+
+def test_barge_needs_sustained_frames():
+    from voice import listener_v2
+    det = listener_v2._BargeDetector(_StubVAD(speech=True), trigger_frames=4)
+    det._baseline = 0.02
+    assert det.observe(_frame(0.30)) is False  # 1 frame
+    assert det.observe(_frame(0.30)) is False  # 2
+    assert det.observe(_frame(0.02)) is False  # dip resets counter
+    assert det.observe(_frame(0.30)) is False  # 1 again
