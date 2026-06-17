@@ -98,3 +98,28 @@ def test_barge_needs_sustained_frames():
     assert det.observe(_frame(0.30)) is False  # 2
     assert det.observe(_frame(0.02)) is False  # dip resets counter
     assert det.observe(_frame(0.30)) is False  # 1 again
+
+
+def test_barge_mode_env(monkeypatch):
+    from voice import listener_v2
+    for val, expected in [("wake", "wake"), ("off", "off"), ("ACOUSTIC", "acoustic"),
+                          ("bogus", "acoustic")]:
+        monkeypatch.setenv("ZENDAYA_BARGE_MODE", val)
+        assert listener_v2._barge_mode() == expected
+    monkeypatch.delenv("ZENDAYA_BARGE_MODE", raising=False)
+    assert listener_v2._barge_mode() == "acoustic"
+
+
+def test_backchannel_synth_is_cached(monkeypatch):
+    from voice import listener_v2
+    monkeypatch.setattr(listener_v2, "_BACKCHANNEL_TEXTS", ("xx",))
+    listener_v2._backchannel_idx = 0
+    listener_v2._backchannel_cache.clear()
+    calls = []
+    import voice.offline_tts as ot
+    monkeypatch.setattr(ot, "synth_to_pcm", lambda text, target_sr=16000: calls.append(text) or b"\x00\x00")
+    from voice import cue
+    monkeypatch.setattr(cue, "play_pcm", lambda pcm, samplerate=16000: None)
+    listener_v2._play_backchannel_clip()
+    listener_v2._play_backchannel_clip()
+    assert len(calls) == 1   # synthesized once, then served from cache

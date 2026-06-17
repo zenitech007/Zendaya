@@ -101,19 +101,34 @@ def _followup_seconds() -> float:
 MIN_UTTERANCE_S = 0.5
 VAD_TRIGGER_FRAMES = 4              # ~120 ms of speech to confirm
 
-BACKCHANNEL_AFTER_S = 3.0
+BACKCHANNEL_AFTER_S = 3.0           # default; overridable via ZENDAYA_BACKCHANNEL_AFTER
 _BACKCHANNEL_TEXTS = ("one sec", "still on it", "mm-hm")
 _backchannel_idx = 0
+_backchannel_cache: dict = {}       # text -> PCM bytes (synthesized once)
+
+
+def _backchannel_after_s() -> float:
+    try:
+        return float(os.environ.get("ZENDAYA_BACKCHANNEL_AFTER", BACKCHANNEL_AFTER_S))
+    except (TypeError, ValueError):
+        return BACKCHANNEL_AFTER_S
 
 
 def _play_backchannel_clip() -> None:
-    """Synthesize (cached) and play one short backchannel via the cue path."""
+    """Play one short backchannel. Synthesizes each phrase at most once (cached);
+    on synth failure falls back to a soft tone so it never blocks/raises."""
     global _backchannel_idx
     try:
         from voice import cue, offline_tts
         text = _BACKCHANNEL_TEXTS[_backchannel_idx % len(_BACKCHANNEL_TEXTS)]
         _backchannel_idx += 1
-        pcm = offline_tts.synth_to_pcm(text, target_sr=cue.SAMPLE_RATE)
+        pcm = _backchannel_cache.get(text)
+        if pcm is None:
+            try:
+                pcm = offline_tts.synth_to_pcm(text, target_sr=cue.SAMPLE_RATE)
+            except Exception:
+                pcm = cue.tone_pcm(freq=520, ms=120)
+            _backchannel_cache[text] = pcm
         cue.play_pcm(pcm, samplerate=cue.SAMPLE_RATE)
     except Exception as e:
         print(f"(backchannel failed: {e})")
@@ -332,7 +347,11 @@ def _start_dispatch_worker(
                     waited += step
                 if tts_event.is_set():
                     print(f"[voice v2] dispatch waited {waited:.1f}s for TTS, proceeding anyway")
-            timer = threading.Timer(BACKCHANNEL_AFTER_S, _maybe_backchannel)
+            done = threading.Event()
+            timer = threading.Timer(
+                _backchannel_after_s(),
+                lambda: (not done.is_set()) and _maybe_backchannel(),
+            )
             timer.daemon = True
             timer.start()
             try:
@@ -342,6 +361,7 @@ def _start_dispatch_worker(
                 print(f"[voice v2] dispatch handler crashed: {e}")
                 traceback.print_exc()
             finally:
+                done.set()
                 timer.cancel()
 
     t = threading.Thread(target=_run, name="zendaya-voice-dispatch", daemon=True)
@@ -767,7 +787,8 @@ def _run_listener_session() -> None:
                 _followup_cued = True
                 if os.environ.get("ZENDAYA_FOLLOWUP_CUE", "on").lower() != "off":
                     from voice import cue as _cue
-                    _cue.play_pcm(_cue.tone_pcm(freq=720, ms=90))
+                    _cue_pcm = _cue.tone_pcm(freq=720, ms=90)
+                    threading.Thread(target=_cue.play_pcm, args=(_cue_pcm,), daemon=True).start()
             if not in_followup:
                 _followup_cued = False
 
