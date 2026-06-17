@@ -90,7 +90,14 @@ ROLLING_BUFFER_S = 1.5              # pre-roll for record + Whisper verifier
 MAX_UTTERANCE_S = 15.0
 SHORT_SILENCE_END_S = 0.45          # end-of-turn when last partial looks complete
 LONG_SILENCE_END_S = 0.70           # end-of-turn when partial seems mid-sentence
-FOLLOW_UP_S = 20.0                  # within this after a dispatch, skip the wake gate
+FOLLOW_UP_S = 10.0                  # default; overridable via ZENDAYA_FOLLOWUP_S
+
+
+def _followup_seconds() -> float:
+    try:
+        return float(os.environ.get("ZENDAYA_FOLLOWUP_S", FOLLOW_UP_S))
+    except (TypeError, ValueError):
+        return FOLLOW_UP_S
 MIN_UTTERANCE_S = 0.5
 VAD_TRIGGER_FRAMES = 4              # ~120 ms of speech to confirm
 
@@ -627,6 +634,7 @@ def _run_listener_session() -> None:
         speech_triggered = False
         wake_fired = False
         barge_fired = False
+        _followup_cued = False
 
         for frame in _frames():
             if not _LISTENING_ENABLED:
@@ -660,7 +668,14 @@ def _run_listener_session() -> None:
             rolling.append(frame)
 
             # Follow-up window — accept VAD-only activations to feel conversational
-            in_followup = (time.time() - _last_dispatch_ts) < FOLLOW_UP_S
+            in_followup = (time.time() - _last_dispatch_ts) < _followup_seconds()
+            if in_followup and not _followup_cued:
+                _followup_cued = True
+                if os.environ.get("ZENDAYA_FOLLOWUP_CUE", "on").lower() != "off":
+                    from voice import cue as _cue
+                    _cue.play_pcm(_cue.tone_pcm(freq=720, ms=90))
+            if not in_followup:
+                _followup_cued = False
 
             if in_followup:
                 # VAD activation

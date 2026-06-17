@@ -28,3 +28,14 @@ def test_play_runs_when_idle(monkeypatch):
     monkeypatch.setattr(cue, "_tts_is_active", lambda: False)
     cue.play_pcm(b"\x00\x00" * 100, samplerate=16000)
     assert played == [200]
+
+
+def test_followup_seconds_env(monkeypatch):
+    monkeypatch.setenv("ZENDAYA_FOLLOWUP_S", "7.5")
+    import importlib
+    from voice import listener_v2
+    importlib.reload(listener_v2)
+    assert listener_v2._followup_seconds() == 7.5
+    monkeypatch.delenv("ZENDAYA_FOLLOWUP_S", raising=False)
+    importlib.reload(listener_v2)
+    assert listener_v2._followup_seconds() == 10.0
