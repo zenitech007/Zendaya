@@ -96,6 +96,16 @@ except Exception as _e:
     _AGENT_READY = False
 
 try:
+    import skills.dev_voice
+    from memory import project as _project
+    _DEV_VOICE_READY = True
+except Exception as _e:
+    print(f"[zendaya] dev_voice module unavailable: {_e}")
+    skills.dev_voice = None
+    _project = None
+    _DEV_VOICE_READY = False
+
+try:
     import skills.jobs
     _JOBS_READY = True
 except Exception as _e:
@@ -1629,6 +1639,58 @@ def parse_coder_request(user_text: str) -> Optional[Dict[str, Any]]:
     return None
 
 
+def parse_dev_command(user_text: str) -> Optional[Dict[str, Any]]:
+    """Detect Pack B voice-coding commands (test / git / commit / project).
+
+    Kept separate from parse_coder_request for clarity. Returns a dict with a
+    ``type`` or None to pass through. Order matters: more specific phrases first.
+    """
+    lt = user_text.lower().strip().rstrip(".!?")
+    orig = user_text.strip()
+
+    # Commit including new files (must precede the plain commit match).
+    if re.search(r"\bcommit\b.*\b(?:including|with)\s+(?:the\s+)?new\s+files?\b", lt) or \
+       re.search(r"\bcommit\b.*\buntracked\b", lt):
+        return {"type": "smart_commit", "include_untracked": True}
+
+    # Commit with an explicit message.
+    m = re.search(r"\bcommit\b.*\b(?:with\s+)?messages?\s+(.+)$", lt)
+    if m:
+        message = orig[m.start(1):m.end(1)].strip().strip("'\"")
+        return {"type": "smart_commit", "message": message}
+
+    # Plain commit.
+    if re.match(r"^(?:zendaya,?\s*)?commit(?:\s+(?:this|that|it|changes|everything))?\s*$", lt):
+        return {"type": "smart_commit"}
+
+    # Run tests, optionally "in <project>".
+    m = re.match(r"^(?:zendaya,?\s*)?run\s+(?:the\s+)?tests?(?:\s+(?:in|on|for)\s+(.+))?$", lt)
+    if m:
+        target = orig[m.start(1):m.end(1)].strip().strip("'\"") if m.group(1) else None
+        return {"type": "pytest_brief", "project": target}
+
+    # Git status / "what changed".
+    if re.match(r"^(?:zendaya,?\s*)?(?:what(?:'s| has| did)?\s+changed|git\s+status|any\s+changes|show\s+(?:me\s+)?(?:the\s+)?(?:git\s+)?(?:status|diff|changes))\s*$", lt):
+        return {"type": "git_brief"}
+
+    # Switch / open / work on a project.
+    m = re.match(r"^(?:zendaya,?\s*)?(?:work\s+on|switch\s+to|open\s+(?:the\s+)?project)\s+(.+)$", lt)
+    if m:
+        target = orig[m.start(1):m.end(1)].strip().strip("'\"")
+        return {"type": "set_current", "project": target}
+
+    # Resume / where did we leave off.
+    if re.match(r"^(?:zendaya,?\s*)?(?:resume|where\s+(?:did\s+we|were\s+we)|where\s+did\s+we\s+leave\s+off|what\s+was\s+i\s+(?:doing|working\s+on)|continue\s+(?:where\s+we|the\s+project))\b.*$", lt):
+        return {"type": "resume_brief"}
+
+    # List known projects.
+    if re.match(r"^(?:zendaya,?\s*)?(?:what|which)\s+projects?\s+do\s+you\s+know\b.*$", lt) or \
+       re.match(r"^(?:zendaya,?\s*)?list\s+(?:my\s+)?projects?\s*$", lt):
+        return {"type": "list_projects"}
+
+    return None
+
+
 def parse_install_request(user_text: str) -> Optional[Dict[str, Any]]:
     """
     Detect package-install / download / run-installer / self-edit / autofix requests.
@@ -2371,7 +2433,15 @@ def confirm_dangerous(user_text: str) -> Optional[str]:
     lt = user_text.lower().strip()
     pending_action = MEM.get("pending_confirm")
 
-    if not pending_action or "confirm" not in lt:
+    _is_dev_commit = isinstance(pending_action, dict) and pending_action.get("action") == "dev_commit"
+    # dev_commit uses a plain verbal "yes"/"no" gate (no "confirm" keyword needed).
+    if _is_dev_commit and (("no" in lt) or ("cancel" in lt)) and "yes" not in lt:
+        MEM["pending_confirm"] = None
+        save_memory(MEM)
+        return "Okay, cancelled. Nothing was committed."
+
+    _gate_ok = ("confirm" in lt) or (_is_dev_commit and ("yes" in lt or "commit" in lt))
+    if not pending_action or not _gate_ok:
         return None
 
     confirmed = False
@@ -2448,6 +2518,12 @@ def confirm_dangerous(user_text: str) -> Optional[str]:
     elif isinstance(pending_action, dict) and pending_action.get("action") == "schedule_delete":
         if "delete" in lt or "task" in lt or "yes" in lt or "confirm" in lt:
             action_type = "schedule_delete"
+            confirmed = True
+
+    # Pending git commit from skills.dev_voice.smart_commit.
+    elif isinstance(pending_action, dict) and pending_action.get("action") == "dev_commit":
+        if "commit" in lt or "yes" in lt or "confirm" in lt:
+            action_type = "dev_commit"
             confirmed = True
 
     if not confirmed:
@@ -2538,7 +2614,16 @@ def confirm_dangerous(user_text: str) -> Optional[str]:
             if not _SCHEDULER_READY:
                 return "Scheduler module is offline."
             return skills.scheduler.confirm_delete(pending_action)
-            
+        if action_type == "dev_commit":
+            if not _DEV_VOICE_READY:
+                return "Dev-voice module is offline — can't commit."
+            return skills.dev_voice.do_commit(
+                pending_action["root"],
+                pending_action["message"],
+                include_untracked=pending_action.get("include_untracked", False),
+                new_files=pending_action.get("new_files", []),
+            )
+
     except Exception as e:
         return f"I tried but the system returned an error: {e}"
         
@@ -3363,6 +3448,63 @@ def handle_user_command(user_text: str):
         send_response(result)
         add_to_memory(PERSONA_NAME, result)
         return
+
+    # --- Voice coding (Pack B): tests, git status, smart commit, project memory ---
+    if _DEV_VOICE_READY:
+        dev_cmd = parse_dev_command(user_text)
+        if dev_cmd:
+            dtype = dev_cmd["type"]
+            if dtype == "pytest_brief":
+                proj = dev_cmd.get("project")
+                root = None
+                if proj:
+                    p = _project.set_current(proj)
+                    if not p:
+                        result = f"I don't know a project called '{proj}'. Say the path, or 'work on' it first."
+                        send_response(result)
+                        add_to_memory(PERSONA_NAME, result)
+                        return
+                    root = p["root"]
+                send_response("Running the tests...")
+                result = skills.dev_voice.pytest_brief(root)
+            elif dtype == "git_brief":
+                result = skills.dev_voice.git_brief()
+            elif dtype == "smart_commit":
+                prep = skills.dev_voice.smart_commit(
+                    message=dev_cmd.get("message"),
+                    include_untracked=dev_cmd.get("include_untracked", False),
+                )
+                if prep.get("confirm"):
+                    MEM["pending_confirm"] = {
+                        "action": "dev_commit",
+                        "root": prep["root"],
+                        "message": prep["message"],
+                        "files": prep.get("files", []),
+                        "new_files": prep.get("new_files", []),
+                        "include_untracked": prep.get("include_untracked", False),
+                    }
+                    save_memory(MEM)
+                    n = len(prep.get("files", [])) + len(prep.get("new_files", []))
+                    result = (f"I'll commit {n} file{'s' if n != 1 else ''} with: "
+                              f"\"{prep['message']}\". Say 'yes' to commit, 'no' to cancel.")
+                else:
+                    result = prep.get("message", "Nothing to commit.")
+            elif dtype == "set_current":
+                proj = dev_cmd["project"]
+                p = _project.set_current(proj)
+                if not p:
+                    result = f"I couldn't find a project called '{proj}'. Try saying the full path."
+                else:
+                    result = skills.dev_voice.resume_brief(p["root"])
+            elif dtype == "resume_brief":
+                result = skills.dev_voice.resume_brief()
+            elif dtype == "list_projects":
+                result = skills.dev_voice.list_projects_brief()
+            else:
+                result = "Unknown dev command."
+            send_response(result)
+            add_to_memory(PERSONA_NAME, result)
+            return
 
     # --- Coding mode: multi-file projects, project-aware edits, run code ---
     if _CODER_READY:
