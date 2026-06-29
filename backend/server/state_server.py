@@ -10,6 +10,7 @@ worker thread so the HTTP response stays instant.
 
 from __future__ import annotations
 
+import os
 import threading
 import time
 from typing import Callable, Optional
@@ -319,6 +320,9 @@ async def _ws_broadcast(payload: dict) -> None:
 
 
 _ON_CHAT: Optional[Callable[[str], None]] = None
+# Synchronous chat handler for the mobile API: takes a message, returns the
+# assistant's reply text. Resolved at start() time from zendaya.py.
+_ON_CHAT_SYNC: Optional[Callable[[str], str]] = None
 # Resolved at start() time. Returns a status string. Inputs are
 # (action, title) — action is one of close/maximize/minimize/focus.
 _ON_WINDOW_CONTROL: Optional[Callable[[str, str], str]] = None
@@ -627,27 +631,41 @@ async def _stop_broadcast_loop():
         _broadcast_thread.join(timeout=2.0)
 
 
+def chat_sync(message: str) -> dict:
+    """Run a mobile chat turn synchronously and return the reply text."""
+    msg = (message or "").strip()
+    if not msg:
+        return {"reply": "", "error": "empty message"}
+    if _ON_CHAT_SYNC is None:
+        return {"reply": "", "error": "no handler registered"}
+    reply = _ON_CHAT_SYNC(msg)
+    return {"reply": reply, "state": get_state().get("state", "idle")}
+
+
 # ── Server lifecycle ────────────────────────────────────
 def start(
     host: str = "127.0.0.1",
     port: int = 7475,
     on_chat: Optional[Callable[[str], None]] = None,
+    on_chat_sync: Optional[Callable[[str], str]] = None,
     on_window_control: Optional[Callable[[str, str], str]] = None,
     window_get_snapshot: Optional[Callable[[], dict]] = None,
     window_pop_events: Optional[Callable[[], list]] = None,
     on_quit: Optional[Callable[[], None]] = None,
 ) -> threading.Thread:
     """Spawn uvicorn on a daemon thread and return the thread handle."""
-    global _ON_CHAT, _ON_WINDOW_CONTROL
+    global _ON_CHAT, _ON_CHAT_SYNC, _ON_WINDOW_CONTROL
     global _WINDOW_GET_SNAPSHOT, _WINDOW_POP_EVENTS
     global _ON_QUIT
     _ON_CHAT = on_chat
+    _ON_CHAT_SYNC = on_chat_sync
     _ON_WINDOW_CONTROL = on_window_control
     _WINDOW_GET_SNAPSHOT = window_get_snapshot
     _WINDOW_POP_EVENTS = window_pop_events
     _ON_QUIT = on_quit
 
-    config = uvicorn.Config(app, host=host, port=port, log_level="warning")
+    bind_host = os.environ.get("ZENDAYA_BIND_HOST", host)
+    config = uvicorn.Config(app, host=bind_host, port=port, log_level="warning")
     server = uvicorn.Server(config)
 
     t = threading.Thread(target=server.run, daemon=True, name="zendaya-state-server")
