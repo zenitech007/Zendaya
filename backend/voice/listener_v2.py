@@ -141,8 +141,12 @@ def _maybe_backchannel() -> None:
 
 
 def _barge_mode() -> str:
-    m = os.environ.get("ZENDAYA_BARGE_MODE", "acoustic").strip().lower()
-    return m if m in ("acoustic", "wake", "off") else "acoustic"
+    # Default "wake": interrupt TTS only on the wake word. On built-in laptop
+    # mics with no echo cancellation, "acoustic" makes Zendaya hear her own
+    # speakers and interrupt herself. Set ZENDAYA_BARGE_MODE=acoustic when using
+    # a headset / device with AEC.
+    m = os.environ.get("ZENDAYA_BARGE_MODE", "wake").strip().lower()
+    return m if m in ("acoustic", "wake", "off") else "wake"
 
 # Hallucination stack-filter — Whisper internals + static set
 WHISPER_NO_SPEECH_MAX = 0.6

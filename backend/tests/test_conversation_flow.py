@@ -102,12 +102,12 @@ def test_barge_needs_sustained_frames():
 
 def test_barge_mode_env(monkeypatch):
     from voice import listener_v2
-    for val, expected in [("wake", "wake"), ("off", "off"), ("ACOUSTIC", "acoustic"),
-                          ("bogus", "acoustic")]:
+    for val, expected in [("acoustic", "acoustic"), ("off", "off"), ("WAKE", "wake"),
+                          ("bogus", "wake")]:
         monkeypatch.setenv("ZENDAYA_BARGE_MODE", val)
         assert listener_v2._barge_mode() == expected
     monkeypatch.delenv("ZENDAYA_BARGE_MODE", raising=False)
-    assert listener_v2._barge_mode() == "acoustic"
+    assert listener_v2._barge_mode() == "wake"
 
 
 def test_backchannel_synth_is_cached(monkeypatch):
