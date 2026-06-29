@@ -17,6 +17,7 @@ import re
 import sys
 import json
 import time
+import contextvars
 import shutil
 import random
 import difflib # Added for fuzzy matching
@@ -703,7 +704,40 @@ def _classify_body(text: str) -> Optional[str]:
     return None
 
 
+import contextlib
+
+_REPLY_CAPTURE: "contextvars.ContextVar[list[str] | None]" = contextvars.ContextVar(
+    "zendaya_reply_capture", default=None
+)
+
+
+@contextlib.contextmanager
+def capture_replies():
+    """While active, every send_response(text) also appends text to the
+    yielded list. Used by the mobile sync chat path to return the reply."""
+    buf: list[str] = []
+    token = _REPLY_CAPTURE.set(buf)
+    try:
+        yield buf
+    finally:
+        _REPLY_CAPTURE.reset(token)
+
+
+def _bridge_user_message_sync(msg: str) -> str:
+    """Run the command handler and return the assistant's reply text
+    (newline-joined). Empty string if the handler produced no reply."""
+    with capture_replies() as buf:
+        try:
+            handle_user_command(msg)
+        except Exception as e:
+            return f"[error: {e}]"
+    return "\n".join(buf)
+
+
 def send_response(text: str):
+    _buf = _REPLY_CAPTURE.get()
+    if _buf is not None:
+        _buf.append(text)
     if MEM["mode"] in ("both", "text"):
         stream_print(text)
     if MEM["mode"] in ("both", "voice"):
