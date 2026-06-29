@@ -714,7 +714,11 @@ _REPLY_CAPTURE: "contextvars.ContextVar[list[str] | None]" = contextvars.Context
 @contextlib.contextmanager
 def capture_replies():
     """While active, every send_response(text) also appends text to the
-    yielded list. Used by the mobile sync chat path to return the reply."""
+    yielded list. Used by the mobile sync chat path to return the reply.
+
+    Caveat: contextvars do not propagate to threads spawned via
+    threading.Thread, so this only captures replies emitted on the calling
+    thread (the current handle_user_command path is synchronous)."""
     buf: list[str] = []
     token = _REPLY_CAPTURE.set(buf)
     try:
