@@ -30,8 +30,8 @@ SMOOTH_WINDOW = 5                      # ~400 ms of scores
 COOLDOWN_S = 1.5                       # don't fire twice within this window
 
 _MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
-_BUNDLED = ("zendaya", "zen")                       # expected custom model basenames
-_DEFAULT_THRESHOLDS = {"zendaya": 0.5, "zen": 0.7, "hey_jarvis": 0.5}
+_BUNDLED = ("hey_zendaya", "zendaya", "zen")        # expected custom model basenames
+_DEFAULT_THRESHOLDS = {"hey_zendaya": 0.5, "zendaya": 0.5, "zen": 0.7, "hey_jarvis": 0.5}
 
 
 def _model_key(entry: str) -> str:

@@ -2,8 +2,9 @@
 
 Drop the trained openWakeWord models here:
 
-- `zendaya.onnx`  — primary wake word
-- `zen.onnx`      — secondary wake word
+- `hey_zendaya.onnx` — primary wake phrase ("hey zendaya")
+- `zendaya.onnx`     — bare-name wake word
+- `zen.onnx`         — short secondary wake word
 
 `WakeEngine` loads these automatically (see `_resolve_model_entries` in
 `../wake.py`). If they're absent it falls back to the built-in `hey_jarvis`

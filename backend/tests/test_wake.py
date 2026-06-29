@@ -25,6 +25,14 @@ def test_verifier_zen_model(transcript, ok):
     assert wake.verifier_passes_for_model("zen", transcript) is ok
 
 
+@pytest.mark.parametrize("transcript,ok", [
+    ("hey zendaya", True), ("Hey Zendaya, what's the weather", True),
+    ("zendaya", True), ("zen", False), ("hey there", False),
+])
+def test_verifier_hey_zendaya_model(transcript, ok):
+    assert wake.verifier_passes_for_model("hey_zendaya", transcript) is ok
+
+
 def test_verifier_empty_transcript_false():
     assert wake.verifier_passes_for_model("zendaya", "") is False
 
@@ -46,6 +54,9 @@ class _FakeOWW:
 
 
 def _engine_with_fake(monkeypatch, models, scores):
+    # These tests assert per-model DEFAULT thresholds, so isolate from any
+    # ZENDAYA_WAKE_THRESHOLD set in the developer's shell.
+    monkeypatch.delenv("ZENDAYA_WAKE_THRESHOLD", raising=False)
     monkeypatch.setattr(wake, "_OWW_AVAILABLE", True)
     fake = _FakeOWW()
     monkeypatch.setattr(wake, "_OWWModel", lambda **kw: fake)
