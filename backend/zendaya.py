@@ -4116,12 +4116,19 @@ if __name__ == "__main__":
         try:
             _state_server.start(
                 on_chat=_bridge_user_message,
+                on_chat_sync=_bridge_user_message_sync,
                 on_window_control=_window_control,
                 window_get_snapshot=(_wwatcher.get_snapshot if _wwatcher else None),
                 window_pop_events=(_wwatcher.pop_events if _wwatcher else None),
                 on_quit=request_shutdown,
             )
             print("🪟 State server: http://127.0.0.1:7475")
+            import os as _os
+            if _os.environ.get("ZENDAYA_MOBILE_TOKEN", "").strip():
+                _bh = _os.environ.get("ZENDAYA_BIND_HOST", "127.0.0.1")
+                print(f"📱 Mobile API ready at /api/v1 (bind {_bh}; token set).")
+            else:
+                print("📱 Mobile API disabled (set ZENDAYA_MOBILE_TOKEN in .env to enable).")
         except Exception as _ss_err:
             print(f"(State server unavailable: {_ss_err})")
 
