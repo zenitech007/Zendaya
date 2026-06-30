@@ -73,6 +73,12 @@ except Exception:
     def _vmem_retrieve(query, k=5, min_age_seconds=60.0): return []
     def _vmem_format(turns): return ""
 
+# Durable per-day conversation transcript (mobile history). Graceful degrade.
+try:
+    from memory import transcripts as _transcripts
+except Exception:
+    _transcripts = None
+
 if __name__ == "__main__":
     import sys as _sys_reg
     _sys_reg.modules.setdefault("zendaya", _sys_reg.modules["__main__"])
@@ -727,15 +733,32 @@ def capture_replies():
         _REPLY_CAPTURE.reset(token)
 
 
+_TURN_SOURCE: "contextvars.ContextVar[str]" = contextvars.ContextVar(
+    "zendaya_turn_source", default="desktop"
+)
+
+
+@contextlib.contextmanager
+def turn_source(name: str):
+    """Tag conversation turns recorded on this thread with a source label
+    ('desktop' or 'phone') so the transcript store can distinguish them."""
+    token = _TURN_SOURCE.set(name)
+    try:
+        yield
+    finally:
+        _TURN_SOURCE.reset(token)
+
+
 def _bridge_user_message_sync(msg: str) -> str:
     """Run the command handler and return the assistant's reply text
     (newline-joined). Empty string if the handler produced no reply."""
-    with capture_replies() as buf:
-        try:
-            handle_user_command(msg)
-        except Exception as e:
-            return f"[error: {e}]"
-    return "\n".join(buf)
+    with turn_source("phone"):
+        with capture_replies() as buf:
+            try:
+                handle_user_command(msg)
+            except Exception as e:
+                return f"[error: {e}]"
+        return "\n".join(buf)
 
 
 def send_response(text: str):
@@ -2677,6 +2700,11 @@ def add_to_memory(role: str, text: str):
     save_memory(MEM)
     try:
         _vmem_add(role, text)
+    except Exception:
+        pass
+    try:
+        if _transcripts is not None:
+            _transcripts.record(role, text, source=_TURN_SOURCE.get())
     except Exception:
         pass
 

@@ -38,3 +38,27 @@ def test_bridge_sync_returns_joined_reply(monkeypatch):
                         lambda msg: (z.send_response("first"), z.send_response("second")))
     out = z._bridge_user_message_sync("hi")
     assert out == "first\nsecond"
+
+
+def test_mobile_sync_path_tags_phone_source(monkeypatch):
+    import zendaya as z
+    from memory import transcripts
+    calls = []
+    monkeypatch.setattr(transcripts, "record",
+                        lambda role, text, source="desktop", **kw:
+                        calls.append((role, text, source)) or 1)
+    monkeypatch.setattr(z, "handle_user_command",
+                        lambda msg: z.add_to_memory("user", msg))
+    z._bridge_user_message_sync("hi from phone")
+    assert ("user", "hi from phone", "phone") in calls
+
+
+def test_desktop_turns_default_to_desktop_source(monkeypatch):
+    import zendaya as z
+    from memory import transcripts
+    calls = []
+    monkeypatch.setattr(transcripts, "record",
+                        lambda role, text, source="desktop", **kw:
+                        calls.append((role, text, source)) or 1)
+    z.add_to_memory("user", "typed at the PC")
+    assert ("user", "typed at the PC", "desktop") in calls
