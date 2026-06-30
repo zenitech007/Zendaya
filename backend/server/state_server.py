@@ -303,6 +303,8 @@ app.add_middleware(
 # Mobile API (Android app). Mounted here so all of app's machinery applies.
 from server.mobile_api import router as _mobile_router  # noqa: E402
 app.include_router(_mobile_router)
+from server.history_api import router as _history_router  # noqa: E402
+app.include_router(_history_router)
 
 # ── WebSocket broadcast machinery ──────────────────────
 _WS_CLIENTS: set = set()
