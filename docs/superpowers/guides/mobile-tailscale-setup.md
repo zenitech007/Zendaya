@@ -104,6 +104,21 @@ scans a QR code that encodes the connection details as JSON:
 A small helper to render that QR on the PC will ship with the Phase 1 backend
 additions. Until then, the token can be pasted into the app's settings manually.
 
+## History endpoints (Phase 1)
+
+Once the brain has had at least one conversation since Phase 1 shipped:
+
+    # List days that have any messages (newest first)
+    curl -H "Authorization: Bearer <TOKEN>" http://<HOST>:7475/api/v1/history/days
+    #   -> {"days":[{"day":"2026-06-30","count":12}, ...]}
+
+    # Full transcript for one day (oldest message first)
+    curl -H "Authorization: Bearer <TOKEN>" "http://<HOST>:7475/api/v1/history?day=2026-06-30"
+    #   -> {"day":"2026-06-30","messages":[{"id":1,"ts":"...","role":"user","text":"...","source":"phone"}, ...]}
+
+Transcripts persist to `backend/zendaya_data/conversations.db` (SQLite). Both
+desktop and phone turns are recorded; `source` distinguishes them.
+
 ## Troubleshooting
 
 - **Phone gets connection refused:** confirm Tailscale is connected on the phone
