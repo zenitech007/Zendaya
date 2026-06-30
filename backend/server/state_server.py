@@ -300,6 +300,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mobile API (Android app). Mounted here so all of app's machinery applies.
+from server.mobile_api import router as _mobile_router  # noqa: E402
+app.include_router(_mobile_router)
+
 # ── WebSocket broadcast machinery ──────────────────────
 _WS_CLIENTS: set = set()
 _WS_LOOP: Optional[asyncio.AbstractEventLoop] = None
