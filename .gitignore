@@ -431,3 +431,5 @@ graphify-out/
 
 # Spotify OAuth token cache — contains live access/refresh tokens, never commit
 zendaya_data/.spotify_token_cache
+# Pairing QR contains the mobile token - never commit
+backend/tools/pairing_qr.png
