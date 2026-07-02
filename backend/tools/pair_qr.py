@@ -48,19 +48,23 @@ def main() -> int:
 
     host = HOST
     if HOST in ("127.0.0.1", "localhost"):
-        print("WARNING: ZENDAYA_BIND_HOST is localhost — the phone cannot reach it.")
-        print("         Set it to 0.0.0.0 (or your Tailscale IP) and restart.")
-    elif HOST in ("0.0.0.0", "::"):
+        print("ERROR: ZENDAYA_BIND_HOST is localhost — the phone cannot reach it.")
+        print("       Set ZENDAYA_BIND_HOST=0.0.0.0 in .env and restart Zendaya.")
+        return 1
+    if HOST in ("0.0.0.0", "::"):
         # 0.0.0.0 means "bind all interfaces" — great for the server, but the
         # phone needs a concrete address. Put the Tailscale IP in the QR.
         ts = _tailscale_ip()
-        if ts:
-            host = ts
-            print(f"Resolved Tailscale IP for the QR: {ts}")
-        else:
-            print("WARNING: bind host is 0.0.0.0 but no Tailscale IP (100.x) was found.")
-            print("         Is Tailscale installed and connected on this PC?")
-            print("         The QR below uses 0.0.0.0, which the phone CANNOT connect to.")
+        if not ts:
+            print("ERROR: Tailscale is not connected on this PC (no 100.x address).")
+            print("       The phone reaches the brain over Tailscale, so:")
+            print("         1. Install Tailscale: https://tailscale.com/download/windows")
+            print("         2. Sign in (same account as the phone) and connect.")
+            print("         3. Re-run this pairing.")
+            print("       (Refusing to emit a 0.0.0.0 QR - the phone can't connect to it.)")
+            return 1
+        host = ts
+        print(f"Resolved Tailscale IP for the QR: {ts}")
 
     payload = json.dumps({"host": host, "port": PORT, "token": TOKEN})
     print("\nPairing payload:\n  " + payload + "\n")
